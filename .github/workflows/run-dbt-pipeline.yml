@@ -23,7 +23,7 @@ jobs:
   run_dbt_pipeline:
     name: Run DBT Pipeline
     runs-on:
-      - codebuild-sdp-example-project-transf-${{ github.run_id }}-${{ github.run_attempt }}
+      - dns-transformations-project-${{ github.run_id }}-${{ github.run_attempt }}
     environment: ${{ inputs.environment }}
     defaults:
       run:
