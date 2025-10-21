@@ -52,7 +52,7 @@ jobs:
         with:
           TYPE: "transformation-executed"
           ENVIRONMENT: ${{ inputs.environment }}
-          SERVICE_NAME: "sdp-example-project-transformations"
+          SERVICE_NAME: "dns-transformations-project"
           TRANSFORMATION_NAME: ${{ inputs.model_name }}
           TRIGGERED_BY_USERNAME: ${{ github.actor }}
           STATUS: ${{ job.status }}
