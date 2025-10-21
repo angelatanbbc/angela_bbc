@@ -9,8 +9,8 @@ on:
         type: choice
         description: Environment
         options:
-          - test
-        default: test
+          - Live
+        default: Live
         required: true
       model_name:
         type: choice
