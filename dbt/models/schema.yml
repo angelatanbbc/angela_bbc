@@ -1,0 +1,8 @@
+version: 2
+
+models:
+  - name: hello_world
+    description: A minimal test table with one row
+    columns:
+      - name: greeting
+        description: A test string column

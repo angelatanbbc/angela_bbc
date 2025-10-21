@@ -1,0 +1,9 @@
+name: test_project
+version: "1.0"
+profile: snowflake
+
+model-paths: ["models"]
+
+models:
+  test_project:
+    +materialized: table

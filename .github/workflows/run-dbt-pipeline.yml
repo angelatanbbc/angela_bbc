@@ -1,0 +1,59 @@
+name: Run DBT Pipeline
+
+on:
+  # schedule:
+  #   - cron: "*/5 * * * *"
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        description: Environment
+        options:
+          - test
+        default: test
+        required: true
+      model_name:
+        type: choice
+        description: Specifies the DBT model to target in commands (e.g., `dbt run --select hello_world`)
+        options:
+          - hello_world
+        required: true
+
+jobs:
+  run_dbt_pipeline:
+    name: Run DBT Pipeline
+    runs-on:
+      - codebuild-sdp-example-project-transf-${{ github.run_id }}-${{ github.run_attempt }}
+    environment: ${{ inputs.environment }}
+    defaults:
+      run:
+        working-directory: ./dbt
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Run DBT Task
+        uses: bbc/sdp-deployment-scripts/actions/run-dbt-task@main
+        with:
+          snowflake_account: ${{ vars.SNOWFLAKE_ACCOUNT }}
+          snowflake_machine_user: ${{ vars.SNOWFLAKE_MACHINE_USER }}
+          snowflake_role: ${{ vars.SNOWFLAKE_ROLE }}
+          snowflake_private_key_base64: ${{ secrets.SNOWFLAKE_CERT }}
+          snowflake_private_key_passphrase: ${{ secrets.SNOWFLAKE_CERT_PASS }}
+          snowflake_database: ${{ vars.SNOWFLAKE_DATABASE }}
+          snowflake_schema: ${{ vars.SNOWFLAKE_SCHEMA }}
+          snowflake_warehouse: ${{ vars.SNOWFLAKE_WAREHOUSE }}
+          dbt_args: run --select ${{ inputs.model_name }}
+
+      - name: Trigger Notification
+        uses: bbc/sdp-deployment-scripts/actions/trigger-notification@main
+        if: always()
+        with:
+          TYPE: "transformation-executed"
+          ENVIRONMENT: ${{ inputs.environment }}
+          SERVICE_NAME: "sdp-example-project-transformations"
+          TRANSFORMATION_NAME: ${{ inputs.model_name }}
+          TRIGGERED_BY_USERNAME: ${{ github.actor }}
+          STATUS: ${{ job.status }}
+          DEPLOYMENTS_API_KEY: ${{ secrets.DEPLOYMENTS_API_KEY }}
