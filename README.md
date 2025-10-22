@@ -1,4 +1,4 @@
-# DNS Transformations Project Transformations
+# DNS Transformations Project - Transformations
 
 This repository contains a minimal [dbt](https://docs.getdbt.com/) project and a GitHub Actions workflow that demonstrates how to:
 
