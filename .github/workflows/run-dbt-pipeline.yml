@@ -46,6 +46,32 @@ jobs:
           snowflake_warehouse: ${{ vars.SNOWFLAKE_WAREHOUSE }}
           dbt_args: run --select ${{ inputs.model_name }}
 
+      - name: Run DBT Tests
+        id: dbt_tests
+        uses: bbc/sdp-deployment-scripts/actions/run-dbt-task@main
+        with:
+          snowflake_account: ${{ vars.SNOWFLAKE_ACCOUNT }}
+          snowflake_machine_user: ${{ vars.SNOWFLAKE_MACHINE_USER }}
+          snowflake_role: ${{ vars.SNOWFLAKE_ROLE }}
+          snowflake_private_key_base64: ${{ secrets.SNOWFLAKE_CERT }}
+          snowflake_private_key_passphrase: ${{ secrets.SNOWFLAKE_CERT_PASS }}
+          snowflake_database: ${{ vars.SNOWFLAKE_DATABASE }}
+          snowflake_schema: ${{ vars.SNOWFLAKE_SCHEMA }}
+          snowflake_warehouse: ${{ vars.SNOWFLAKE_WAREHOUSE }}
+          dbt_args: test --select ${{ inputs.model_name }}
+
+      - name: Trigger Test Failure Notification
+        uses: bbc/sdp-deployment-scripts/actions/trigger-notification@main
+        if: failure() && steps.dbt_tests.conclusion == 'failure'
+        with:
+          TYPE: "transformation-executed"
+          ENVIRONMENT: ${{ inputs.environment }}
+          SERVICE_NAME: "dns-transformations-project-transformations"
+          TRANSFORMATION_NAME: "${{ inputs.model_name }} tests"
+          TRIGGERED_BY_USERNAME: ${{ github.actor }}
+          STATUS: "failure"
+          DEPLOYMENTS_API_KEY: ${{ secrets.DEPLOYMENTS_API_KEY }}
+
       - name: Trigger Notification
         uses: bbc/sdp-deployment-scripts/actions/trigger-notification@main
         if: always()
