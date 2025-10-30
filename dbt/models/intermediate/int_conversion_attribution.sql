@@ -1,11 +1,4 @@
-{{
-    config(
-        materialized="incremental",
-        unique_key='subscription_id',
-        incremental_strategy='merge',
-        on_schema_change='sync_all_columns'
-    )
-}}
+{{ config(materialized="view") }}
 
 WITH conversion_events AS (
 
@@ -26,10 +19,6 @@ WITH conversion_events AS (
         ab_test_variant_name,
         c1x_lts
     FROM {{ ref('stg_piano_events__conversions') }}
-    WHERE 1=1
-        {% if is_incremental() %}
-        AND event_time >= DATEADD(DAY, -1, (SELECT MAX(conversion_time) FROM {{ this }}))
-        {% endif %}
 
 ),
 

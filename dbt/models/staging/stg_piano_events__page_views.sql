@@ -1,4 +1,4 @@
-{{config(materialized="view")}}
+{{ config(materialized="view") }}
 
 SELECT
     event_id,

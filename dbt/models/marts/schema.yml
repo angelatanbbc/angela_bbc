@@ -1,6 +1,56 @@
 version: 2
 
 models:
+  - name: fact_page_views
+    description: This table contains page view events with relevant attributes.
+    columns:
+      - name: event_id
+        description: Piano unique identifier for the event.
+        tests:
+          - not_null
+          - unique
+      - name: event_time
+        description: Timestamp when the page view event occurred.
+        tests:
+          - not_null
+      - name: visit_id
+        description: Piano unique identifier for the visit associated with the page view event.
+        tests:
+          - not_null
+      - name: visitor_id
+        description: Piano unique identifier for the visitor.
+        tests:
+          - not_null
+      - name: user_id
+        description: Piano unique identifier for the registered user.
+        tests:
+          - not_null
+      - name: device_type
+        description: Type of device used during the page view event (e.g., mobile, desktop, tablet).
+        tests:
+          - not_null
+      - name: pageview_id
+        description: Piano unique identifier for the page view event.
+        tests:
+          - not_null
+          - unique
+      - name: page
+        description: URL of the page viewed.
+        tests:
+          - not_null
+      - name: page_title
+        description: Title of the page viewed.
+        tests:
+          - not_null
+      - name: page_content_type
+        description: Content type of the page viewed.
+        tests:
+          - not_null
+      - name: c1x_lts
+        description: LtS bucket of the visitor at the time of the page view.
+        tests:
+          - not_null
+  
   - name: fact_conversions
     description: This table contains correctly attributed conversion events with relevant attributes.
     columns:
@@ -53,5 +103,46 @@ models:
         description: A/B test variant name associated with the experience.
       - name: c1x_lts
         description: LtS bucket of the visitor at the time of conversion.
+        tests:
+          - not_null
+
+  - name: dim_visits
+    description: This table contains visit-level information for analysis.
+    columns:
+      - name: visit_id
+        description: Piano unique identifier for the visit.
+        tests:
+          - not_null
+          - unique
+      - name: visit_time
+        description: Timestamp when the visit started.
+        tests:
+          - not_null
+      - name: visitor_id
+        description: Piano unique identifier for the visitor.
+        tests:
+          - not_null
+      - name: user_id
+        description: Piano unique identifier for the registered user.
+        tests:
+          - not_null
+      - name: device_type
+        description: Type of device used during the visit (e.g., mobile, desktop, tablet).
+        tests:
+          - not_null
+      - name: src
+        description: Source of the visit (e.g., direct, referral, organic).
+        tests:
+          - not_null
+      - name: src_detail
+        description: Detailed source information for the visit.
+        tests:
+          - not_null
+      - name: first_event_time
+        description: Timestamp of the first event in the visit.
+        tests:
+          - not_null
+      - name: last_event_time
+        description: Timestamp of the last event in the visit.
         tests:
           - not_null
