@@ -13,7 +13,9 @@ SELECT
     page_content_type,
     event_url,
     card_name,
+    experience_id,
     experience_name,
+    template_id,
     CASE
         WHEN template_name = 'FINAL: The Gate - Default Template' THEN 'The Gate'
         WHEN template_name = 'FINAL: Ribbon - Default Template' AND experience_name = '004 - Ribbon' THEN 'Index Ribbon'
@@ -28,11 +30,15 @@ SELECT
     c1x_brand_relationship,
     c1x_checkout_abandonment,
     c1x_lts,
+    conversion_id,
     subscription_id,
     subscription_action,
     subscription_period_number,
     src,
-    src_detail
+    src_detail,
+    geo_country,
+    geo_region,
+    geo_city
 FROM {{source('studios_piano', 'studios_piano_events')}}
 WHERE 1=1
     AND event_time::DATE > '2025-06-25'

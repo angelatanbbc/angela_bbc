@@ -1,7 +1,7 @@
 {{
     config(
         materialized="incremental",
-        unique_key='subscription_id',
+        unique_key='conversion_id',
         incremental_strategy='merge',
         on_schema_change='sync_all_columns'
     )
@@ -10,12 +10,16 @@
 WITH conversion_events AS (
 
     SELECT
+        conversion_id,
         subscription_id,
         visitor_id,
         visit_id,
         user_id,
         visit_time,
         device_type,
+        geo_country,
+        geo_region,
+        geo_city,
         event_time AS conversion_time,
         billing_period,
         vx_promo_code,
@@ -62,12 +66,15 @@ joined AS (
 
     SELECT
         -- vx.conversion-specific properties
+        c.conversion_id,
         c.subscription_id,
         c.visitor_id,
         c.user_id,
         c.visit_id,
         c.visit_time,
         c.device_type,
+        c.geo_country,
+        c.geo_region,
         c.conversion_time,
         c.billing_period,
         c.vx_promo_code,
@@ -119,12 +126,15 @@ joined AS (
 attribution AS (
 
     SELECT
+        conversion_id,
         subscription_id,
         visitor_id,
         user_id,
         visit_id,
         visit_time,
         COALESCE(device_type, 'Unknown') AS device_type,
+        COALESCE(geo_country, 'Unknown') AS geo_country,
+        COALESCE(geo_region, 'Unknown') AS geo_region,
         conversion_time,
         COALESCE(billing_period, 'Unknown') AS billing_period,
         COALESCE(vx_promo_code, 'None') AS vx_promo_code,
