@@ -1,11 +1,4 @@
-{{
-    config(
-        materialized="incremental",
-        unique_key='conversion_id',
-        incremental_strategy='merge',
-        on_schema_change='sync_all_columns'
-    )
-}}
+{{ config(materialized="table") }}
 
 WITH conversion_events AS (
 
@@ -16,16 +9,14 @@ WITH conversion_events AS (
         visit_id,
         user_id,
         visit_time,
-        device_type,
-        geo_country,
-        geo_region,
-        geo_city,
         event_time AS conversion_time,
         billing_period,
         vx_promo_code,
         page,
         event_url,
+        experience_id,
         experience_name,
+        template_id,
         template_name,
         ab_test_variant_name,
         c1x_lts
@@ -72,27 +63,30 @@ joined AS (
         c.user_id,
         c.visit_id,
         c.visit_time,
-        c.device_type,
-        c.geo_country,
-        c.geo_region,
         c.conversion_time,
         c.billing_period,
         c.vx_promo_code,
 
         -- vx.conversion shared properties
+        c.experience_id AS conversion_experience_id,
         c.experience_name AS conversion_experience_name,
+        c.template_id AS conversion_template_id,
         c.template_name AS conversion_template_name,
         c.ab_test_variant_name AS conversion_ab_test_variant_name,
         c.c1x_lts AS conversion_c1x_lts,
 
         -- last experience.action relevant properties
+        a.experience_id AS action_experience_id,
         a.experience_name AS action_experience_name,
+        a.template_id AS action_template_id,
         a.template_name AS action_template_name,
         a.ab_test_variant_name AS action_ab_test_variant_name,
         a.c1x_lts AS action_c1x_lts,
         
         -- last experience.interaction relevant properties
+        i.experience_id AS interaction_experience_id,
         i.experience_name AS interaction_experience_name,
+        i.template_id AS interaction_template_id,
         i.template_name AS interaction_template_name,
         i.ab_test_variant_name AS interaction_ab_test_variant_name,
         i.c1x_lts AS interaction_c1x_lts,
@@ -132,27 +126,24 @@ attribution AS (
         user_id,
         visit_id,
         visit_time,
-        COALESCE(device_type, 'Unknown') AS device_type,
-        COALESCE(geo_country, 'Unknown') AS geo_country,
-        COALESCE(geo_region, 'Unknown') AS geo_region,
         conversion_time,
-        COALESCE(billing_period, 'Unknown') AS billing_period,
-        COALESCE(vx_promo_code, 'None') AS vx_promo_code,
+        billing_period,
+        vx_promo_code,
 
         -- If conversion is Landing Page and they clicked subscribe in build up, assume it's the Landing Page
         -- Else coalesce Interactions (for paywalls) and Actions (for ribbons) and Conversions (usually just LP standalone conversions)
         CASE
-            WHEN conversion_experience_name = '003 - Subscription Landing Page' AND clicked_subscribe THEN '003 - Subscription Landing Page'
-            ELSE COALESCE(interaction_experience_name, action_experience_name, '003 - Subscription Landing Page')
-        END AS experience_name,
+            WHEN conversion_experience_id = 'EX843FEP7H0N' AND clicked_subscribe THEN 'EX843FEP7H0N'
+            ELSE COALESCE(interaction_experience_id, action_experience_id, 'EX843FEP7H0N')
+        END AS experience_id,
         
         CASE
-            WHEN conversion_experience_name = '003 - Subscription Landing Page' AND clicked_subscribe THEN 'Subscription Landing Page'
-            ELSE COALESCE(interaction_template_name, action_template_name, 'Subscription Landing Page')
-        END AS template_name,
+            WHEN conversion_experience_id = 'EX843FEP7H0N' AND clicked_subscribe THEN 'OTSEA34UH0YZ'
+            ELSE COALESCE(interaction_template_id, action_template_id, 'OTSEA34UH0YZ')
+        END AS template_id,
 
-        COALESCE(action_ab_test_variant_name, 'None') AS ab_test_variant_name,
-        COALESCE(conversion_c1x_lts, interaction_c1x_lts, action_c1x_lts, 'Unknown') AS c1x_lts
+        COALESCE(conversion_ab_test_variant_name, interaction_ab_test_variant_name, action_ab_test_variant_name) AS ab_test_variant_name,
+        COALESCE(conversion_c1x_lts, interaction_c1x_lts, action_c1x_lts) AS c1x_lts
     FROM joined
 
 )

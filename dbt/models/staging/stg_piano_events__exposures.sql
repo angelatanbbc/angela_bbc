@@ -10,26 +10,18 @@ SELECT
     visit_time,
     visitor_id,
     user_id,
-    device_type,
-    pageview_id,
-    page,
-    page_content_type,
     event_url,
+    page,
     card_name,
+    experience_id,
     experience_name,
-    CASE
-        WHEN template_name = 'FINAL: The Gate - Default Template' THEN 'The Gate'
-        WHEN template_name = 'FINAL: Ribbon - Default Template' AND experience_name = '004 - Ribbon' THEN 'Index Ribbon'
-        WHEN template_name = 'FINAL: Ribbon - Default Template' AND experience_name = '006 - Watch Live News Meter' THEN 'Watch Live News Ribbon'
-        ELSE  template_name
-    END AS template_name,  -- TODO: Not sure we should be doing this mapping here, need to dicuss with team
+    template_id,
+    template_name,
     ab_test_variant_name,
     term_offer_name,
     c1x_brand_relationship,
     c1x_checkout_abandonment,
-    c1x_lts,
-    src,
-    src_detail
+    c1x_lts
 FROM {{source('studios_piano', 'studios_piano_events')}}
 WHERE 1=1
     AND event_time::DATE > '2025-06-25'
