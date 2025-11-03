@@ -12,11 +12,10 @@ on:
           - live
         default: live
         required: true
-      model_name:
-        type: choice
-        description: Specifies the DBT model to target in commands (e.g., `dbt run --select hello_world`)
-        options:
-          - hello_world
+      full_refresh:
+        type: boolean
+        description: Run with --full-refresh flag
+        default: false
         required: true
 
 jobs:
@@ -44,7 +43,7 @@ jobs:
           snowflake_database: ${{ vars.SNOWFLAKE_DATABASE }}
           snowflake_schema: ${{ vars.SNOWFLAKE_SCHEMA }}
           snowflake_warehouse: ${{ vars.SNOWFLAKE_WAREHOUSE }}
-          dbt_args: run --select ${{ inputs.model_name }}
+          dbt_args: ${{ inputs.full_refresh && 'run --full-refresh' || 'run' }}
 
       - name: Run DBT Tests
         id: dbt_tests
@@ -58,7 +57,7 @@ jobs:
           snowflake_database: ${{ vars.SNOWFLAKE_DATABASE }}
           snowflake_schema: ${{ vars.SNOWFLAKE_SCHEMA }}
           snowflake_warehouse: ${{ vars.SNOWFLAKE_WAREHOUSE }}
-          dbt_args: test --select ${{ inputs.model_name }}
+          dbt_args: test
 
       - name: Trigger Test Failure Notification
         uses: bbc/sdp-deployment-scripts/actions/trigger-notification@main
@@ -67,7 +66,7 @@ jobs:
           TYPE: "transformation-executed"
           ENVIRONMENT: ${{ inputs.environment }}
           SERVICE_NAME: "dns-transformations-project-transformations"
-          TRANSFORMATION_NAME: "${{ inputs.model_name }} tests"
+          TRANSFORMATION_NAME: "${{ inputs.full_refresh && 'full DAG tests (full-refresh)' || 'full DAG tests' }}"
           TRIGGERED_BY_USERNAME: ${{ github.actor }}
           STATUS: "failure"
           DEPLOYMENTS_API_KEY: ${{ secrets.DEPLOYMENTS_API_KEY }}
@@ -79,7 +78,7 @@ jobs:
           TYPE: "transformation-executed"
           ENVIRONMENT: ${{ inputs.environment }}
           SERVICE_NAME: "dns-transformations-project-transformations"
-          TRANSFORMATION_NAME: ${{ inputs.model_name }}
+          TRANSFORMATION_NAME: ${{ inputs.full_refresh && 'full DAG (full-refresh)' || 'full DAG' }}
           TRIGGERED_BY_USERNAME: ${{ github.actor }}
           STATUS: ${{ job.status }}
           DEPLOYMENTS_API_KEY: ${{ secrets.DEPLOYMENTS_API_KEY }}
