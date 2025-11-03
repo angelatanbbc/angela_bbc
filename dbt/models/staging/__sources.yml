@@ -1,0 +1,16 @@
+version: 2
+
+sources:
+  - name: studios_piano
+    database: sdp_silver
+    description: Source data from Piano, a web analytics and data collection platform (new organisation).
+    tables:
+      - name: studios_piano_events
+        description: Web events from Piano data collection platform.
+  - name: ps_piano
+    database: sdp_bronze
+    schema: piano
+    description: Source data from Piano, a web analytics and data collection platform (previous organisation).
+    tables:
+      - name: ps_piano_events
+        description: Web events from Piano data collection platform.

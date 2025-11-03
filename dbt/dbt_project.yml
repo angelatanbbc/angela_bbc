@@ -1,9 +1,9 @@
-name: test_project
+name: dns_transformations
 version: "1.0"
 profile: snowflake
 
 model-paths: ["models"]
 
 models:
-  test_project:
+  dns_transformations:
     +materialized: table

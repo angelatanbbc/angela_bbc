@@ -1,0 +1,132 @@
+version: 2
+
+models:
+  - name: fact_conversions
+    description: This table contains correctly attributed conversion events with relevant attributes.
+    columns:
+      - name: conversion_id
+        description: Piano unique identifier for the conversion event.
+        tests:
+          - not_null
+          - unique
+      - name: subscription_id
+        description: Identifier for the subscription associated with the conversion.
+        tests:
+          - not_null
+          - unique
+      - name: visitor_id
+        description: Piano unique identifier for the visitor.
+        tests:
+          - not_null
+      - name: user_id
+        description: Piano unique identifier for the registered user.
+        tests:
+          - not_null
+      - name: visit_id
+        description: Piano unique identifier for the visit associated with the conversion event.
+        tests:
+          - not_null
+      - name: visit_time
+        description: Timestamp of the visit associated with the conversion event.
+        tests:
+          - not_null
+      - name: conversion_time
+        description: Timestamp when the conversion event occurred.
+        tests:
+          - not_null
+      - name: billing_period
+        description: Billing period for the subscription (e.g., monthly, annual).
+        tests:
+          - not_null
+      - name: vx_promo_code
+        description: Promo code used during the conversion event, if any.
+      - name: experience_id
+        description: Identifier for the Composer experience that led to the conversion.
+        tests:
+          - not_null
+      - name: template_id
+        description: Identifier for the template used in the Composer experience.
+        tests:
+          - not_null
+      - name: ab_test_variant_name
+        description: A/B test variant name associated with the experience.
+      - name: c1x_lts
+        description: LtS bucket of the visitor at the time of conversion.
+  - name: fact_exposures
+    description: Daily-visitor level fact table capturing exposure events to Composer experiences.
+    columns:
+      - name: exposure_id
+        description: Surrogate key for the exposure event (combination of visit_id, experience_id, template_id, and ab_test_variant_name).
+        tests:
+          - not_null
+          - unique
+      - name: visit_id
+        description: Piano unique identifier for the visit associated with the exposure event.
+        tests:
+          - not_null
+      - name: visit_time
+        description: Timestamp of the visit associated with the exposure event.
+        tests:
+          - not_null
+      - name: visitor_id
+        description: Piano unique identifier for the visitor.
+        tests:
+          - not_null
+      - name: user_id
+        description: Piano unique identifier for the registered user.
+      - name: experience_id
+        description: Identifier for the Composer experience.
+        tests:
+          - not_null
+      - name: template_id
+        description: Identifier for the template used in the Composer experience.
+        tests:
+          - not_null
+      - name: ab_test_variant_name
+        description: A/B test variant name associated with the experience.
+      - name: first_shown_time
+        description: Timestamp of the first exposure event to the experience/template/ab_test_variant on that date.
+        tests:
+          - not_null
+      - name: last_shown_time
+        description: Timestamp of the last exposure event to the experience/template/ab_test_variant on that date.
+        tests:
+          - not_null
+      - name: count_exposures
+        description: Count of exposure events to the experience/template/ab_test_variant.
+        tests:
+          - not_null
+      - name: count_interactions
+        description: Count of interaction events with the experience/template/ab_test_variant.
+        tests:
+          - not_null
+  - name: dim_experience
+    description: Dimension table for Composer experiences.
+    columns:
+      - name: experience_id
+        description: Identifier for the Composer experience.
+        tests:
+          - not_null
+          - unique
+      - name: experience_name
+        description: Name of the Composer experience.
+        tests:
+          - not_null
+          - unique
+  - name: dim_template
+    description: Dimension table for Composer templates.
+    columns:
+      - name: template_id
+        description: Identifier for the template used in the Composer experience.
+        tests:
+          - not_null
+          - unique
+      - name: template_name
+        description: Template name of the Composer experience.
+        tests:
+          - not_null
+          - unique
+      - name: template_category
+        description: Category of the template (e.g., Paywall, Ribbon, Banner).
+        tests:
+          - not_null
