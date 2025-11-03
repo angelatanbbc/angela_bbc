@@ -1,0 +1,56 @@
+name: Run DBT Seed
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'dbt/seeds/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        description: Environment
+        options:
+          - live
+        default: live
+        required: true
+
+jobs:
+  run_dbt_seed:
+    name: Run DBT Seed
+    runs-on:
+      - codebuild-dns-transformations-project-${{ github.run_id }}-${{ github.run_attempt }}
+    environment: ${{ inputs.environment || 'live' }}
+    defaults:
+      run:
+        working-directory: ./dbt
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Run DBT Seed
+        uses: bbc/sdp-deployment-scripts/actions/run-dbt-task@main
+        with:
+          snowflake_account: ${{ vars.SNOWFLAKE_ACCOUNT }}
+          snowflake_machine_user: ${{ vars.SNOWFLAKE_MACHINE_USER }}
+          snowflake_role: ${{ vars.SNOWFLAKE_ROLE }}
+          snowflake_private_key_base64: ${{ secrets.SNOWFLAKE_CERT }}
+          snowflake_private_key_passphrase: ${{ secrets.SNOWFLAKE_CERT_PASS }}
+          snowflake_database: ${{ vars.SNOWFLAKE_DATABASE }}
+          snowflake_schema: ${{ vars.SNOWFLAKE_SCHEMA }}
+          snowflake_warehouse: ${{ vars.SNOWFLAKE_WAREHOUSE }}
+          dbt_args: seed
+
+      - name: Trigger Notification
+        uses: bbc/sdp-deployment-scripts/actions/trigger-notification@main
+        if: always()
+        with:
+          TYPE: "transformation-executed"
+          ENVIRONMENT: ${{ inputs.environment || 'live' }}
+          SERVICE_NAME: "dns-transformations-project-transformations"
+          TRANSFORMATION_NAME: "dbt seed"
+          TRIGGERED_BY_USERNAME: ${{ github.actor }}
+          STATUS: ${{ job.status }}
+          DEPLOYMENTS_API_KEY: ${{ secrets.DEPLOYMENTS_API_KEY }}

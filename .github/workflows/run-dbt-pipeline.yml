@@ -1,8 +1,8 @@
 name: Run DBT Pipeline
 
 on:
-  # schedule:
-  #   - cron: "*/5 * * * *"
+  schedule:
+    - cron: "0 3 * * *"
   workflow_dispatch:
     inputs:
       environment:
@@ -23,7 +23,7 @@ jobs:
     name: Run DBT Pipeline
     runs-on:
       - codebuild-dns-transformations-project-${{ github.run_id }}-${{ github.run_attempt }}
-    environment: ${{ inputs.environment }}
+    environment: ${{ inputs.environment || 'live' }}
     defaults:
       run:
         working-directory: ./dbt
@@ -43,7 +43,7 @@ jobs:
           snowflake_database: ${{ vars.SNOWFLAKE_DATABASE }}
           snowflake_schema: ${{ vars.SNOWFLAKE_SCHEMA }}
           snowflake_warehouse: ${{ vars.SNOWFLAKE_WAREHOUSE }}
-          dbt_args: ${{ inputs.full_refresh && 'run --full-refresh' || 'run' }}
+          dbt_args: ${{ (inputs.full_refresh == true) && 'run --full-refresh' || 'run' }}
 
       - name: Run DBT Tests
         id: dbt_tests
@@ -64,9 +64,9 @@ jobs:
         if: failure() && steps.dbt_tests.conclusion == 'failure'
         with:
           TYPE: "transformation-executed"
-          ENVIRONMENT: ${{ inputs.environment }}
+          ENVIRONMENT: ${{ inputs.environment || 'live' }}
           SERVICE_NAME: "dns-transformations-project-transformations"
-          TRANSFORMATION_NAME: "${{ inputs.full_refresh && 'full DAG tests (full-refresh)' || 'full DAG tests' }}"
+          TRANSFORMATION_NAME: "${{ (inputs.full_refresh == true) && 'full DAG tests (full-refresh)' || 'full DAG tests' }}"
           TRIGGERED_BY_USERNAME: ${{ github.actor }}
           STATUS: "failure"
           DEPLOYMENTS_API_KEY: ${{ secrets.DEPLOYMENTS_API_KEY }}
@@ -76,9 +76,9 @@ jobs:
         if: always()
         with:
           TYPE: "transformation-executed"
-          ENVIRONMENT: ${{ inputs.environment }}
+          ENVIRONMENT: ${{ inputs.environment || 'live' }}
           SERVICE_NAME: "dns-transformations-project-transformations"
-          TRANSFORMATION_NAME: ${{ inputs.full_refresh && 'full DAG (full-refresh)' || 'full DAG' }}
+          TRANSFORMATION_NAME: ${{ (inputs.full_refresh == true) && 'full DAG (full-refresh)' || 'full DAG' }}
           TRIGGERED_BY_USERNAME: ${{ github.actor }}
           STATUS: ${{ job.status }}
           DEPLOYMENTS_API_KEY: ${{ secrets.DEPLOYMENTS_API_KEY }}
