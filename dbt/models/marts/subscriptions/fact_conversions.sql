@@ -19,7 +19,11 @@ WITH conversion_events AS (
         template_id,
         template_name,
         ab_test_variant_name,
-        c1x_lts
+        c1x_lts,
+        term[0]['term_id2']::STRING AS term_id,
+        geo_country,
+        geo_region,
+        geo_city
     FROM {{ ref('stg_piano_events__conversions') }}
     WHERE 1=1
     {% if is_incremental() %}
@@ -64,8 +68,12 @@ joined AS (
         c.visit_id,
         c.visit_time,
         c.conversion_time,
+        c.term_id,
         c.billing_period,
         c.vx_promo_code,
+        c.geo_country,
+        c.geo_region,
+        c.geo_city,
 
         -- vx.conversion shared properties
         c.experience_id AS conversion_experience_id,
@@ -127,8 +135,12 @@ attribution AS (
         visit_id,
         visit_time,
         conversion_time,
+        term_id,
         billing_period,
         vx_promo_code,
+        geo_country,
+        geo_region,
+        geo_city,
 
         -- If conversion is Landing Page and they clicked subscribe in build up, assume it's the Landing Page
         -- Else coalesce Interactions (for paywalls) and Actions (for ribbons) and Conversions (usually just LP standalone conversions)

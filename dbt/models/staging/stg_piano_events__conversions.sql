@@ -18,6 +18,8 @@ SELECT
     template_id,
     template_name,
     ab_test_variant_name,
+    term,
+    term_offer_id,
     term_offer_name,
     billing_period,
     trial_duration,
@@ -28,7 +30,10 @@ SELECT
     conversion_id,
     subscription_id,
     subscription_action,
-    subscription_period_number
+    subscription_period_number,
+    geo_country,
+    geo_region,
+    geo_city
 FROM {{source('studios_piano', 'studios_piano_events')}}
 WHERE 1=1
     AND event_time::DATE > '2025-06-25'
