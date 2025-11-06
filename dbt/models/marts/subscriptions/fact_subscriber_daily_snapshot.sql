@@ -13,8 +13,7 @@ WITH subscription_events AS (
         billing_period,
         mrr_change_amount,
         subscription_period_number,
-        geo_country,
-        geo_region
+        geo_id
     FROM
         {{ ref('fact_subscription_events') }}
 
@@ -44,8 +43,7 @@ subscriber_states AS (
         event_type,
         term_id,
         billing_period,
-        geo_country,
-        geo_region,
+        geo_id,
         subscription_period_number,
         event_time AS valid_from_time,
 
@@ -70,7 +68,7 @@ subscriber_states AS (
 final_snapshot AS (
 
     SELECT
-        d.date_day AS date,
+        d.date_day,
         s.subscription_id,
 
         -- State attributes
@@ -78,8 +76,7 @@ final_snapshot AS (
         COALESCE(ss.term_id, 'N/A') AS term_id,
         COALESCE(ss.billing_period, 'N/A') AS billing_period,
         COALESCE(ss.subscription_period_number, 0) AS subscription_period_number,
-        COALESCE(ss.geo_country, 'N/A') AS geo_country,
-        COALESCE(ss.geo_region, 'N/A') AS geo_region,
+        COALESCE(ss.geo_id, 'N/A') AS geo_id,
 
         -- State measures
         COALESCE(ss.mrr_amount, 0) AS mrr_amount,
@@ -104,3 +101,4 @@ final_snapshot AS (
 
 SELECT *
 FROM final_snapshot
+WHERE date_day < CURRENT_DATE()

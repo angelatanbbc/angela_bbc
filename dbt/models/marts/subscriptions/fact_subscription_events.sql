@@ -19,6 +19,7 @@ WITH conversions AS (
 ),
 
 subs_actions AS (
+
     SELECT
         a.event_time::DATE AS event_date,
         a.subscription_action AS event_type,
@@ -38,6 +39,7 @@ subs_actions AS (
     FROM {{ ref('stg_piano_events__subscription_actions') }} a
     LEFT JOIN {{ ref('dim_term') }} t
         ON a.term[0]['term_id2']::STRING = t.term_id
+
 ),
 
 unioned AS (
@@ -53,14 +55,14 @@ unioned AS (
 ),
 
 geo AS (
+
     SELECT
         u.*,
-        c.geo_country,
-        c.geo_region,
-        c.geo_city
+        c.geo_id
     FROM unioned u
     LEFT JOIN {{ ref('fact_conversions') }} c
         ON u.subscription_id = c.subscription_id
+
 )
 
 
