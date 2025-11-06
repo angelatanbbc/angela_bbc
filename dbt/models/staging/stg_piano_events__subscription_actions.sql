@@ -2,9 +2,12 @@
 
 SELECT
     event_id,
+    event_name,
     event_time,
     user_id,
     site_id,
+    term,
+    term_offer_id,
     billing_period,
     trial_duration,
     subscription_id,
