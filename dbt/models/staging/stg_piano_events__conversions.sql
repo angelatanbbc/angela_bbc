@@ -31,6 +31,8 @@ SELECT
     subscription_id,
     subscription_action,
     subscription_period_number,
+    src,
+    src_detail,
     g.geo_id
 FROM {{source('studios_piano', 'studios_piano_events')}} e
 LEFT JOIN {{ ref('dim_geography') }} g
