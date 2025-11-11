@@ -20,6 +20,8 @@ WITH conversion_events AS (
         template_name,
         ab_test_variant_name,
         c1x_lts,
+        src,
+        src_detail,
         term[0]['term_id2']::STRING AS term_id,
         geo_id
     FROM {{ ref('stg_piano_events__conversions') }}
@@ -69,6 +71,8 @@ joined AS (
         c.term_id,
         c.billing_period,
         c.vx_promo_code,
+        c.src,
+        c.src_detail,
         c.geo_id,
 
         -- vx.conversion shared properties
@@ -134,6 +138,8 @@ attribution AS (
         term_id,
         billing_period,
         vx_promo_code,
+        src,
+        src_detail,
         geo_id,
 
         -- If conversion is Landing Page and they clicked subscribe in build up, assume it's the Landing Page
@@ -154,5 +160,8 @@ attribution AS (
 
 )
 
-SELECT *
-FROM attribution
+SELECT
+    a.* EXCLUDE (experience_id, template_id),
+    et.combination_id
+FROM attribution a
+LEFT JOIN {{ ref('dim_experience_template') }} et USING (experience_id, template_id)

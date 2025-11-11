@@ -1,12 +1,3 @@
-{{
-    config(
-        materialized="incremental",
-        unique_key=['date', 'visitor_id'],
-        incremental_strategy='merge',
-        on_schema_change='sync_all_columns'
-    )
-}}
-
 SELECT DISTINCT
     visit_time::DATE AS date,
     visitor_id
