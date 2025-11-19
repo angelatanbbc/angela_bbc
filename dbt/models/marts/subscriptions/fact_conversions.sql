@@ -11,13 +11,12 @@ WITH conversion_events AS (
         visit_time,
         event_time AS conversion_time,
         billing_period,
+        cart_turnovertaxfree,
         vx_promo_code,
         page,
         event_url,
         experience_id,
-        experience_name,
         template_id,
-        template_name,
         ab_test_variant_name,
         c1x_lts,
         src,
@@ -71,31 +70,26 @@ joined AS (
         c.term_id,
         c.billing_period,
         c.vx_promo_code,
+        c.cart_turnovertaxfree,
         c.src,
         c.src_detail,
         c.geo_id,
 
         -- vx.conversion shared properties
         c.experience_id AS conversion_experience_id,
-        c.experience_name AS conversion_experience_name,
         c.template_id AS conversion_template_id,
-        c.template_name AS conversion_template_name,
         c.ab_test_variant_name AS conversion_ab_test_variant_name,
         c.c1x_lts AS conversion_c1x_lts,
 
         -- last experience.action relevant properties
         a.experience_id AS action_experience_id,
-        a.experience_name AS action_experience_name,
         a.template_id AS action_template_id,
-        a.template_name AS action_template_name,
         a.ab_test_variant_name AS action_ab_test_variant_name,
         a.c1x_lts AS action_c1x_lts,
         
         -- last experience.interaction relevant properties
         i.experience_id AS interaction_experience_id,
-        i.experience_name AS interaction_experience_name,
         i.template_id AS interaction_template_id,
-        i.template_name AS interaction_template_name,
         i.ab_test_variant_name AS interaction_ab_test_variant_name,
         i.c1x_lts AS interaction_c1x_lts,
 
@@ -138,6 +132,7 @@ attribution AS (
         term_id,
         billing_period,
         vx_promo_code,
+        cart_turnovertaxfree,
         src,
         src_detail,
         geo_id,
@@ -161,7 +156,6 @@ attribution AS (
 )
 
 SELECT
-    a.* EXCLUDE (experience_id, template_id),
-    et.combination_id
+    a.*,
+    {{ dbt_utils.generate_surrogate_key(['experience_id', 'template_id']) }} AS combination_id
 FROM attribution a
-LEFT JOIN {{ ref('dim_experience_template') }} et USING (experience_id, template_id)
