@@ -100,33 +100,4 @@ models:
         description: Count of interaction events with the experience/template/ab_test_variant.
         tests:
           - not_null
-  - name: dim_experience
-    description: Dimension table for Composer experiences.
-    columns:
-      - name: experience_id
-        description: Identifier for the Composer experience.
-        tests:
-          - not_null
-          - unique
-      - name: experience_name
-        description: Name of the Composer experience.
-        tests:
-          - not_null
-          - unique
-  - name: dim_template
-    description: Dimension table for Composer templates.
-    columns:
-      - name: template_id
-        description: Identifier for the template used in the Composer experience.
-        tests:
-          - not_null
-          - unique
-      - name: template_name
-        description: Template name of the Composer experience.
-        tests:
-          - not_null
-          - unique
-      - name: template_category
-        description: Category of the template (e.g., Paywall, Ribbon, Banner).
-        tests:
-          - not_null
+
