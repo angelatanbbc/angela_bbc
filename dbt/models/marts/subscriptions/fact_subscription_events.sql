@@ -1,7 +1,7 @@
 {{
     config(
         materialized="incremental",
-        unique_key=['event_date', 'event_type', 'subscription_id'],
+        unique_key=['subscription_action_id'],
         incremental_strategy='merge',
         on_schema_change='sync_all_columns'
     )
@@ -64,6 +64,7 @@ unioned AS (
 mrr AS (
 
     SELECT
+        {{ dbt_utils.generate_surrogate_key(['subscription_id', 'event_time', 'event_type'], 'subscription_action_id') }},
         *,
         LAG(transaction_value) IGNORE NULLS OVER (
             PARTITION BY subscription_id
