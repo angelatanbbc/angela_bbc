@@ -74,12 +74,8 @@ models:
           - not_null
       - name: user_id
         description: Piano unique identifier for the registered user.
-      - name: experience_id
-        description: Identifier for the Composer experience.
-        tests:
-          - not_null
-      - name: template_id
-        description: Identifier for the template used in the Composer experience.
+      - name: combination_id
+        description: Identifier for the Composer Experience/Template combination.
         tests:
           - not_null
       - name: ab_test_variant_name
@@ -100,4 +96,3 @@ models:
         description: Count of interaction events with the experience/template/ab_test_variant.
         tests:
           - not_null
-
