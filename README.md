@@ -1,105 +1,143 @@
 # DNS Transformations Project - Transformations
 
-This repository contains a minimal [dbt](https://docs.getdbt.com/) project and a GitHub Actions workflow that demonstrates how to:
+This repository contains the dbt project for transforming Piano analytics data into a structured dimensional model, ready for analysis. The primary goal is to model user behavior, subscription events, and exposure to on-site experiences.
 
-- Connect securely to Snowflake using a machine user and certificate-based authentication
-- Run `dbt` commands in CI/CD via a reusable composite GitHub Action
-- Materialise a simple `hello_world` table in Snowflake to confirm end-to-end connectivity
+## 📈 The Data Model
 
-It can be used as a template or reference for setting up your own DBT automation.
+This dbt project follows a layered data modeling approach to systematically progress data from its raw source format to clean, well-documented, and analysis-ready tables.
 
-## 🛠️ Setting Up Your Own Project
+The layers are organized as follows:
 
-Pre-requisite: Ensure you have a project sandbox created.
+1.  **Staging (`models/staging`)**: Models in this layer perform light-touch cleaning of the source data. This includes column renaming, type casting, and basic transformations to create a consistent foundation for downstream models. Each staging model generally corresponds to a single source table.
 
-- You can request a new project sandbox via the form available here: [Project Sandbox Request Form](<https://onebbc.sharepoint.com/sites/bbcs-CommercialDataProducts/SitePages/Request-for-Collaborative-Space(1).aspx?csf=1&web=1&e=txQzic&CID=6c69eb9a-e146-45dc-8c11-3851314126e1>)
+2.  **Intermediate (`models/intermediate`)**: This layer contains more complex transformations. Models here often join multiple staging models, apply business logic, and aggregate data to create building blocks for the final mart tables. For example, user sessions might be reconstructed here.
 
-You have two options to get started:
+3.  **Marts (`models/marts`)**: These are the final, user-facing models. They are designed for specific business purposes and are structured as fact and dimension tables. These tables are what data consumers (analysts, data scientists, BI tools) will query directly.
 
-### Option 1: Use this repository as a template
+### Data Flow Diagram
 
-1. Click **"Use this template"** in the top-right corner of the repository.
-2. Create your own copy under your GitHub account or organisation.
-3. Add `Studios Data Platform` as admins to the repository. This will allow us to input the [🔐 Required GitHub Secrets](#-required-github-secrets).
-4. Request the Studios Data Platform Team to create a GitHub runner for the repository.
-5. Add your own DBT files and models to the `dbt/` directory.
-6. Modify the workflow file if needed: `.github/workflows/run_dbt_pipeline.yml`.
-7. Trigger the workflow manually or via a schedule.
+Here is a high-level overview of the data flow through the dbt project:
 
-### Option 2: Copy parts into an existing repository
+```mermaid
+graph TD
+    subgraph Raw Sources
+        A[src_studios_piano_events]
+        B[src_ps_piano_events]
+    end
 
-1. Add `Studios Data Platform` as admins to the repository. This will allow us to input the [🔐 Required GitHub Secrets](#-required-github-secrets).
-2. Request the Studios Data Platform Team to create a GitHub runner for the repository.
-3. Copy the `dbt/` directory and its contents into your repository.
-4. Add your DBT models and project files under `dbt/`.
-5. Copy `.github/workflows/run_dbt_pipeline.yml` into your repo’s workflows directory.
-6. Ensure you are referencing the `run-dbt-task/` in order to reuse the modular job logic.
-7. Trigger the workflow manually or via a schedule.
+    subgraph Staging Layer
+        C(stg_piano_events)
+    end
 
-> ✅ The only hard requirement is that your DBT project lives under a `dbt/` directory so that the workflow and composite action can locate it.
+    subgraph Intermediate Layer
+        D(int_sessionized_events)
+        E(int_subscription_lifecycle)
+    end
 
-## 📁 Project Structure
+    subgraph Marts Layer
+        F[dim_users]
+        G[dim_visits]
+        H[dim_experiences]
+        I[fact_conversions]
+        J[fact_exposures]
+        K[fact_subscription_events]
+    end
 
-```
-├── dbt/
-│   ├── dbt_project.yml          # DBT project config
-│   └── models/
-│       ├── hello_world.sql      # Simple test model that creates a table
-│       └── schema.yml           # (Optional) Metadata for the model
-├── .github/
-│   └── workflows/
-│       └── run_dbt_pipeline.yml # Workflow that triggers the DBT job
-```
-
-## 🚀 How it works
-
-The GitHub Actions workflow (`run_dbt_pipeline.yml`) uses a composite action (`run-dbt-task`) that performs the following steps:
-
-1. Sets up a valid `profiles.yml` for Snowflake authentication using a base64-encoded private key
-2. Installs `dbt` and dependencies
-3. Runs `dbt parse` and `dbt debug` to validate the project and connection
-4. Executes a `dbt run` to create a simple test table
-
-## 🔐 Required GitHub Secrets
-
-To securely authenticate with Snowflake, the following repository secrets must be defined:
-
-| Secret                   | Description                                             |
-| ------------------------ | ------------------------------------------------------- |
-| `SNOWFLAKE_ACCOUNT`      | Snowflake account identifier (e.g. `xy12345.eu-west-1`) |
-| `SNOWFLAKE_MACHINE_USER` | Machine user name                                       |
-| `SNOWFLAKE_ROLE`         | Role to execute the DBT job with                        |
-| `SNOWFLAKE_CERT`         | Base64-encoded private key (`.p8` file)                 |
-| `SNOWFLAKE_CERT_PASS`    | Passphrase for the private key                          |
-| `SNOWFLAKE_DATABASE`     | Target database                                         |
-| `SNOWFLAKE_WAREHOUSE`    | Target warehouse                                        |
-| `SNOWFLAKE_SCHEMA`       | Target schema                                           |
-| `DEPLOYMENTS_API_KEY`    | API key for the deployments api for notifications       |
-
-## 🧪 The Test Model: `hello_world`
-
-This project contains a single DBT model located at `dbt/models/hello_world.sql`:
-
-```sql
--- hello_world.sql
-select 'hello world' as greeting
+    A --> C
+    B --> C
+    C --> D
+    C --> E
+    D --> G
+    D --> I
+    D --> J
+    E --> K
+    I --> F
+    J --> F
+    I --> G
+    J --> G
+    I --> H
+    J --> H
 ```
 
-When the workflow runs, this model is materialised as a table in your configured Snowflake schema:
+### Dimensional Model
 
-```sql
--- Example output:
-select * from <DATABASE>.<SCHEMA>.hello_world;
+The marts layer is organized as a dimensional model to facilitate analytics on key business processes. The core components are fact tables, which store events and metrics, and dimension tables, which provide descriptive context.
 
--- Result:
-| greeting     |
-|--------------|
-| hello world  |
+#### Fact Tables
+
+- `fact_conversions`: An event-based fact table where each row represents a single subscription conversion. It captures key details about the conversion, such as the promo code used, billing period, and the Composer experience that drove it.
+- `fact_exposures`: A daily snapshot fact table that aggregates user exposures to Composer experiences. It counts the number of times a user was exposed to or interacted with a specific A/B test variant on a given day.
+- `fact_subscription_events`: An event-based fact table that logs the entire lifecycle of a subscription. It includes events like 'New Subscription', 'Canceled', and 'Expired', which is crucial for churn and survival analysis.
+
+#### Dimension Tables
+
+While not explicitly defined in the provided files, the fact tables are designed to be joined with dimension tables such as:
+
+- `dim_users`: Contains information about registered users.
+- `dim_visits`: Contains details about a user's visit (session), such as start time and landing page.
+- `dim_experiences`: A dimension for Composer experiences, containing details about the experience, template, and A/B test variant.
+
+### Marts Schema Diagram
+
+The relationship between the core fact and dimension tables can be visualized as a star schema.
+
+```mermaid
+erDiagram
+    fact_conversions {
+        string conversion_id PK
+        string subscription_id FK
+        string visitor_id FK
+        string user_id FK
+        string visit_id FK
+        string experience_id FK
+        timestamp conversion_time
+        string billing_period
+    }
+    fact_exposures {
+        string exposure_id PK
+        string visit_id FK
+        string visitor_id FK
+        string user_id FK
+        string experience_id FK
+        date exposure_date
+        int count_exposures
+        int count_interactions
+    }
+    dim_users {
+        string user_id PK
+        string visitor_id
+        string c1x_lts
+    }
+    dim_visits {
+        string visit_id PK
+        string visitor_id
+        timestamp visit_time
+    }
+    dim_experiences {
+        string experience_id PK
+        string template_id
+        string ab_test_variant_name
+    }
+
+    fact_conversions }o--|| dim_users : "by"
+    fact_conversions }o--|| dim_visits : "during"
+    fact_conversions }o--|| dim_experiences : "driven by"
+
+    fact_exposures }o--|| dim_users : "by"
+    fact_exposures }o--|| dim_visits : "during"
+    fact_exposures }o--|| dim_experiences : "of"
 ```
 
-## ✅ Running the Workflow
+## 🔬 Analyses
 
-You can trigger the pipeline in two ways:
+The `analyses/` directory contains exploratory queries and scripts that leverage the mart tables. An example is `survival_data.sql`, which uses `fact_subscription_events` to prepare data for a subscriber survival analysis, calculating tenure duration and churn status for each subscription.
 
-- Manually: via the "Run workflow" button in the GitHub Actions tab
-- Scheduled: via cron specified within the workflow, for example: every day at 2:00 AM UTC - (`0 2 * * *`)
+## ⚙️ Development
+
+To run this dbt project locally, ensure you have a `profiles.yml` file configured for your Snowflake connection. Refer to the dbt documentation for setup instructions.
+
+Key commands:
+
+- `dbt run`: Executes all models.
+- `dbt test`: Runs all data and schema tests.
+- `dbt build`: Runs models and tests.
