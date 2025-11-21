@@ -1,0 +1,16 @@
+snowflake: 
+  target: snowflake
+  outputs:
+    snowflake:
+      type: snowflake
+      account: bbcstudios.eu-west-1
+      # # User/password auth
+      user: raj.subash@bbc.com
+      
+      
+      authenticator: externalbrowser
+      
+      role: DNS_TRANSFORMATIONS_PROJECT_TRANSFORMATIONS
+      database: SDP_PROJECT_SANDBOX
+      warehouse: DNS_TRANSFORMATIONS_PROJECT_TRANSFORMATIONS_GENERAL_MD_WH
+      schema: DNS_TRANSFORMATIONS

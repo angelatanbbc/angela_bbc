@@ -64,7 +64,7 @@ unioned AS (
 mrr AS (
 
     SELECT
-        {{ dbt_utils.generate_surrogate_key(['subscription_id', 'event_time', 'event_type'], 'subscription_action_id') }},
+        {{ dbt_utils.generate_surrogate_key(['subscription_id', 'event_time', 'event_type']) }} AS subscription_action_id,
         *,
         LAG(transaction_value) IGNORE NULLS OVER (
             PARTITION BY subscription_id
