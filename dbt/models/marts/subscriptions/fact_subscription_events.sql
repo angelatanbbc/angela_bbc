@@ -42,6 +42,8 @@ subs_actions AS (
     FROM {{ ref('stg_piano_events__subscription_actions') }} a
     LEFT JOIN {{ ref('dim_term') }} t
         ON a.term[0]['term_id2']::STRING = t.term_id
+    JOIN {{ ref('fact_conversions') }} fc
+        ON a.subscription_id = fc.subscription_id
     WHERE 1=1
     {% if is_incremental() %}
         AND a.event_time::DATE >= DATEADD(DAY, -1, (SELECT MAX(event_date) FROM {{ this }}))
@@ -64,7 +66,7 @@ unioned AS (
 mrr AS (
 
     SELECT
-        {{ dbt_utils.generate_surrogate_key(['subscription_id', 'event_time', 'event_type'], 'subscription_action_id') }},
+        {{ dbt_utils.generate_surrogate_key(['subscription_id', 'event_time', 'event_type']) }} AS subscription_action_id,
         *,
         LAG(transaction_value) IGNORE NULLS OVER (
             PARTITION BY subscription_id
