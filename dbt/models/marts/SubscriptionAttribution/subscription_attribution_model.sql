@@ -6,7 +6,7 @@ WITH attribution_distribution AS (
         attribution_source,
         SUM(position_weight) as total_weight,
         SUM(position_weight) / SUM(SUM(position_weight)) OVER () as proportion
-    FROM {{ ref('stg_subscription_attribution') }}
+    FROM {{ ref('int_subscription_attribution') }}
     WHERE attribution_source IS NOT NULL
     and attribution_source !='Paid'
     GROUP BY attribution_source
