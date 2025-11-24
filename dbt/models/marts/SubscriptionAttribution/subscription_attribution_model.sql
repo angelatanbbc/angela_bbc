@@ -34,7 +34,7 @@ staging_with_random AS (
         -- UNIFORM(0::FLOAT, 1::FLOAT, RANDOM()) as random_value,
         UNIFORM(0::FLOAT, 1::FLOAT, HASH(VISITOR_ID, EVENT_DATE, EVENT_URL_FULL)) AS random_value
 
-    FROM {{ ref('stg_subscription_attribution') }}
+    FROM {{ ref('int_subscription_attribution') }}
 ),
 
 final as (
