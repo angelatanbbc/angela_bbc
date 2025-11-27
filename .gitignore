@@ -6,3 +6,6 @@ dbt_internal_packages/
 
 # macOS
 .DS_Store
+
+profiles.yml
+.user.yml
