@@ -14,3 +14,12 @@ sources:
     tables:
       - name: ps_piano_events
         description: Web events from Piano data collection platform.
+  - name: FACEBOOK_ADS
+    database: sdp_bronze
+    schema: FACEBOOK_ADS
+    description: Source data from Piano, a web analytics and data collection platform (previous organisation).
+    tables:
+      - name: basic_ad
+        description: facebook ad data.
+  
+
