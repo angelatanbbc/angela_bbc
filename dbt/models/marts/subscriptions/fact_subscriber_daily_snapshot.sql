@@ -97,8 +97,39 @@ final_snapshot AS (
         AND d.day_end_timestamp >= ss.valid_from_time
         AND (d.day_end_timestamp < ss.valid_to_time OR ss.valid_to_time IS NULL)
 
+),
+
+lifetime_metrics AS (
+
+    SELECT
+        fs.*,
+        c.conversion_date,
+
+        -- Days/Months since conversion
+        DATEDIFF(DAY, c.conversion_date, fs.date_day) AS days_since_conversion,
+        -- Calculate months relative to signup date, not calendar months
+        -- Handles month-end edge cases (e.g., signup on Jan 31, anniversary on Feb 28)
+        DATEDIFF(MONTH, c.conversion_date, fs.date_day)
+            - CASE
+                WHEN DAY(fs.date_day) < DAY(c.conversion_date)
+                    AND DAY(fs.date_day) < DAY(LAST_DAY(fs.date_day)) THEN 1
+                ELSE 0
+            END AS months_since_conversion
+
+    FROM final_snapshot fs
+
+    LEFT JOIN (
+        SELECT
+            subscription_id,
+            MIN(event_date) AS conversion_date
+        FROM subscription_events
+        WHERE event_type = 'New Subscription'
+        GROUP BY subscription_id
+    ) c
+    ON fs.subscription_id = c.subscription_id
+
 )
 
 SELECT *
-FROM final_snapshot
-WHERE date_day < CURRENT_DATE()
+FROM lifetime_metrics
+ORDER BY subscription_id, date_day

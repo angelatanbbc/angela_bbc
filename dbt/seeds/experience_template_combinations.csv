@@ -1,0 +1,30 @@
+﻿combination_name,group_name_l1,group_name_l2,experience_id,experience_name,template_id,template_name
+LtS Article Ribbon,Ribbon,Article Ribbon,EXG3MDS8M85G,002 - LTs based paywall,OT7QYTJG5DPX,Article Ribbon
+LtS Subs Landing Page (LFV),LtS Paywall,LtS Gate,EXG3MDS8M85G,002 - LTs based paywall,OT65ES0C3KHI,LFV Launch - Subscription Landing Page
+LtS Subs Landing Page,LtS Paywall,LtS Gate,EXG3MDS8M85G,002 - LTs based paywall,OTSEA34UH0YZ,Subscription Landing Page
+LtS Gate,LtS Paywall,LtS Gate,EXG3MDS8M85G,002 - LTs based paywall,OTU49AQVZFA3,The Gate
+Metered Paywall Ribbon,Ribbon,Article Ribbon,EXG9UWV2PME4,002 - Metered Paywall [with A/B test],OT7QYTJG5DPX,Article Ribbon
+Metered Paywall Subs Landing Page (LFV),Metered Paywall,Metered Gate,EXG9UWV2PME4,002 - Metered Paywall [with A/B test],OT65ES0C3KHI,LFV Launch - Subscription Landing Page
+Metered Paywall Registration Modal,Registration Modal,Metered Registration Modal,EXG9UWV2PME4,002 - Metered Paywall [with A/B test],OTVNGUND324P,Regwall | Message Only
+Metered Paywall Subs Landing Page,Metered Paywall,Metered Gate,EXG9UWV2PME4,002 - Metered Paywall [with A/B test],OTSEA34UH0YZ,Subscription Landing Page
+Metered Paywall Gate,Metered Paywall,Metered Gate,EXG9UWV2PME4,002 - Metered Paywall [with A/B test],OTU49AQVZFA3,The Gate
+Subs Landing Page (LFV),Subscription Landing Page,Subscription Landing Page,EX843FEP7H0N,003 - Subscription Landing Page,OT65ES0C3KHI,LFV Launch - Subscription Landing Page
+Subs Landing Page,Subscription Landing Page,Subscription Landing Page,EX843FEP7H0N,003 - Subscription Landing Page,OTSEA34UH0YZ,Subscription Landing Page
+Index Ribbon,Ribbon,Index Ribbon,EX3P36B6YNCT,004 - Ribbon,OTH6KUW51OTD,Index Ribbon
+Watch Live News Ribbon,Ribbon,Watch Live News Ribbon,EXW21IPC1FZM,006 - Watch Live News Meter,OTH6KUW51OTD,Index Ribbon
+Watch Live News Subs Landing Page (LFV),Watch Live News,Watch Live News Gate,EXW21IPC1FZM,006 - Watch Live News Meter,OT65ES0C3KHI,LFV Launch - Subscription Landing Page
+Watch Live News Subs Landing Page,Watch Live News,Watch Live News Gate,EXW21IPC1FZM,006 - Watch Live News Meter,OTSEA34UH0YZ,Subscription Landing Page
+Watch Live News Gate,Watch Live News,Watch Live News Gate,EXW21IPC1FZM,006 - Watch Live News Meter,OTU49AQVZFA3,The Gate
+LFV Gate (Default Template),LFV,LFV Episode Gate,EXR2NCKX82X6,007 - Long Form Video V1,OTU3AIQ08TXG,LFV - The Gate - Default Template
+LFV Subs Landing Page (Launch),LFV,LFV Episode Gate,EXR2NCKX82X6,007 - Long Form Video V1,OT65ES0C3KHI,LFV Launch - Subscription Landing Page
+LFV Gate,LFV,LFV Episode Gate,EXR2NCKX82X6,007 - Long Form Video V1,OTBX4I03JZ9B,LFV: The Gate
+LFV Subs Landing Page,LFV,LFV Episode Gate,EXR2NCKX82X6,007 - Long Form Video V1,OTSEA34UH0YZ,Subscription Landing Page
+LFV Non-Subscribed Context Setter,LFV,LFV Index Banner,EXSH4K1PT5M9,008 - LFV Web Context Setter,OTF99C0R5AYF,LFV Non-subscribed Context Setter
+LFV Subscribed User Context Setter,LFV,LFV Index Banner,EXSH4K1PT5M9,008 - LFV Web Context Setter,OTVRWD2QQR0U,LFV Subscribed User Context Setter
+LFV Launch Model Anonymous ,LFV,LFV Intro Modal,EXPS2540WS3T,009 - LFV Intro Modal,OTD40U0IYVQX,LFV Launch Modal Anonymous Users
+LFV Launch Model Registered,LFV,LFV Intro Modal,EXPS2540WS3T,009 - LFV Intro Modal,OTV6USCSLUB8,LFV Launch Modal Non-Subscribers
+LFV Launch Model Subscribed ,LFV,LFV Intro Modal,EXPS2540WS3T,009 - LFV Intro Modal,OT4QH5JK6TPA,LFV Launch Modal Subscriber
+LFV Ribbon (White Background),Ribbon,LFV Video Ribbon,EXHINOKW33R7,015 - LFV Ribbon - White Background,OTYEBIHZLQ48,Ribbon - LFV white background
+LFV Ribbon (Black Background),Ribbon,LFV Audio Ribbon,EXBEZ81EICOK,016 - LFV Ribbon - Black Background,OT55XDN9YJEE,Ribbon - LFV black background
+Temp Metered Paywall Subs Landing Page,Metered Paywall,Metered Gate,EX5OPSDRC7HO,000 - Temp metered paywall while LTs is down,OT65ES0C3KHI,LFV Launch - Subscription Landing Page
+Temp Metered Paywall Gate,Metered Paywall,Metered Gate,EX5OPSDRC7HO,000 - Temp metered paywall while LTs is down,OTU49AQVZFA3,The Gate

@@ -16,8 +16,7 @@ WITH exposures AS (
         visit_time,
         visitor_id,
         user_id,
-        experience_id,
-        template_id,
+        {{ dbt_utils.generate_surrogate_key(['experience_id', 'template_id']) }} AS combination_id,
         ab_test_variant_name,
         
         -- Time
@@ -28,7 +27,7 @@ WITH exposures AS (
         COUNT_IF(event_name = 'experience.action') AS count_exposures,
         COUNT_IF(event_name = 'experience.interaction') AS count_interactions
 
-    FROM {{ ref('stg_piano_events__exposures') }}
+    FROM {{ ref('stg_piano_events__exposures') }} e
     WHERE
         event_name IN ('experience.action', 'experience.interaction')
         AND template_name != 'Outside Region Error Message'

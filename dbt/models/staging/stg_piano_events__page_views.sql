@@ -50,7 +50,7 @@ SELECT
     page_title,
     page_content_type,
     event_url,
-    c1x_lts,
+    c1x_lts
 
 FROM {{ source('studios_piano', 'studios_piano_events') }}
 WHERE 1=1

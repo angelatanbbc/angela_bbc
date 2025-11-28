@@ -24,6 +24,7 @@ SELECT
     billing_period,
     trial_duration,
     vx_promo_code,
+    cart_turnovertaxfree,
     c1x_brand_relationship,
     c1x_checkout_abandonment,
     c1x_lts,
@@ -31,8 +32,10 @@ SELECT
     subscription_id,
     subscription_action,
     subscription_period_number,
+    src,
+    src_detail,
     g.geo_id
-FROM {{source('studios_piano', 'studios_piano_events')}} e
+FROM {{ source('studios_piano', 'studios_piano_events') }} e
 LEFT JOIN {{ ref('dim_geography') }} g
     ON LOWER(e.geo_country) = LOWER(g.geo_country)
     AND LOWER(e.geo_region) = LOWER(g.geo_region)

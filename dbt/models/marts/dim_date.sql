@@ -90,4 +90,5 @@ date_dimension AS (
 
 SELECT *
 FROM date_dimension
+WHERE date_key < CURRENT_DATE()
 ORDER BY date_key

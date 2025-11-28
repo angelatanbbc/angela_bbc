@@ -39,3 +39,12 @@ sources:
         description: SFMC subscriber table
       - name: not_sent 
         description: SFMC reasons emails didn't send
+  - name: FACEBOOK_ADS
+    database: sdp_bronze
+    schema: FACEBOOK_ADS
+    description: Source data from Piano, a web analytics and data collection platform (previous organisation).
+    tables:
+      - name: basic_ad
+        description: facebook ad data.
+  
+
