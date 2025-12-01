@@ -131,7 +131,7 @@ CASE
         WHEN vx_promo_code IS NOT NULL THEN vx_promo_code || ' Promo code'ELSE src_detail
 END AS Attribution_src_detail_v2,
 
--- CORRECTED POSITION-BASED ATTRIBUTION LOGIC WITH PROMO CODE
+-- POSITION-BASED ATTRIBUTION LOGIC WITH PROMO CODE
 CASE
     -- PROMO CODE PATH (30/30/30/10 distribution)
     WHEN has_promo = 1 THEN
@@ -142,7 +142,7 @@ CASE
             -- Two touchpoints with promo - split 50/50
             WHEN total_events = 2 THEN 0.5
             
-            -- Three touchpoints with promo (first/last paid/promo = 30% each, remaining 10%)
+            -- Three touchpoints 
             WHEN total_events = 3 THEN 1/3
                 -- CASE
                 --     WHEN event_date = first_event AND event_date = first_paid_event THEN 0.3
