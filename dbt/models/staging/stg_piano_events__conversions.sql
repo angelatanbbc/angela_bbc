@@ -43,7 +43,7 @@ WHERE 1=1
     AND event_time::DATE > '2025-06-25'
     AND site_id = 638824
     AND event_name = 'vx.conversion'
-    AND (experience_name LIKE '%00%' OR experience_name IS NULL)
+    AND (experience_name RLIKE '.*[0-9]{3} -.*' OR experience_name IS NULL)
     AND (term_offer_name IS NULL OR term_offer_name = 'BBC Subscription')
     AND LOWER(e.geo_country) IN ('united states')
     AND (app_type IN ('responsive', 'mobile-responsive') OR app_type IS NULL)
