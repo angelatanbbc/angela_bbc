@@ -13,6 +13,7 @@
 -- redundant expensive DISTINCT operations on the event-level table
 
 SELECT DISTINCT
+    geo_country,
     visit_time::DATE AS date_day,
     visitor_id
 FROM {{ ref('stg_piano_events__page_views') }}

@@ -55,5 +55,7 @@ SELECT
 FROM {{ source('studios_piano', 'studios_piano_events') }}
 WHERE 1=1
     AND event_name = 'page.display'
+    AND lower(geo_country) IN ('united states')
+    AND app_type IN ('responsive', 'bbc_responsive', 'mobile-responsive')
     AND event_time::DATE > '2025-06-25'
     AND site_id = 638824 -- TODO: Expand to other site_ids (sport, live news, etc.)
