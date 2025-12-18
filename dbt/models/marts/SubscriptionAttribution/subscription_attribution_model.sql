@@ -1,196 +1,50 @@
 {{ config(materialized="table") }}
 
--- Query to redistribute null attribution_source values proportionally
-WITH attribution_distribution AS (
-    SELECT 
-        attribution_source,
-        SUM(position_weight) as total_weight,
-        SUM(position_weight) / SUM(SUM(position_weight)) OVER () as proportion
-    FROM {{ ref('int_subscription_attribution') }}
-    WHERE attribution_source IS NOT NULL
-    and attribution_source !='Paid'
-    GROUP BY attribution_source
-),
-attribution_ranges AS (
-    SELECT 
-        attribution_source,
-        total_weight,
-        proportion,
-        SUM(proportion) OVER (ORDER BY attribution_source) as cumulative_prob
-    FROM attribution_distribution
-),
-attribution_ranges_with_prev AS (
-    SELECT 
-        attribution_source,
-        total_weight,
-        proportion,
-        cumulative_prob,
-        LAG(cumulative_prob, 1, 0) OVER (ORDER BY attribution_source) as prev_cumulative_prob
-    FROM attribution_ranges
-),
-staging_with_random AS (
-    SELECT 
-        *,
-        -- UNIFORM(0::FLOAT, 1::FLOAT, RANDOM()) as random_value,
-        UNIFORM(0::FLOAT, 1::FLOAT, HASH(VISITOR_ID, EVENT_DATE, EVENT_URL_FULL)) AS random_value
-
-    FROM {{ ref('int_subscription_attribution') }}
+with temp as (SELECT 
+*,
+case when billing_period_filled!='1 year' then revenue_weighted_a*12 else revenue_weighted_a end as annualised_revenue_a
+FROM (
+    SELECT *,
+        max(case when event_name in ('vx.conversion','page.display') then billing_period end) over (partition by visitor_id) as billing_period_filled,
+        max(case when event_name in ('vx.conversion','page.display') then subscription_id end) over (partition by visitor_id) as subscription_id_filled,
+        max(case when event_name in ('vx.conversion','page.display') then CART_TURNOVERTAXFREE end) over (partition by visitor_id) as revenue_filled,
+        (max(case when event_name in ('vx.conversion','page.display') then CART_TURNOVERTAXFREE end) over (partition by visitor_id))*position_weight as revenue_weighted_a,
+    FROM {{ ref('int_subscription_attribution_src_corrected') }} 
+    )
 ),
 
-final as (
-SELECT 
-    s.EVENT_DATE,
-    s.EVENT_URL_FULL,
-    s.VISITOR_ID,
-    s.GEO_COUNTRY,
-    s.BROWSER,
-    s.DEVICE_TYPE,
-    s.SITE_ID,
-    s.CONTENT_PILLAR,
-    s.EVENT_NAME,
-    s.SRC_DETAIL,
-    s.SRC,
-    -- Replace null attribution_source with proportionally assigned value using JOIN
-    COALESCE(s.ATTRIBUTION_SOURCE, ar.attribution_source) as ATTRIBUTION_SOURCE,
-    COALESCE(s.ATTRIBUTION_SOURCE_DETAIL, ar.attribution_source) as ATTRIBUTION_SOURCE_DETAIL,
-    s.SRC_BBC_TEAM,
-    s.SRC_PTR_NAME,
-    s.SRC_CREATIVE_ID,
-    s.SRC_ORGANIC,
-    s.SRC_ORGANIC_DETAIL,
-    s.SRC_CAMPAIGN,
-    s.SRC_ADSET_NAME,
-    s.src_campaign_type,
-    s.src_format,
-    s.SRC_MEDIUM,
-    s.VX_PROMO_CODE,
-    s.SIGNUP_EVENT,
-    s.LINK_ORIGIN,
-    s.SIGNUP_PAGE,
-    s.AT_ADSET_NAME,
-    s.AT_ADSET_ID,
-    s.AT_OBJECTIVE,
-    s.AT_MEDIUM,
-    s.at_creation,
-    s.at_keyword,
-    s.at_matchtype,
-    at_campaign_name,
-    s.IS_PAID_EVENT,
-    s.FIRST_EVENT,
-    s.LAST_EVENT,
-    s.PROMO_CODE_FROM_CONVERSION,
-    s.POSITION_WEIGHT,
-    s.POSITION_SIGNUP_TOUCH_WEIGHT,
-    s.FIRST_TOUCH,
-    s.LAST_TOUCH,
-    s.SIGNUP_TOUCH
-FROM staging_with_random s
-LEFT JOIN attribution_ranges_with_prev ar
-    ON s.random_value BETWEEN ar.prev_cumulative_prob AND ar.cumulative_prob
-    AND s.ATTRIBUTION_SOURCE IS NULL
+renewal as (
+select 
+    SUBSCRIPTION_ID,
+    MIN(CASE WHEN SUBSCRIPTION_ACTION = 'Created' THEN EVENT_DAY END) AS DATE_OF_CREATION,
+    MAX(CASE WHEN SUBSCRIPTION_ACTION = 'Renewed' THEN EVENT_DAY END) AS DATE_OF_LATEST_RENEWAL
+FROM (select TO_DATE(event_time) as event_day,
+        subscription_id,
+        subscription_action,
+        from {{ source('studios_piano', 'studios_piano_events') }}
+        where 1=1
+        AND TO_DATE(event_time) > '2025-06-25'
+        and subscription_action in ('Created','Renewed')
+ )
+GROUP BY SUBSCRIPTION_ID
+-- HAVING DATE_OF_LATEST_RENEWAL IS NOT NULL
+-- ORDER BY SUBSCRIPTION_ID
 ),
 
-
--- Query to redistribute generic "Search engines" attribution_source_detail values to specific search engines
-attribution_distribution_2 AS (
-    SELECT 
-        attribution_source_detail,
-        SUM(position_weight) as total_weight
-    FROM final
-    WHERE attribution_source = 'Search engines'
-    AND attribution_source_detail IS NOT NULL
-    AND attribution_source_detail != 'Search engines'  -- Exclude the generic value
-    GROUP BY attribution_source_detail
-),
-attribution_with_proportion_2 AS (
-    SELECT 
-        attribution_source_detail,
-        total_weight,
-        total_weight / SUM(total_weight) OVER () as proportion
-    FROM attribution_distribution_2
-),
-attribution_ranges_2 AS (
-    SELECT 
-        attribution_source_detail,
-        total_weight,
-        proportion,
-        SUM(proportion) OVER (ORDER BY total_weight DESC, attribution_source_detail) as cumulative_prob
-    FROM attribution_with_proportion_2
-),
-attribution_ranges_with_prev_2 AS (
-    SELECT 
-        attribution_source_detail,
-        total_weight,
-        proportion,
-        cumulative_prob,
-        LAG(cumulative_prob, 1, 0) OVER (ORDER BY total_weight DESC, attribution_source_detail) as prev_cumulative_prob
-    FROM attribution_ranges_2
-),
-staging_with_random_2 AS (
-    SELECT 
-        *,
-        UNIFORM(0::FLOAT, 1::FLOAT, RANDOM()) AS random_value
-    FROM final
-    WHERE attribution_source = 'Search engines'
-),
-final_2 AS (
-    SELECT 
-        s.EVENT_DATE,
-        s.EVENT_URL_FULL,
-        s.VISITOR_ID,
-        s.GEO_COUNTRY,
-        s.BROWSER,
-        s.DEVICE_TYPE,
-        s.SITE_ID,
-        s.CONTENT_PILLAR,
-        s.EVENT_NAME,
-        s.SRC_DETAIL,
-        s.SRC,
-        s.ATTRIBUTION_SOURCE,
-        -- Replace generic "Search engines" detail with specific search engine from redistribution
-        CASE 
-            WHEN s.ATTRIBUTION_SOURCE_DETAIL = 'Search engines' THEN 
-                COALESCE(ar.attribution_source_detail, s.ATTRIBUTION_SOURCE_DETAIL)
-            ELSE s.ATTRIBUTION_SOURCE_DETAIL
-        END as ATTRIBUTION_SOURCE_DETAIL,
-        s.SRC_BBC_TEAM,
-        s.SRC_PTR_NAME,
-        s.SRC_CREATIVE_ID,
-        s.SRC_ORGANIC,
-        s.SRC_ORGANIC_DETAIL,
-        s.SRC_CAMPAIGN,
-        s.SRC_ADSET_NAME,
-        s.src_campaign_type,
-        s.src_format,
-        s.SRC_MEDIUM,
-        s.VX_PROMO_CODE,
-        s.SIGNUP_EVENT,
-        s.LINK_ORIGIN,
-        s.SIGNUP_PAGE,
-        s.AT_ADSET_NAME,
-        s.AT_ADSET_ID,
-        s.AT_OBJECTIVE,
-        s.AT_MEDIUM,
-        s.AT_CREATION,
-        s.AT_KEYWORD,
-        s.AT_MATCHTYPE,
-        s.AT_CAMPAIGN_NAME,
-        s.IS_PAID_EVENT,
-        s.FIRST_EVENT,
-        s.LAST_EVENT,
-        s.PROMO_CODE_FROM_CONVERSION,
-        s.POSITION_WEIGHT,
-        s.POSITION_SIGNUP_TOUCH_WEIGHT,
-        s.FIRST_TOUCH,
-        s.LAST_TOUCH,
-        s.SIGNUP_TOUCH
-    FROM staging_with_random_2 s
-    LEFT JOIN attribution_ranges_with_prev_2 ar
-        ON s.ATTRIBUTION_SOURCE_DETAIL = 'Search engines'
-        AND s.random_value >= ar.prev_cumulative_prob 
-        AND s.random_value < ar.cumulative_prob
+setup as (select t.*,
+r.DATE_OF_CREATION,
+r.DATE_OF_LATEST_RENEWAL,
+case when r.DATE_OF_LATEST_RENEWAL is null then 1 else
+DATEDIFF(MONTH, r.DATE_OF_CREATION, r.DATE_OF_LATEST_RENEWAL)+1 end AS MONTHS_BETWEEN_CREATION_AND_RENEWAL
+from temp t
+left join renewal r
+on t.subscription_id_filled=r.subscription_id
 )
 
-select * from final where attribution_source !='Search engines'
-union all
-select * from final_2
+select *,
+revenue_weighted_a*MONTHS_BETWEEN_CREATION_AND_RENEWAL as revenue_weighted,
+Case WHEN DATEDIFF(DAY, DATE_OF_CREATION, CURRENT_DATE()) <= 30 THEN annualised_revenue_a
+     WHEN DATEDIFF(DAY, DATE_OF_LATEST_RENEWAL, CURRENT_DATE()) <= 30 then annualised_revenue_a
+    ELSE revenue_weighted_a*MONTHS_BETWEEN_CREATION_AND_RENEWAL
+end as annualised_revenue
+from setup
