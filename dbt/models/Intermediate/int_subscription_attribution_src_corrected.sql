@@ -1,6 +1,23 @@
 {{ config(materialized="table") }}
+    
+/* ============================================================
+   PURPOSE
+   ------------------------------------------------------------
+   1. Redistribute NULL attribution_source values proportionally
+      based on existing weighted attribution.
+   2. Further break down generic "Search engines" attribution
+      into specific search engines using weighted redistribution.
+   ============================================================ */
 
--- Query to redistribute null attribution_source values proportionally
+
+/* ============================================================
+   STEP 1: Calculate attribution distribution for non-null sources
+   ------------------------------------------------------------
+   - Uses position_weight to calculate each source's share
+   - Excludes Paid and NULL sources
+   - These proportions will be used to reassign NULL sources
+   ============================================================ */
+    
 WITH attribution_distribution AS (
     SELECT 
         attribution_source,
@@ -11,6 +28,14 @@ WITH attribution_distribution AS (
     and attribution_source !='Paid'
     GROUP BY attribution_source
 ),
+
+/* ============================================================
+   STEP 2: Convert proportions into cumulative probability ranges
+   ------------------------------------------------------------
+   - Each attribution source occupies a probability interval
+   - Used later for deterministic random assignment
+   ============================================================ */
+    
 attribution_ranges AS (
     SELECT 
         attribution_source,
@@ -19,6 +44,13 @@ attribution_ranges AS (
         SUM(proportion) OVER (ORDER BY attribution_source) as cumulative_prob
     FROM attribution_distribution
 ),
+
+/* ============================================================
+   STEP 3: Add lower bounds for each probability range
+   ------------------------------------------------------------
+   - Enables BETWEEN-style joins for random assignment
+   ============================================================ */
+    
 attribution_ranges_with_prev AS (
     SELECT 
         attribution_source,
@@ -28,6 +60,14 @@ attribution_ranges_with_prev AS (
         LAG(cumulative_prob, 1, 0) OVER (ORDER BY attribution_source) as prev_cumulative_prob
     FROM attribution_ranges
 ),
+
+/* ============================================================
+   STEP 4: Attach a deterministic random value to each event
+   ------------------------------------------------------------
+   - Uses hashing to ensure reproducibility
+   - Same event will always receive the same random_value
+   ============================================================ */
+
 staging_with_random AS (
     SELECT 
         *,
@@ -36,6 +76,13 @@ staging_with_random AS (
 
     FROM {{ ref('int_subscription_attribution') }}
 ),
+
+/* ============================================================
+   STEP 5: Replace NULL attribution_source values
+   ------------------------------------------------------------
+   - Join NULL records to probability ranges using random_value
+   - Assign sources proportionally to observed distribution
+   ============================================================ */
 
 final as (
 SELECT 
@@ -91,7 +138,13 @@ LEFT JOIN attribution_ranges_with_prev ar
 ),
 
 
--- Query to redistribute generic "Search engines" attribution_source_detail values to specific search engines
+/* ============================================================
+   STEP 6: Build distribution for "Search engines" breakdown
+   ------------------------------------------------------------
+   - Only consider records already attributed to Search engines
+   - Exclude the generic "Search engines" detail value
+   ============================================================ */
+
 attribution_distribution_2 AS (
     SELECT 
         attribution_source_detail,
@@ -102,6 +155,11 @@ attribution_distribution_2 AS (
     AND attribution_source_detail != 'Search engines'  -- Exclude the generic value
     GROUP BY attribution_source_detail
 ),
+
+/* ============================================================
+   STEP 7: Convert search-engine weights into proportions
+   ============================================================ */
+    
 attribution_with_proportion_2 AS (
     SELECT 
         attribution_source_detail,
@@ -109,6 +167,13 @@ attribution_with_proportion_2 AS (
         total_weight / SUM(total_weight) OVER () as proportion
     FROM attribution_distribution_2
 ),
+
+/* ============================================================
+   STEP 8: Create cumulative probability ranges for search engines
+   ------------------------------------------------------------
+   - Ordered by weight so dominant engines get larger intervals
+   ============================================================ */
+    
 attribution_ranges_2 AS (
     SELECT 
         attribution_source_detail,
@@ -117,6 +182,11 @@ attribution_ranges_2 AS (
         SUM(proportion) OVER (ORDER BY total_weight DESC, attribution_source_detail) as cumulative_prob
     FROM attribution_with_proportion_2
 ),
+
+/* ============================================================
+   STEP 9: Add previous cumulative boundary for range joins
+   ============================================================ */
+    
 attribution_ranges_with_prev_2 AS (
     SELECT 
         attribution_source_detail,
@@ -126,6 +196,14 @@ attribution_ranges_with_prev_2 AS (
         LAG(cumulative_prob, 1, 0) OVER (ORDER BY total_weight DESC, attribution_source_detail) as prev_cumulative_prob
     FROM attribution_ranges_2
 ),
+    
+/* ============================================================
+   STEP 10: Assign random values to Search engine records only
+   ------------------------------------------------------------
+   - Non-deterministic random is acceptable here as these
+     rows are already probabilistically redistributed once
+   ============================================================ */
+
 staging_with_random_2 AS (
     SELECT 
         *,
@@ -133,6 +211,13 @@ staging_with_random_2 AS (
     FROM final
     WHERE attribution_source = 'Search engines'
 ),
+
+/* ============================================================
+   STEP 11: Replace generic "Search engines" detail values
+   ------------------------------------------------------------
+   - Redistribute to specific engines proportionally
+   ============================================================ */
+    
 final_2 AS (
     SELECT 
         s.EVENT_DATE,
@@ -190,6 +275,13 @@ final_2 AS (
         AND s.random_value >= ar.prev_cumulative_prob 
         AND s.random_value < ar.cumulative_prob
 )
+
+/* ============================================================
+   FINAL OUTPUT
+   ------------------------------------------------------------
+   - Non-search-engine records from first redistribution
+   - Search-engine records with detailed engine attribution
+   ============================================================ */
 
 select * from final where attribution_source !='Search engines'
 union all
