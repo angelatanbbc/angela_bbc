@@ -1,12 +1,21 @@
 {{config(materialized="view")}}
-
+  
+/* ============================================================
+   STEP 1: Normalize source fields & flag paid interactions
+   ------------------------------------------------------------
+   - Deduplicate events within a visit
+   - Infer paid traffic using multiple source signals
+   ============================================================ */
+  
 with temp2 as (
-  select
+select
     event_date, 
     event_day,
     event_url_full, 
     visitor_id,
     visit_id, 
+    pageview_id,
+    signup_pageview_id,
     connection_organisation, 
     src_bbc_team, 
     src_ptr_name,
@@ -18,6 +27,7 @@ with temp2 as (
     src_creative_id,
     src_adset_name,
     src_medium,
+    src_sl_term,
     src_creation,
     src_campaign_type,
     src_format,
@@ -28,6 +38,12 @@ with temp2 as (
     site_id,
     event_name,
     vx_promo_code,
+    billing_period,
+    trial_duration,
+    subscription_id,
+    subscription_action,
+    subscription_period_number,
+    cart_turnovertaxfree,
     signup_event,
     link_origin,
     signup_page,
@@ -43,17 +59,7 @@ with temp2 as (
     at_matchtype,
     at_campaign_name,
     row_number() over (partition by visitor_id,visit_id,event_name order by event_date ASC) as visit_number,
-
-    -- COALESCE(
-    --   MIN(event_date) OVER (PARTITION BY visitor_id, TO_DATE(signup_event)),signup_event
-    -- ) AS first_event,
-
-    -- COALESCE(
-    --   MAX(CASE WHEN event_date < signup_event THEN event_date END)
-    --      OVER (PARTITION BY visitor_id, TO_DATE(signup_event)),signup_event
-    -- ) AS last_event,
-    
-    -- Flag if event is paid
+    -- Identify paid traffic
     CASE 
         WHEN COALESCE(NULLIF(src, ''),NULLIF(at_bbc_team, ''),NULLIF(at_objective, ''),NULLIF(at_ptr_name, '')) = 'paid'
             OR UPPER(src_bbc_team) IN ('8MS')
@@ -66,17 +72,24 @@ with temp2 as (
 from {{ ref('stg_subscription_attribution') }}
 ),
 
+/* ============================================================
+   STEP 2: Identify first and last touchpoints per signup journey
+   ============================================================ */
 temp_int as (
-
 select *,
  COALESCE(MIN(event_date) OVER (PARTITION BY visitor_id, TO_DATE(signup_event)),signup_event) AS first_event,
  COALESCE(MAX(CASE WHEN event_date < signup_event and visit_number=1 THEN event_date END)OVER (PARTITION BY visitor_id, TO_DATE(signup_event)),signup_event) AS last_event,
 from temp2
 ),
 
+/* ============================================================
+   STEP 3: Filter down to key attribution touchpoints only
+   ============================================================ */
+   
 temp3 as (
 select *,
 case when event_date=signup_event
+        or pageview_id=signup_pageview_id
         or (event_date=first_event and visit_number = 1)
         or (event_date=last_event and visit_number = 1)
         or (event_date=min(event_date) over (partition by visitor_id, cast(event_date as date)) and visit_number = 1)
@@ -86,10 +99,12 @@ else 'No'
 end as keep_flag
 from temp_int
 where event_date<=signup_event
--- and visit_number != 2
 qualify keep_flag='Yes'
 ),
 
+/* ============================================================
+   STEP 4: Promo code detection
+   ============================================================ */
 temp4 as (
 select *,
 COUNT(*) OVER (PARTITION BY visitor_id) AS total_events,
@@ -109,7 +124,14 @@ SUM(is_paid_event) OVER (PARTITION BY visitor_id) AS total_paid_events
 
 from temp3),
 
-
+/* ============================================================
+   STEP 5: Attribution models & weighting logic
+   ------------------------------------------------------------
+   - Promo-aware attribution
+   - Position-based weighting
+   - First-touch / last-touch flags
+   ============================================================ */
+   
 temp5 as (
 select *,
 CASE WHEN vx_promo_code IS NOT NULL THEN vx_promo_code || ' Promo code'ELSE src END AS Attribution_src,
@@ -142,18 +164,8 @@ CASE
             -- Two touchpoints with promo - split 50/50
             WHEN total_events = 2 THEN 0.5
             
-            -- Three touchpoints 
+            -- Three touchpoints with promo (first/last paid/promo = 30% each, remaining 10%)
             WHEN total_events = 3 THEN 1/3
-                -- CASE
-                --     WHEN event_date = first_event AND event_date = first_paid_event THEN 0.3
-                --     WHEN event_date = first_event THEN 0.3
-                --     WHEN event_date = first_paid_event THEN 0.3
-                --     WHEN event_date = last_event AND event_date = last_paid_event THEN 0.3
-                --     WHEN event_date = last_event THEN 0.3
-                --     WHEN event_date = last_paid_event THEN 0.3
-                --     WHEN event_name = 'vx.conversion' AND vx_promo_code IS NOT NULL THEN 0.3
-                --     ELSE 0.3
-                -- END
             
             -- 4+ touchpoints with promo
             ELSE
@@ -180,7 +192,6 @@ CASE
 
             when total_events = 3 then 1/3
                 
-            
             -- Multiple touchpoints (3+) - Position based logic
             ELSE
                 CASE
@@ -239,7 +250,9 @@ rank() over (partition by visitor_id order by event_date) as event_number
 from temp4
 )
 
-
+/* ============================================================
+   FINAL OUTPUT: Attribution-ready event-level dataset
+   ============================================================ */
 select 
 EVENT_DATE,
 EVENT_URL_FULL,
@@ -248,6 +261,7 @@ GEO_COUNTRY,
 BROWSER,
 DEVICE_TYPE,
 SITE_ID,
+pageview_id,
 CONTENT_PILLAR,
 EVENT_NAME,
 SRC_DETAIL,
@@ -262,9 +276,16 @@ SRC_ORGANIC_DETAIL,
 coalesce(SRC_CAMPAIGN,signup_page) as SRC_CAMPAIGN,
 SRC_ADSET_NAME,
 SRC_MEDIUM,
+src_sl_term,
 src_campaign_type,
 src_format,
 VX_PROMO_CODE,
+billing_period,
+trial_duration,
+subscription_id,
+subscription_action,
+subscription_period_number,
+cart_turnovertaxfree,
 SIGNUP_EVENT,
 LINK_ORIGIN,
 SIGNUP_PAGE,
@@ -282,21 +303,7 @@ LAST_EVENT,
 PROMO_CODE_FROM_CONVERSION,
 POSITION_WEIGHT_LAST_NON_DIRECT_V2 as Position_weight,
 POSITION_WEIGHT as Position_signup_touch_weight,
--- POSITION_WEIGHT_LAST_NON_DIRECT
 FIRST_TOUCH,
 LAST_TOUCH,
-SIGNUP_TOUCH,
--- EVENT_NUMBER
--- EVENT_DAY
--- VISIT_ID
--- CONNECTION_ORGANISATION
--- VISIT_NUMBER
--- KEEP_FLAG
--- TOTAL_EVENTS
--- HAS_PROMO
--- FIRST_PAID_EVENT
--- LAST_PAID_EVENT
--- TOTAL_PAID_EVENTS
--- ATTRIBUTION_SRC
--- ATTRIBUTION_SRC_DETAIL
+SIGNUP_TOUCH
 From temp5
