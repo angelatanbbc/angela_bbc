@@ -93,6 +93,7 @@ SELECT
     s.BROWSER,
     s.DEVICE_TYPE,
     s.SITE_ID,
+    s.pageview_id,
     s.CONTENT_PILLAR,
     s.EVENT_NAME,
     s.SRC_DETAIL,
@@ -110,7 +111,14 @@ SELECT
     s.src_campaign_type,
     s.src_format,
     s.SRC_MEDIUM,
+    s.src_sl_term,
     s.VX_PROMO_CODE,
+    s.billing_period,
+    s.trial_duration,
+    s.subscription_id,
+    s.subscription_action,
+    s.subscription_period_number,
+    s.cart_turnovertaxfree,
     s.SIGNUP_EVENT,
     s.LINK_ORIGIN,
     s.SIGNUP_PAGE,
@@ -227,6 +235,7 @@ final_2 AS (
         s.BROWSER,
         s.DEVICE_TYPE,
         s.SITE_ID,
+        s.pageview_id,
         s.CONTENT_PILLAR,
         s.EVENT_NAME,
         s.SRC_DETAIL,
@@ -248,7 +257,14 @@ final_2 AS (
         s.src_campaign_type,
         s.src_format,
         s.SRC_MEDIUM,
+        s.src_sl_term,
         s.VX_PROMO_CODE,
+        s.billing_period,
+        s.trial_duration,
+        s.subscription_id,
+        s.subscription_action,
+        s.subscription_period_number,
+        s.cart_turnovertaxfree,
         s.SIGNUP_EVENT,
         s.LINK_ORIGIN,
         s.SIGNUP_PAGE,
@@ -283,6 +299,92 @@ final_2 AS (
    - Search-engine records with detailed engine attribution
    ============================================================ */
 
-select * from final where attribution_source !='Search engines'
+setup as (select * from final where attribution_source !='Search engines'
 union all
-select * from final_2
+select * from final_2),
+
+model as (select *
+from setup
+),
+
+ signupevent as (SELECT
+   pageview_id,
+   BILLING_PERIOD,
+   cart_turnovertaxfree,
+   subscription_id,
+   subscription_action,
+FROM {{ source('studios_piano', 'studios_piano_events') }}
+WHERE 1=1
+    AND TO_DATE(event_time) > '2025-06-25'
+
+  -- AND site_id = 638824
+  AND event_name IN ('vx.conversion')
+  AND (vx_promo_code NOT IN ('BBCEMPLOYEE','BBCEDITORIAL','BBCACCOUNT','') OR vx_promo_code IS null)
+  AND (
+        experience_name LIKE '%00%' 
+        OR experience_name IS NULL
+      )
+  AND (
+        term_offer_name IS NULL 
+        OR term_offer_name = 'BBC Subscription'
+      )
+  group by all
+)
+
+select 
+DATE(m.event_date) AS event_date,
+-- m.event_date,
+m.event_url_full,
+m.visitor_id,
+m.geo_country,
+m.browser,
+m.device_type,
+m.site_id,
+m.pageview_id,
+m.content_pillar,
+m.event_name,
+m.src_detail,
+m.src,
+m.attribution_source,
+m.attribution_source_detail,
+m.src_bbc_team,
+m.src_ptr_name,
+m.src_creative_id,
+m.src_organic,
+m.src_organic_detail,
+m.src_campaign,
+m.src_adset_name,
+m.src_medium,
+m.src_sl_term,
+m.src_campaign_type,
+m.src_format,
+m.vx_promo_code,
+coalesce (m.billing_period,s.billing_period) as billing_period,
+m.trial_duration,
+coalesce(m.subscription_id,s.subscription_id) as subscription_id,
+coalesce(m.subscription_action,s.subscription_action) as subscription_action,
+m.subscription_period_number,
+coalesce(m.cart_turnovertaxfree,s.cart_turnovertaxfree) as cart_turnovertaxfree,
+m.signup_event,
+m.link_origin,
+m.signup_page,
+m.AT_ADSET_NAME,
+m.AT_ADSET_ID,
+m.AT_OBJECTIVE,
+m.AT_MEDIUM,
+m.AT_CREATION,
+coalesce(m.src_sl_term,m.AT_KEYWORD) as AT_KEYWORD,
+m.AT_MATCHTYPE,
+m.AT_CAMPAIGN_NAME,
+m.IS_PAID_EVENT,
+m.FIRST_EVENT,
+m.LAST_EVENT,
+m.PROMO_CODE_FROM_CONVERSION,
+m.position_weight,
+m.POSITION_SIGNUP_TOUCH_WEIGHT,
+m.FIRST_TOUCH,
+m.LAST_TOUCH,
+m.SIGNUP_TOUCH
+from model m
+left join signupevent s
+on m.pageview_id=s.pageview_id
