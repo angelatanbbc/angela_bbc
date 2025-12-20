@@ -290,7 +290,7 @@ final_2 AS (
         ON s.ATTRIBUTION_SOURCE_DETAIL = 'Search engines'
         AND s.random_value >= ar.prev_cumulative_prob 
         AND s.random_value < ar.cumulative_prob
-)
+),
 
 /* ============================================================
    FINAL OUTPUT
