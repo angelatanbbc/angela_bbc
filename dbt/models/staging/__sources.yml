@@ -42,9 +42,15 @@ sources:
   - name: FACEBOOK_ADS
     database: sdp_bronze
     schema: FACEBOOK_ADS
-    description: Source data from Piano, a web analytics and data collection platform (previous organisation).
+    description: Source data from facebook ads.
     tables:
       - name: basic_ad
         description: facebook ad data.
-  
+  - name: GOOGLE_ADS
+    database: sdp_sandbox
+    schema: DNS
+    description: Source data from google ads.
+    tables:
+      - name: CGM_GOOGLE_ADS
+        description: Google ad data.
 
