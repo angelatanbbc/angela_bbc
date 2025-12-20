@@ -101,7 +101,8 @@ ad_data_google as (
         adset_name,
         TRIM(SPLIT_PART(ad_name, '|', 2)) AS src_bbc_team_v2,
         spend as spend
-    FROM {{ source('GOOGLE_ADS', 'CGM_GOOGLE_ADS') }}
+    FROM {{ ref('STG_GOOGLE_ADS') }}
+    -- FROM {{ source('GOOGLE_ADS', 'CGM_GOOGLE_ADS') }}
     where 1=1
     and (TO_DATE(date, 'DD/MM/YYYY')::DATE > '2025-10-01')
     AND TRY_TO_DATE(date, 'DD/MM/YYYY') IS NOT NULL
