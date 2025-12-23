@@ -90,63 +90,63 @@ where 1=1
 -- and ad_id=120231784754050423
 -- and visitor_id is null
 -- order by event_Date ASC , visitor_id asc
+),
+
+ad_data_google as (
+    SELECT 
+        TO_DATE(date, 'DD/MM/YYYY')::DATE AS date,
+        ad_id,
+        account_id,
+        ad_name,
+        adset_name,
+        TRIM(SPLIT_PART(ad_name, '|', 2)) AS src_bbc_team_v2,
+        spend as spend
+    FROM {{ source('GOOGLE_ADS', 'STG_GOOGLE_ADS') }}
+    where 1=1
+    and (TO_DATE(date, 'DD/MM/YYYY')::DATE > '2025-10-01')
+    AND TRY_TO_DATE(date, 'DD/MM/YYYY') IS NOT NULL
+),
+
+-- Joins the setup and ad_data tables
+staging_google as (
+    SELECT 
+        e.*,
+        a.event_date,
+        a.site_id,
+        case when a.visitor_id is null then null else cast(a.visitor_id as varchar) end as visitor_id, 
+        a.user_id,
+        a.event_name,
+        a.event_id,
+        a.page,
+        coalesce(a.src_bbc_team,a.at_bbc_team,e.src_bbc_team_v2) as src_bbc_team,
+        a.geo_country,
+        a.src_ptr_name,
+        a.src_campaign,
+        a.src_adset_name,
+        a.src_creative_id,
+        a.src_campaign_id_1,
+        a.av_session_id,
+        a.av_playback_duration,
+        a.device_type,
+        a.app_type
+    FROM ad_data_google e
+    LEFT JOIN setup a 
+        ON e.date=a.event_date
+        AND CAST(e.ad_id AS VARCHAR) = a.src_creative_id
+        -- AND e.ad_id=a.src_creative_id
+),
+
+final_google as (
+select *,
+COUNT(DISTINCT visitor_id) OVER (PARTITION BY ad_id, date) AS total_visitors,
+case when visitor_id is null then spend else 
+spend / COUNT(DISTINCT visitor_id) OVER (PARTITION BY ad_id, date) end AS spend_per_visitor
+from staging_google
+where 1=1
+-- and ad_id=120231784754050423
+-- and visitor_id is null
+-- order by event_Date ASC , visitor_id asc
 )
-
--- ad_data_google as (
---     SELECT 
---         TO_DATE(date, 'DD/MM/YYYY')::DATE AS date,
---         ad_id,
---         account_id,
---         ad_name,
---         adset_name,
---         TRIM(SPLIT_PART(ad_name, '|', 2)) AS src_bbc_team_v2,
---         spend as spend
---     FROM {{ source('GOOGLE_ADS', 'CGM_GOOGLE_ADS') }}
---     where 1=1
---     and (TO_DATE(date, 'DD/MM/YYYY')::DATE > '2025-10-01')
---     AND TRY_TO_DATE(date, 'DD/MM/YYYY') IS NOT NULL
--- ),
-
--- -- Joins the setup and ad_data tables
--- staging_google as (
---     SELECT 
---         e.*,
---         a.event_date,
---         a.site_id,
---         case when a.visitor_id is null then null else cast(a.visitor_id as varchar) end as visitor_id, 
---         a.user_id,
---         a.event_name,
---         a.event_id,
---         a.page,
---         coalesce(a.src_bbc_team,a.at_bbc_team,e.src_bbc_team_v2) as src_bbc_team,
---         a.geo_country,
---         a.src_ptr_name,
---         a.src_campaign,
---         a.src_adset_name,
---         a.src_creative_id,
---         a.src_campaign_id_1,
---         a.av_session_id,
---         a.av_playback_duration,
---         a.device_type,
---         a.app_type
---     FROM ad_data_google e
---     LEFT JOIN setup a 
---         ON e.date=a.event_date
---         AND CAST(e.ad_id AS VARCHAR) = a.src_creative_id
---         -- AND e.ad_id=a.src_creative_id
--- ),
-
--- final_google as (
--- select *,
--- COUNT(DISTINCT visitor_id) OVER (PARTITION BY ad_id, date) AS total_visitors,
--- case when visitor_id is null then spend else 
--- spend / COUNT(DISTINCT visitor_id) OVER (PARTITION BY ad_id, date) end AS spend_per_visitor
--- from staging_google
--- where 1=1
--- -- and ad_id=120231784754050423
--- -- and visitor_id is null
--- -- order by event_Date ASC , visitor_id asc
--- )
 
 select distinct 
 coalesce(event_date,date) as event_date,
@@ -164,20 +164,20 @@ adset_name,
 'facebook' as source
 from final_facebook
 
--- union all
+union all
 
--- select distinct 
--- coalesce(event_date,date) as event_date,
--- src_adset_name,
--- src_bbc_team,
--- src_campaign,
--- src_creative_id,
--- src_ptr_name,
--- account_id,
--- visitor_id,
--- spend_per_visitor,
--- cast (ad_id as string) as ad_id,
--- ad_name,
--- adset_name,
--- 'google' as source
--- from final_google
+select distinct 
+coalesce(event_date,date) as event_date,
+src_adset_name,
+src_bbc_team,
+src_campaign,
+src_creative_id,
+src_ptr_name,
+account_id,
+visitor_id,
+spend_per_visitor,
+cast (ad_id as string) as ad_id,
+ad_name,
+adset_name,
+'google' as source
+from final_google
