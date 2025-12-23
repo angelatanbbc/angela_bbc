@@ -124,7 +124,7 @@ staging_google as (
         a.src_campaign,
         a.src_adset_name,
         a.src_creative_id,
-        a.src_campaign_id_1,
+        -- a.src_campaign_id_1,
         a.av_session_id,
         a.av_playback_duration,
         a.device_type,
