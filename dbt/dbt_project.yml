@@ -7,8 +7,6 @@ model-paths: ["models"]
 models:
   dns_transformations:
     +materialized: table
-
-models:
   facebook_ads:
     +schema:
 
