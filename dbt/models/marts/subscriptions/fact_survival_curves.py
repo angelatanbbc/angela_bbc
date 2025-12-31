@@ -22,9 +22,9 @@ def model(dbt, session):
 
     # 2. Prepare Piano Benchmark Data (Logic from Cell 4 & 8)
     # Calculate days from months
-    piano_df['day'] = piano_df['month'] * 30
+    piano_df['DAY'] = piano_df['MONTH'] * 30
     
-    piano_df_monthly = piano_df[['month', 'monthly_75', 'annual_75']].copy().set_index('month')
+    piano_df_monthly = piano_df[['MONTH', 'MONTHLY_75', 'ANNUAL_75']].copy().set_index('MONTH')
     # Adjust index to days (approximate)
     piano_df_monthly.index = (piano_df_monthly.index) * 30 + 1
     piano_df_monthly.index.name = 'DAYS'
@@ -32,7 +32,7 @@ def model(dbt, session):
     # Reindex to daily frame using forward fill (Logic from Cell 8)
     max_days = int(piano_df_monthly.index.max())
     daily_index = range(1, max_days + 1)
-    piano_df_daily = piano_df_monthly.reindex(daily_index, method='ffill')
+    piano_df_daily = piano_df_monthly.reindex(daily_index).interpolate(method='linear')
 
     # 3. Calculate Kaplan-Meier Curves (Logic from Cell 7)
     kmf_monthly = KaplanMeierFitter()
@@ -76,8 +76,8 @@ def model(dbt, session):
     
     # Rename columns to match target schema
     survival_curves.rename(columns={
-        'monthly_75': 'PIANO_MONTHLY_RETENTION',
-        'annual_75': 'PIANO_ANNUAL_RETENTION',
+        'MONTHLY_75': 'PIANO_MONTHLY_RETENTION',
+        'ANNUAL_75': 'PIANO_ANNUAL_RETENTION',
         'timeline': 'DAYS'
     }, inplace=True)
     
