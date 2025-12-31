@@ -7,3 +7,11 @@ model-paths: ["models"]
 models:
   dns_transformations:
     +materialized: table
+
+models:
+  facebook_ads:
+    +schema:
+
+vars:
+  facebook_ads_database: sdp_bronze
+  facebook_ads_schema: facebook_ads
