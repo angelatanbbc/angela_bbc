@@ -16,8 +16,8 @@ SELECT DISTINCT
     geo_country,
     visit_time::DATE AS date_day,
     visitor_id
-FROM {{ ref('stg_piano_events__page_views') }}
-WHERE 1=1
+FROM {{ ref('stg_piano_events__subscriptions') }}
+WHERE event_name = 'page.display'
 {% if is_incremental() %}
     AND event_time::DATE >= DATEADD(DAY, -1, (SELECT MAX(date_day) FROM {{ this }}))
 {% endif %}
