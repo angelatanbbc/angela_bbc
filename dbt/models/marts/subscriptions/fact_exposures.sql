@@ -11,7 +11,7 @@ WITH exposures AS (
     
     SELECT
         -- Dims
-        {{ dbt_utils.generate_surrogate_key(['visit_id', 'experience_id', 'template_id', 'ab_test_variant_name']) }} AS exposure_id,
+        {{ dbt_utils.generate_surrogate_key(['visit_id', 'experience_id', 'card_id', 'template_id', 'ab_test_variant_name']) }} AS exposure_id,
         visit_id,
         visit_time,
         visitor_id,
