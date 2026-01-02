@@ -206,6 +206,7 @@ CASE
                     -- Last event bucket (40% total)
                     WHEN event_date = last_event AND event_date = last_paid_event THEN 0.4  -- Last event IS paid, gets full 40%
                     WHEN event_date = last_event AND last_paid_event IS NULL THEN 0.4  -- No paid events, last gets full 40%
+                    WHEN event_date = last_event and last_paid_event=first_paid_event THEN 0.4  -- Last event gets 40%
                     WHEN event_date = last_event THEN 0.2  -- Last overall event gets 20%
                     WHEN event_date = last_paid_event THEN 0.2  -- Last paid event gets 20%
                     -- when event_date=first_paid_event and first_paid_event=last_event then 0.4
