@@ -99,6 +99,7 @@ else 'No'
 end as keep_flag
 from temp_int
 where event_date<=signup_event
+and visit_number != 2
 qualify keep_flag='Yes'
 ),
 
