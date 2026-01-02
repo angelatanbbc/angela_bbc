@@ -212,7 +212,8 @@ CASE
                     -- when event_date=first_paid_event and first_paid_event=last_event then 0.4
                     
                     -- Middle events (20% total distributed equally)
-                    WHEN total_events > 3 and first_paid_event=last_event THEN 0.2 / NULLIF(total_events - 3, 0)
+                    WHEN total_events = 4 and last_event != last_paid_event and first_paid_event!=last_paid_event THEN 0.2
+                    -- WHEN total_events > 3 and first_paid_event=last_event THEN 0.2 / NULLIF(total_events - 3, 0)
                     WHEN total_events > 3 and first_paid_event!=last_paid_event THEN 0.2 / NULLIF(total_events - 4, 0)
                     WHEN total_events > 3 and last_event != last_paid_event THEN 0.2 / NULLIF(total_events - 2, 0)
                     WHEN total_events > 3 THEN 0.2 / NULLIF(total_events - 2, 0)
