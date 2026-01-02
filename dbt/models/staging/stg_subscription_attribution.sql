@@ -89,7 +89,7 @@ select
         WHEN s.event_name = 'page.display' 
         THEN s.visitor_id 
         ELSE NULL 
-    END) OVER (PARTITION BY s.pageview_id) , s.visitor_id) AS visitor_id,
+    END) OVER (PARTITION BY vs.pageview_id) , s.visitor_id) AS visitor_id,
     s.visit_id, 
     s.pageview_id,
     s.connection_organisation, 
