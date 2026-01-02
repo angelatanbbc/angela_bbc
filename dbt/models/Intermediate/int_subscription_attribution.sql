@@ -108,7 +108,7 @@ qualify keep_flag='Yes'
    ============================================================ */
 temp4 as (
 select *,
-COUNT(*) OVER (PARTITION BY visitor_id) AS total_events,
+COUNT(*) OVER (PARTITION BY visitor_id,signup_event) AS total_events,
 MAX(CASE WHEN event_name = 'vx.conversion' AND vx_promo_code IS NOT NULL THEN 1 ELSE 0 END)
     OVER (PARTITION BY visitor_id) AS has_promo,
 MAX(CASE WHEN event_name = 'vx.conversion' AND vx_promo_code IS NOT NULL THEN vx_promo_code ELSE NULL END)
@@ -121,7 +121,7 @@ MAX(CASE WHEN is_paid_event = 1 THEN event_date END)
     OVER (PARTITION BY visitor_id) AS last_paid_event,
     
 -- Count total paid events
-SUM(is_paid_event) OVER (PARTITION BY visitor_id) AS total_paid_events
+SUM(is_paid_event) OVER (PARTITION BY visitor_id,signup_event) AS total_paid_events
 
 from temp3),
 
