@@ -116,9 +116,9 @@ temp4 as (
 select *,
 COUNT(*) OVER (PARTITION BY visitor_id,signup_event) AS total_events,
 MAX(CASE WHEN event_name = 'vx.conversion' AND vx_promo_code IS NOT NULL THEN 1 ELSE 0 END)
-    OVER (PARTITION BY visitor_id) AS has_promo,
+    OVER (PARTITION BY visitor_id,signup_event) AS has_promo,
 MAX(CASE WHEN event_name = 'vx.conversion' AND vx_promo_code IS NOT NULL THEN vx_promo_code ELSE NULL END)
-    OVER (PARTITION BY visitor_id) AS promo_code_from_conversion,
+    OVER (PARTITION BY visitor_id,signup_event) AS promo_code_from_conversion,
     
 -- Calculate first paid event and last paid event per visitor
 MIN(CASE WHEN is_paid_event = 1 THEN event_date END) 
