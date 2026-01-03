@@ -122,9 +122,9 @@ MAX(CASE WHEN event_name = 'vx.conversion' AND vx_promo_code IS NOT NULL THEN vx
     
 -- Calculate first paid event and last paid event per visitor
 MIN(CASE WHEN is_paid_event = 1 THEN event_date END) 
-    OVER (PARTITION BY visitor_id) AS first_paid_event,
+    OVER (PARTITION BY visitor_id,signup_event) AS first_paid_event,
 MAX(CASE WHEN is_paid_event = 1 THEN event_date END) 
-    OVER (PARTITION BY visitor_id) AS last_paid_event,
+    OVER (PARTITION BY visitor_id,signup_event) AS last_paid_event,
     
 -- Count total paid events
 SUM(is_paid_event) OVER (PARTITION BY visitor_id,signup_event) AS total_paid_events
