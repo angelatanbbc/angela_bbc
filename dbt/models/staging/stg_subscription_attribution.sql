@@ -63,12 +63,24 @@ END) OVER (PARTITION BY t.pageview_id) AS new_visitor_id
    - Use pageview-level visitor_id when available
    ============================================================ */
 
-signups as (select
-signup_event,
-pageview_id,
-coalesce (new_visitor_id,visitor_id) as visitor_id
-from ntemp2
-where event_name ='vx.conversion'
+signups AS (
+  SELECT
+    signup_event,
+    pageview_id,
+    visitor_id,
+    LAG(signup_event) OVER (
+      PARTITION BY visitor_id
+      ORDER BY signup_event
+    ) AS prev_signup_event
+  FROM (
+    SELECT
+      signup_event,
+      pageview_id,
+      COALESCE(new_visitor_id, visitor_id) AS visitor_id
+    FROM ntemp2
+    WHERE event_name = 'vx.conversion'
+  )
+),
 
   )
 
@@ -137,7 +149,12 @@ select
     REGEXP_SUBSTR(event_url_full, 'at_campaign_name=([^&]+)', 1, 1, '', 1) AS at_campaign_name,
   FROM 
     {{ source('studios_piano', 'studios_piano_events') }} s 
-    inner join Signups vs on s.visitor_id = vs.visitor_id 
+    inner join Signups vs on s.visitor_id = vs.visitor_id
+    AND s.event_time <= vs.signup_event
+    AND (
+       s.event_time > vs.prev_signup_event
+       OR vs.prev_signup_event IS NULL
+        )
   WHERE 
     1 = 1 
     AND TO_DATE(event_time) > '2025-05-25'
