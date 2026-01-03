@@ -197,24 +197,26 @@ CASE
             ELSE
                 CASE
                     -- First event bucket (40% total)
-                    WHEN event_date = first_event AND event_date = first_paid_event THEN 0.4  -- First event IS paid, gets full 40%
-                    WHEN event_date = first_event AND first_paid_event IS NULL THEN 0.4  -- No paid events, first gets full 40%
-                    WHEN event_date = first_event THEN 0.2  -- First overall event gets 20%
-                    WHEN event_date = first_paid_event and first_paid_event=last_event THEN 0.4  -- First paid event gets 20%
-                    WHEN event_date = first_paid_event THEN 0.2  -- First paid event gets 20%
+                    WHEN event_date = first_event AND event_date = first_paid_event THEN 0.4  -- First event, no paid events → 0.4
+                    WHEN event_date = first_event AND first_paid_event IS NULL THEN 0.4  -- First event, NOT paid → 0.2
+                    WHEN event_date = first_event AND last_event = first_paid_event THEN 0.4 
+                    WHEN event_date = first_event AND event_date <> first_paid_event THEN 0.2 
+                    WHEN event_date = first_paid_event AND first_paid_event=last_paid_event  THEN 0.4 -- First paid event which is the only paid event gets 0.4
+                    WHEN event_date = first_paid_event THEN 0.2 -- First paid event → 0.2
                     
                     -- Last event bucket (40% total)
                     WHEN event_date = last_event AND event_date = last_paid_event THEN 0.4  -- Last event IS paid, gets full 40%
                     WHEN event_date = last_event AND last_paid_event IS NULL THEN 0.4  -- No paid events, last gets full 40%
-                    WHEN event_date = last_event and last_paid_event=first_paid_event THEN 0.4  -- Last event gets 40%
+                    WHEN event_date = last_event and last_paid_event=first_paid_event and first_event=first_paid_event THEN 0.4  -- Last event gets 40%
+                    WHEN event_date = last_event and last_paid_event=first_paid_event THEN 0.2  -- Last event gets 40%
                     WHEN event_date = last_event THEN 0.2  -- Last overall event gets 20%
                     WHEN event_date = last_paid_event THEN 0.2  -- Last paid event gets 20%
-                    -- when event_date=first_paid_event and first_paid_event=last_event then 0.4
                     
                     -- Middle events (20% total distributed equally)
                     WHEN total_events = 4 and last_event != last_paid_event and first_paid_event!=last_paid_event THEN 0.2
-                    -- WHEN total_events > 3 and first_paid_event=last_event THEN 0.2 / NULLIF(total_events - 3, 0)
+                    WHEN total_events > 3 and first_paid_event!=last_paid_event and signup_event=last_paid_event THEN 0.2 / NULLIF(total_events - 3, 0)
                     WHEN total_events > 3 and first_paid_event!=last_paid_event THEN 0.2 / NULLIF(total_events - 4, 0)
+                    WHEN total_events > 3 and first_paid_event=last_paid_event and first_event!=first_paid_event and last_event!= last_paid_event THEN 0.2 / NULLIF(total_events - 3, 0)
                     WHEN total_events > 3 and last_event != last_paid_event THEN 0.2 / NULLIF(total_events - 2, 0)
                     WHEN total_events > 3 THEN 0.2 / NULLIF(total_events - 2, 0)
 
