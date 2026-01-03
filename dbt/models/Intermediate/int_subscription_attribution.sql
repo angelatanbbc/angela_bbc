@@ -77,8 +77,8 @@ from {{ ref('stg_subscription_attribution') }}
    ============================================================ */
 temp_int as (
 select *,
- COALESCE(MIN(event_date) OVER (PARTITION BY visitor_id, TO_DATE(signup_event)),signup_event) AS first_event,
- COALESCE(MAX(CASE WHEN event_date < signup_event and visit_number=1 THEN event_date END)OVER (PARTITION BY visitor_id, TO_DATE(signup_event)),signup_event) AS last_event,
+ COALESCE(MAX(CASE WHEN event_date < signup_event and visit_number=1 THEN event_date END)OVER (PARTITION BY visitor_id, signup_event),signup_event) AS last_event,
+ COALESCE(MIN(event_date) OVER (PARTITION BY visitor_id, signup_pageview_id),signup_event) AS first_event,
 from temp2
 ),
 
@@ -103,6 +103,12 @@ and visit_number != 2
 qualify keep_flag='Yes'
 ),
 
+temp3_int as (
+select * exclude(first_event),
+COALESCE(MIN(event_date) OVER (PARTITION BY visitor_id, signup_pageview_id),signup_event) AS first_event
+from temp3
+),
+
 /* ============================================================
    STEP 4: Promo code detection
    ============================================================ */
@@ -123,7 +129,7 @@ MAX(CASE WHEN is_paid_event = 1 THEN event_date END)
 -- Count total paid events
 SUM(is_paid_event) OVER (PARTITION BY visitor_id,signup_event) AS total_paid_events
 
-from temp3),
+from temp3_int),
 
 /* ============================================================
    STEP 5: Attribution models & weighting logic
@@ -206,7 +212,7 @@ CASE
                     
                     -- Last event bucket (40% total)
                     WHEN event_date = last_event AND event_date = last_paid_event THEN 0.4  -- Last event IS paid, gets full 40%
-                    WHEN event_date = last_event AND last_paid_event IS NULL THEN 0.4  -- No paid events, last gets full 40%
+                    WHEN event_date = last_event AND last_paid_event IS NULL THEN 0.4  -- No paid events, last gets full 40%\
                     WHEN event_date = last_event and last_paid_event=first_paid_event and first_event=first_paid_event THEN 0.4  -- Last event gets 40%
                     WHEN event_date = last_event and last_paid_event=first_paid_event THEN 0.2  -- Last event gets 40%
                     WHEN event_date = last_event THEN 0.2  -- Last overall event gets 20%
@@ -214,12 +220,13 @@ CASE
                     
                     -- Middle events (20% total distributed equally)
                     WHEN total_events = 4 and last_event != last_paid_event and first_paid_event!=last_paid_event THEN 0.2
-                    WHEN total_events > 3 and first_paid_event!=last_paid_event and signup_event=last_paid_event THEN 0.2 / NULLIF(total_events - 3, 0)
+                    WHEN total_events > 3 and first_paid_event!=last_paid_event and first_paid_event=last_event and signup_event=last_paid_event THEN 0.2 / NULLIF(total_events - 3, 0)
+                    WHEN total_events > 3 and first_paid_event!=last_paid_event and signup_event=last_paid_event THEN 0.2 / NULLIF(total_events - 4, 0)
+                    WHEN total_events > 3 and first_paid_event!=last_paid_event and last_paid_event=last_event THEN 0.2 / NULLIF(total_events - 3, 0)
                     WHEN total_events > 3 and first_paid_event!=last_paid_event THEN 0.2 / NULLIF(total_events - 4, 0)
                     WHEN total_events > 3 and first_paid_event=last_paid_event and first_event!=first_paid_event and last_event!= last_paid_event THEN 0.2 / NULLIF(total_events - 3, 0)
                     WHEN total_events > 3 and last_event != last_paid_event THEN 0.2 / NULLIF(total_events - 2, 0)
                     WHEN total_events > 3 THEN 0.2 / NULLIF(total_events - 2, 0)
-
                     
                     ELSE 0
                 END
