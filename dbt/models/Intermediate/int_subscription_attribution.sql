@@ -89,7 +89,7 @@ from temp2
 temp3 as (
 select *,
 case when event_date=signup_event
-        or pageview_id=signup_pageview_id
+        -- or pageview_id=signup_pageview_id
         or (event_date=first_event and visit_number = 1)
         or (event_date=last_event and visit_number = 1)
         or (event_date=min(event_date) over (partition by visitor_id, cast(event_date as date)) and visit_number = 1)
