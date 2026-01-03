@@ -80,9 +80,7 @@ signups AS (
     FROM ntemp2
     WHERE event_name = 'vx.conversion'
   )
-),
-
-  )
+)
 
 /* ============================================================
    STEP 4: Pull all relevant events in the 30-day pre-signup window
