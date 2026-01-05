@@ -99,7 +99,7 @@ ad_data_google as (
         account_id,
         ad_name,
         adset_name,
-        TRIM(SPLIT_PART(ad_name, '|', 2)) AS src_bbc_team_v2,
+        REGEXP_SUBSTR(ad_name, '(DBS|8MS)') AS src_bbc_team_v2,
         spend as spend
     FROM {{ source('GOOGLE_ADS', 'STG_GOOGLE_ADS') }}
     where 1=1
