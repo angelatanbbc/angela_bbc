@@ -155,6 +155,7 @@ attribution AS (
         geo_country,
         geo_region,
         geo_city,
+        TO_VARCHAR(conversion_time, 'YYYY-MM') AS cohort_month,
 
         -- If conversion is Landing Page and they clicked subscribe in build up, assume it's the Landing Page
         -- Else coalesce Interactions (for paywalls) and Actions (for ribbons) and Conversions (usually just LP standalone conversions)
