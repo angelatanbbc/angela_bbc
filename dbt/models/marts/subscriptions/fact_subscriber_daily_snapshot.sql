@@ -78,7 +78,7 @@ final_snapshot AS (
         COALESCE(ss.geo_country, 'N/A') AS geo_country,
         COALESCE(ss.geo_region, 'N/A') AS geo_region,
         COALESCE(ss.geo_city, 'N/A') AS geo_city,
-        COALESCE(ss.cohort_month, '1900-01-01'::TIMESTAMP) AS cohort_month,
+        COALESCE(ss.cohort_month, '1900-01') AS cohort_month,
 
         -- State measures
         COALESCE(ss.mrr_amount, 0) AS mrr_amount,
