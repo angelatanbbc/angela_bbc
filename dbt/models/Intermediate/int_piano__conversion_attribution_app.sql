@@ -70,7 +70,7 @@ named AS (
     
     SELECT
         f.*,
-        IFNULL(e.experience_name, 'Unknown Experience') AS experience_name,
+        IFNULL(e.experience_name, '000 - Unknown Experience') AS experience_name,
         IFNULL(t.template_name, 'Unknown Template') AS template_name
     FROM last_fix f
     LEFT JOIN app_experiences e

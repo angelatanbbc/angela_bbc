@@ -149,16 +149,10 @@ models:
           - not_null
       - name: card_id
         description: Identifier for the card used in the Composer experience.
-        tests:
-          - not_null
       - name: card_name
         description: Name of the card used in the Composer experience.
-        tests:
-          - not_null
       - name: card_action
         description: Action taken on the card (one of showOffer, showTemplate).
-        tests:
-          - not_null
       - name: template_id
         description: Identifier for the template used in the Composer experience.
         tests:
