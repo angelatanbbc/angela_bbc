@@ -6,7 +6,7 @@ SELECT DISTINCT
     billing_period,
     term_offer_id,
     term_offer_name
-FROM {{ ref('stg_piano_events__subscriptions') }}
+FROM {{ ref('stg_piano__subs_events_web') }}
 WHERE
     term_offer_id IS NOT NULL
     AND term_id IS NOT NULL
