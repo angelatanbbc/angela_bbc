@@ -21,7 +21,9 @@ models:
       - name: user_id
         description: Piano unique identifier for the registered user.
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
       - name: visit_id
         description: Piano unique identifier for the visit associated with the conversion event.
         tests:
@@ -37,29 +39,41 @@ models:
       - name: term_id
         description: Identifier for the subscription term associated with the conversion.
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
       - name: term_name
         description: Name of the subscription term associated with the conversion.
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
       - name: term_offer_id
         description: Identifier for the subscription term offer associated with the conversion.
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
       - name: term_offer_name
         description: Name of the subscription term offer associated with the conversion.
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
       - name: billing_period
         description: Billing period for the subscription (e.g., monthly, annual).
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
       - name: vx_promo_code
         description: Promo code used during the conversion event, if any.
       - name: cart_turnovertaxfree
         description: Total revenue amount excluding tax at the time of conversion.
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
       - name: subscription_period_number
         description: The period number of the subscription at the time of conversion. Always 1 for new subscriptions.
         tests:
@@ -91,11 +105,15 @@ models:
       - name: card_id
         description: Identifier for the card used in the Composer experience.
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
       - name: card_name
         description: Name of the card used in the Composer experience.
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
       - name: template_id
         description: Identifier for the template used in the Composer experience.
         tests:

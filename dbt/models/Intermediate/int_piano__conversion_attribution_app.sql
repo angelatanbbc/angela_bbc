@@ -98,7 +98,7 @@ SELECT
     billing_period,
     vx_promo_code,
     cart_turnovertaxfree,
-    subscription_period_number,
+    IFNULL(subscription_period_number, 1) AS subscription_period_number,
     src,
     src_detail,
     geo_id,
