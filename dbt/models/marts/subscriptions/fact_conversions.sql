@@ -1,208 +1,21 @@
 {{ config(materialized="table") }}
 
-WITH conversion_events AS (
+WITH web_conversions AS (
 
     SELECT *
-    FROM {{ ref('stg_piano_events__subscriptions') }}
-    WHERE event_name = 'vx.conversion'
+    FROM {{ ref('int_piano__conversion_attribution_web') }}
 
 ),
 
--- Gets all page view, CTA and interaction events leading up to conversion (previous day)
-lead_up_events AS (
+app_conversions AS (
 
-    SELECT
-        e.*,
-        c.event_time AS conversion_time,
-        ROW_NUMBER() OVER (
-            PARTITION BY e.visitor_id, e.event_name, c.event_time
-            ORDER BY e.event_time DESC
-        ) AS rn
-    FROM {{ ref('stg_piano_events__subscriptions') }} e
-    INNER JOIN conversion_events c
-        ON c.visitor_id = e.visitor_id
-        AND e.event_time < c.event_time  -- Strictly before conversion
-        AND e.event_time >= DATEADD(DAY, -1, c.event_time)
-    WHERE 1=1
-        AND e.event_name IN ('experience.action', 'experience.interaction', 'subscription.select')
-        AND (e.page NOT IN ('id.auth_identifier_signin.page',
-                            'id.auth_identifier_magic_link_check.page',
-                            'id.auth_identifier_signin_password.page')
-             OR e.page IS NULL)
-        AND e.event_url != 'https://www.bbc.com/subscribe'
-
-),
-
--- Joins the conversion event on the last CTA, interaction and page view
-joined AS (
-
-    SELECT
-        -- vx.conversion-specific properties
-        c.conversion_id,
-        c.subscription_id,
-        c.visitor_id,
-        c.user_id,
-        c.visit_id,
-        c.visit_time,
-        c.event_time AS conversion_time,
-        c.term_id,
-        c.term_name,
-        c.term_offer_id,
-        c.term_offer_name,
-        c.billing_period,
-        c.vx_promo_code,
-        c.cart_turnovertaxfree,
-        c.subscription_period_number,
-        c.src,
-        c.src_detail,
-        c.geo_id,
-        c.geo_country,
-        c.geo_region,
-        c.geo_city,
-
-        -- vx.conversion shared properties
-        c.experience_id AS conversion_experience_id,
-        c.experience_name AS conversion_experience_name,
-        c.card_id AS conversion_card_id,
-        c.card_name AS conversion_card_name,
-        c.card_action AS conversion_card_action,
-        c.template_id AS conversion_template_id,
-        c.template_name AS conversion_template_name,
-        c.ab_test_variant_name AS conversion_ab_test_variant_name,
-        c.c1x_lts AS conversion_c1x_lts,
-        c.c1x_content_likely_to_convert AS conversion_c1x_content_likely_to_convert,
-        c.c1x_likelihood_to_register AS conversion_c1x_likelihood_to_register,
-        c.c1x_likelihood_to_return AS conversion_c1x_likelihood_to_return,
-        c.c1x_revenue_auto_optimization AS conversion_c1x_revenue_auto_optimization,
-
-        -- last experience.action relevant properties
-        a.experience_id AS action_experience_id,
-        a.experience_name AS action_experience_name,
-        a.card_id AS action_card_id,
-        a.card_name AS action_card_name,
-        a.card_action AS action_card_action,
-        a.template_id AS action_template_id,
-        a.template_name AS action_template_name,
-        a.ab_test_variant_name AS action_ab_test_variant_name,
-        a.c1x_lts AS action_c1x_lts,
-        a.c1x_content_likely_to_convert AS action_c1x_content_likely_to_convert,
-        a.c1x_likelihood_to_register AS action_c1x_likelihood_to_register,
-        a.c1x_likelihood_to_return AS action_c1x_likelihood_to_return,
-        a.c1x_revenue_auto_optimization AS action_c1x_revenue_auto_optimization,
-        
-        -- last experience.interaction relevant properties
-        i.experience_id AS interaction_experience_id,
-        i.experience_name AS interaction_experience_name,
-        i.card_id AS interaction_card_id,
-        i.card_name AS interaction_card_name,
-        i.card_action AS interaction_card_action,
-        i.template_id AS interaction_template_id,
-        i.template_name AS interaction_template_name,
-        i.ab_test_variant_name AS interaction_ab_test_variant_name,
-        i.c1x_lts AS interaction_c1x_lts,
-        i.c1x_content_likely_to_convert AS interaction_c1x_content_likely_to_convert,
-        i.c1x_likelihood_to_register AS interaction_c1x_likelihood_to_register,
-        i.c1x_likelihood_to_return AS interaction_c1x_likelihood_to_return,
-        i.c1x_revenue_auto_optimization AS interaction_c1x_revenue_auto_optimization,
-
-        -- subscribe.select event tells us if they click the subscribe button
-        IFF(s.event_time IS NOT NULL, TRUE, FALSE) AS clicked_subscribe
-
-    FROM conversion_events c
-
-    LEFT JOIN (SELECT *
-               FROM lead_up_events
-               WHERE event_name = 'experience.action' AND rn=1) a
-        ON a.visitor_id = c.visitor_id
-        AND a.conversion_time = c.event_time
-
-    LEFT JOIN (SELECT *
-               FROM lead_up_events
-               WHERE event_name = 'experience.interaction' AND rn=1) i
-        ON i.visitor_id = c.visitor_id
-        AND i.conversion_time = c.event_time
-
-    -- See if there was a subscription.select in build up to conversion
-    LEFT JOIN (SELECT *
-               FROM lead_up_events
-               WHERE event_name = 'subscription.select' AND rn=1) s
-        ON s.visitor_id = c.visitor_id
-        AND s.event_time BETWEEN DATEADD(HOUR, -1, c.event_time) AND c.event_time
-        
-),
-
-attribution AS (
-
-    SELECT
-        conversion_id,
-        subscription_id,
-        visitor_id,
-        user_id,
-        visit_id,
-        visit_time,
-        conversion_time,
-        term_id,
-        term_name,
-        term_offer_id,
-        term_offer_name,
-        billing_period,
-        vx_promo_code,
-        cart_turnovertaxfree,
-        subscription_period_number,
-        src,
-        src_detail,
-        geo_id,
-        geo_country,
-        geo_region,
-        geo_city,
-
-        -- If conversion is Landing Page and they clicked subscribe in build up, assume it's the Landing Page
-        -- Else coalesce Interactions (for paywalls) and Actions (for ribbons) and Conversions (usually just LP standalone conversions)
-        CASE
-            WHEN conversion_experience_id = 'EX843FEP7H0N' AND clicked_subscribe THEN 'EX843FEP7H0N'
-            ELSE COALESCE(interaction_experience_id, action_experience_id, 'EX843FEP7H0N')
-        END AS experience_id,
-
-        CASE
-            WHEN conversion_experience_id = 'EX843FEP7H0N' AND clicked_subscribe THEN '003 - Subscription Landing Page'
-            ELSE COALESCE(interaction_experience_name, action_experience_name, '003 - Subscription Landing Page')
-        END AS experience_name,
-
-        CASE 
-            WHEN conversion_experience_id = 'EX843FEP7H0N' AND clicked_subscribe THEN 'showOfferU1L6WTFCILCB9'
-            ELSE COALESCE(interaction_card_id, action_card_id, 'showOfferU1L6WTFCILCB9')
-        END AS card_id,
-
-        CASE
-            WHEN conversion_experience_id = 'EX843FEP7H0N' AND clicked_subscribe THEN 'Show offer'
-            ELSE COALESCE(interaction_card_name, action_card_name, 'Show offer')
-        END AS card_name,
-
-        CASE
-            WHEN conversion_experience_id = 'EX843FEP7H0N' AND clicked_subscribe THEN 'showOffer'
-            ELSE COALESCE(interaction_card_action, action_card_action, 'showOffer')
-        END AS card_action,
-        
-        CASE
-            WHEN conversion_experience_id = 'EX843FEP7H0N' AND clicked_subscribe THEN 'OTSEA34UH0YZ'
-            ELSE COALESCE(interaction_template_id, action_template_id, 'OTSEA34UH0YZ')
-        END AS template_id,
-
-        CASE
-            WHEN conversion_experience_id = 'EX843FEP7H0N' AND clicked_subscribe THEN 'Subscription Landing Page'
-            ELSE COALESCE(interaction_template_name, action_template_name, 'Subscription Landing Page')
-        END AS template_name,
-
-        COALESCE(conversion_ab_test_variant_name, interaction_ab_test_variant_name, action_ab_test_variant_name) AS ab_test_variant_name,
-        COALESCE(conversion_c1x_lts, interaction_c1x_lts, action_c1x_lts) AS c1x_lts,
-        COALESCE(conversion_c1x_content_likely_to_convert, interaction_c1x_content_likely_to_convert, action_c1x_content_likely_to_convert) AS c1x_content_likely_to_convert,
-        COALESCE(conversion_c1x_likelihood_to_register, interaction_c1x_likelihood_to_register, action_c1x_likelihood_to_register) AS c1x_likelihood_to_register,
-        COALESCE(conversion_c1x_likelihood_to_return, interaction_c1x_likelihood_to_return, action_c1x_likelihood_to_return) AS c1x_likelihood_to_return,
-        COALESCE(conversion_c1x_revenue_auto_optimization, interaction_c1x_revenue_auto_optimization, action_c1x_revenue_auto_optimization) AS c1x_revenue_auto_optimization
-    
-    FROM joined
+    SELECT *
+    FROM {{ ref('int_piano__conversion_attribution_app') }}
 
 )
 
-SELECT *
-FROM attribution
+SELECT * FROM web_conversions
+
+UNION ALL
+
+SELECT * FROM app_conversions

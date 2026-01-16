@@ -55,6 +55,7 @@ SELECT
     -- Device / App
     device_type,
     app_type,
+    os_group,
     
     -- Geography
     {{ dbt_utils.generate_surrogate_key(['geo_country', 'geo_region']) }} AS geo_id,
@@ -84,44 +85,13 @@ SELECT
     vx_promo_code,
     cart_turnovertaxfree,
     subscription_action,
-    subscription_period_number,
-    
-    -- C1X Fields
-    c1x_lts,
-    c1x_content_likely_to_convert,
-    c1x_likelihood_to_register,
-    c1x_likelihood_to_return,
-    c1x_revenue_auto_optimization,
-    c1x_brand_relationship,
-    c1x_checkout_abandonment,
-    c1x_subscription_length,
-    c1x_subscription_tenure,
-    c1x_expiring_subscribers,
-    c1x_visitor_frequency,
-    c1x_visitor_interest,
-    c1x_visitor_recency
+    subscription_period_number
 
 FROM {{ source('studios_piano', 'studios_piano_events') }} e
 
 WHERE 
-    e.event_time::DATE > '2025-06-25'
+    e.event_time::DATE >= '2026-01-05'
     AND e.site_id = 638824
-    AND (
-        -- Conversion / Exposure Events
-        (
-            event_name IN ('vx.conversion', 'experience.action', 'experience.interaction', 'subscription.select')
-            AND (experience_name RLIKE '.*[0-9]{3} -.*' OR experience_name IS NULL)
-            AND (term_offer_name IS NULL OR term_offer_name = 'BBC Subscription')
-            AND LOWER(geo_country) IN ('united states')
-            AND (app_type IN ('responsive', 'mobile-responsive') OR app_type IS NULL)
-        )
-        OR
-        -- Page Views
-        (
-            event_name = 'page.display'
-            AND LOWER(geo_country) IN ('united states')
-            AND app_type IN ('responsive', 'bbc_responsive', 'mobile-responsive')
-        )
-        -- Subscription Actions
-        OR event_name ILIKE 'subscription.action%'
-    )
+    AND event_name IN ('page.display', 'vx.conversion', 'experience.action', 'experience.interaction', 'subscription.select')
+    AND LOWER(geo_country) = 'united states'
+    AND app_type = 'mobile-app'

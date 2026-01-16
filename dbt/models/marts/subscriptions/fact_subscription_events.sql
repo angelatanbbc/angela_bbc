@@ -22,7 +22,8 @@ WITH conversions AS (
         geo_id,
         geo_country,
         geo_region,
-        geo_city
+        geo_city,
+        cohort_month
     FROM {{ ref('fact_conversions') }}
     WHERE 1=1
     {% if is_incremental() %}
@@ -46,8 +47,9 @@ subs_actions AS (
         c.geo_id,
         c.geo_country,
         c.geo_region,
-        c.geo_city
-    FROM {{ ref('stg_piano_events__subscriptions') }} a
+        c.geo_city,
+        c.cohort_month
+    FROM {{ ref('stg_piano__subs_events_web') }} a
     JOIN conversions c  -- This join ensures we only get subscription actions for subscriptions that have converted
         ON a.subscription_id = c.subscription_id
     WHERE 1=1

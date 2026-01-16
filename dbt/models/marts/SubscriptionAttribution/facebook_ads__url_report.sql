@@ -1,0 +1,145 @@
+{{ config(enabled=var('ad_reporting__facebook_ads_enabled', True)) }}
+
+with report as (
+
+    select *
+    from {{ ref('stg_facebook_ads__basic_ad') }}
+
+), 
+
+conversion_report as (
+
+    select *
+    from {{ ref('int_facebook_ads__conversions') }}
+
+), 
+
+creatives as (
+
+    select *
+    from {{ ref('int_facebook_ads__creative_history') }}
+
+), 
+
+accounts as (
+
+    select *
+    from {{ ref('stg_facebook_ads__account_history') }}
+    where is_most_recent_record = true
+
+), 
+
+ads as (
+
+    select *
+    from {{ ref('stg_facebook_ads__ad_history') }}
+    where is_most_recent_record = true
+
+), 
+
+ad_sets as (
+
+    select *
+    from {{ ref('stg_facebook_ads__ad_set_history') }}
+    where is_most_recent_record = true
+
+), 
+
+campaigns as (
+
+    select *
+    from {{ ref('stg_facebook_ads__campaign_history') }}
+    where is_most_recent_record = true
+
+), 
+
+joined as (
+
+    select
+        report.source_relation,
+        report.date_day,
+        accounts.account_id,
+        accounts.account_name,
+        campaigns.campaign_id,
+        campaigns.campaign_name,
+        ad_sets.ad_set_id,
+        ad_sets.ad_set_name,
+        ads.ad_id,
+        ads.ad_name,
+        creatives.creative_id,
+        creatives.creative_name,
+        creatives.base_url,
+        creatives.url_host,
+        creatives.url_path,
+
+        -- UTM tags
+        creatives.utm_source,
+        creatives.utm_medium,
+        creatives.utm_campaign,
+        creatives.utm_content,
+        creatives.utm_term,
+
+        -- Piano AT tags
+        creatives.at_parameter,
+        creatives.at_bbc_team,
+        creatives.at_medium,
+        creatives.at_objective,
+        creatives.at_ptr_type,
+        creatives.at_ptr_name,
+        creatives.at_format,
+        creatives.at_link_origin,
+        creatives.at_campaign_id,
+        creatives.at_campaign,
+        creatives.at_adset_id,
+        creatives.at_adset_name,
+        creatives.at_creative_id,
+        creatives.at_creation,
+        creatives.at_marketing_tactic,
+
+        sum(report.clicks) as clicks,
+        sum(report.impressions) as impressions,
+        sum(report.spend) as spend,
+        sum(coalesce(conversion_report.conversions, 0)) as conversions,
+        sum(coalesce(conversion_report.conversions_value, 0)) as conversions_value
+
+        {% for action_type in var('facebook_ads__conversion_action_types') %}
+        , sum(coalesce(conversion_report.{{ facebook_ads.facebook_action_slug(action_type) }}_conversions, 0)) 
+        as {{ facebook_ads.facebook_action_slug(action_type) }}_conversions
+        , sum(coalesce(conversion_report.{{ facebook_ads.facebook_action_slug(action_type) }}_conversions_value, 0)) 
+        as {{ facebook_ads.facebook_action_slug(action_type) }}_conversions_value
+        {% endfor %}
+
+        {{ facebook_ads.facebook_ads_persist_pass_through_columns(pass_through_variable='facebook_ads__basic_ad_passthrough_metrics', transform = 'sum', exclude_fields=['conversions', 'conversions_value']) }}
+        {{ facebook_ads.facebook_ads_persist_pass_through_columns(pass_through_variable='facebook_ads__basic_ad_actions_passthrough_metrics', transform = 'sum', coalesce_with=0) }}
+        {{ facebook_ads.facebook_ads_persist_pass_through_columns(pass_through_variable='facebook_ads__basic_ad_action_values_passthrough_metrics', transform = 'sum', coalesce_with=0) }}
+
+    from report
+    left join conversion_report
+        on report.date_day = conversion_report.date_day
+        and report.ad_id = conversion_report.ad_id
+        and report.source_relation = conversion_report.source_relation
+    left join ads 
+        on report.ad_id = ads.ad_id
+        and report.source_relation = ads.source_relation
+    left join creatives
+        on ads.creative_id = creatives.creative_id
+        and ads.source_relation = creatives.source_relation
+    left join ad_sets
+        on ads.ad_set_id = ad_sets.ad_set_id
+        and ads.source_relation = ad_sets.source_relation
+    left join campaigns
+        on ads.campaign_id = campaigns.campaign_id
+        and ads.source_relation = campaigns.source_relation
+    left join accounts
+        on report.account_id = accounts.account_id
+        and report.source_relation = accounts.source_relation  
+
+    {% if var('ad_reporting__url_report__using_null_filter', True) %}
+        where creatives.url is not null
+    {% endif %}
+    
+    {{ dbt_utils.group_by(35) }}
+)
+
+select *
+from joined

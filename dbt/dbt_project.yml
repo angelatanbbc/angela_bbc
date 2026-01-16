@@ -8,8 +8,25 @@ models:
   dns_transformations:
     +materialized: table
   facebook_ads:
+    intermediate:
+      int_facebook_ads__creative_history:
+        +enabled: false
+    facebook_ads__url_report:
+      +enabled: false
     +schema:
 
 vars:
   facebook_ads_database: sdp_bronze
   facebook_ads_schema: facebook_ads
+  facebook_ads__url_tags_pivoted:
+    - "at_bbc_team"
+  facebook_ads__url_passthrough_columns:
+    - name: "at_bbc_team"
+  ad_reporting__url_report__using_null_filter: False
+  url_reporting__url_report__using_null_filter: False
+  facebook_ads__conversion_action_types: # default values
+    - name: onsite_conversion.purchase
+    - name: onsite_conversion.lead_grouped
+    - name: offsite_conversion.fb_pixel_purchase
+    - name: offsite_conversion.fb_pixel_lead
+    - name: offsite_conversion.fb_pixel_custom # same as pattern: offsite_conversion.custom%
