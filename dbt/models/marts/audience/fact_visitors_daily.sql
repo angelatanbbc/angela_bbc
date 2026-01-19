@@ -1,7 +1,7 @@
 {{
     config(
         materialized="incremental",
-        unique_key=['date_day', 'visitor_id'],
+        unique_key=['geo_country', 'app_type', 'date_day', 'visitor_id'],
         incremental_strategy='merge',
         on_schema_change='sync_all_columns'
     )
