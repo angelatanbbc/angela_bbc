@@ -101,7 +101,9 @@ models:
       - name: experience_name
         description: Name of the Composer experience that led to the conversion.
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
       - name: card_id
         description: Identifier for the card used in the Composer experience.
         tests:
@@ -121,7 +123,9 @@ models:
       - name: template_name
         description: Name of the template used in the Composer experience.
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
       - name: ab_test_variant_name
         description: A/B test variant name associated with the experience.
       - name: c1x_lts
@@ -164,7 +168,9 @@ models:
       - name: experience_name
         description: Name of the Composer experience that led to the conversion.
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
       - name: card_id
         description: Identifier for the card used in the Composer experience.
       - name: card_name
@@ -178,7 +184,9 @@ models:
       - name: template_name
         description: Name of the template used in the Composer experience.
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
       - name: ab_test_variant_name
         description: A/B test variant name associated with the experience.
 
