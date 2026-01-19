@@ -94,6 +94,7 @@ case when event_date=signup_event
         or (event_date=last_event and visit_number = 1)
         or (event_date=min(event_date) over (partition by visitor_id, cast(event_date as date)) and visit_number = 1)
         or (is_paid_event = 1 and visit_number = 1)  -- First event of each paid visit
+        or (src_format='banner'and src_campaign_type='owned')
     then 'Yes'
 else 'No'
 end as keep_flag
