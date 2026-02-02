@@ -179,5 +179,5 @@ spend_per_visitor,
 cast (ad_id as string) as ad_id,
 ad_name,
 adset_name,
-'google' as source
+case when length(ad_id) =14 then 'microsoft' else 'google' end as source,
 from final_google
