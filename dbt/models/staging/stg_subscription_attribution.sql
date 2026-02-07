@@ -11,6 +11,9 @@
 with ntemp as (SELECT
    visitor_id,
    pageview_id,
+   subscription_id,
+   billing_period,
+   cart_turnovertaxfree,
    min(event_time) as signup_event,
 FROM {{ source('studios_piano', 'studios_piano_events') }}
 WHERE 1=1
@@ -42,6 +45,9 @@ ntemp2 as (
  s.visitor_id,
  t.signup_event,
  t.pageview_id,
+ t.subscription_id,
+ t.billing_period,
+ t.cart_turnovertaxfree,
 MAX(CASE 
     WHEN s.event_name = 'page.display' 
     THEN s.visitor_id 
@@ -68,6 +74,9 @@ signups AS (
     signup_event,
     pageview_id,
     visitor_id,
+    subscription_id,
+    billing_period,
+    cart_turnovertaxfree,
     LAG(signup_event) OVER (
       PARTITION BY visitor_id
       ORDER BY signup_event
@@ -76,6 +85,9 @@ signups AS (
     SELECT
       signup_event,
       pageview_id,
+      subscription_id,
+      billing_period,
+      cart_turnovertaxfree,
       COALESCE(new_visitor_id, visitor_id) AS visitor_id
     FROM ntemp2
     WHERE event_name = 'vx.conversion'
@@ -124,12 +136,12 @@ select
     s.site_id,
     s.event_name,
     s.vx_promo_code,
-    s.billing_period,
+    vs.billing_period,
     s.trial_duration,
-    s.subscription_id,
+    vs.subscription_id,
     s.subscription_action,
     s.subscription_period_number,
-    s.cart_turnovertaxfree,
+    vs.cart_turnovertaxfree,
     vs.signup_event, 
     vs.pageview_id as signup_pageview_id,
     REGEXP_SUBSTR(event_url_full, 'at_link_origin=([^&]+)', 1, 1, '', 1) AS link_origin,
