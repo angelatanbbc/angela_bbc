@@ -151,7 +151,7 @@ where 1=1
 select distinct 
 coalesce(event_date,date) as event_date,
 src_adset_name,
-src_bbc_team,
+src_bbc_team as src_bbc_team_o,
 src_campaign,
 src_creative_id,
 src_ptr_name,
@@ -160,6 +160,11 @@ visitor_id,
 spend_per_visitor,
 cast (ad_id as string) as ad_id,
 ad_name,
+COALESCE(
+        NULLIF(src_bbc_team, ''),
+        MAX(NULLIF(src_bbc_team, '')) 
+            OVER (PARTITION BY ad_name)
+    ) AS src_bbc_team,
 adset_name,
 'facebook' as source
 from final_facebook
@@ -169,7 +174,7 @@ union all
 select distinct 
 coalesce(event_date,date) as event_date,
 src_adset_name,
-src_bbc_team,
+src_bbc_team as src_bbc_team_o,
 src_campaign,
 src_creative_id,
 src_ptr_name,
@@ -178,6 +183,11 @@ visitor_id,
 spend_per_visitor,
 cast (ad_id as string) as ad_id,
 ad_name,
+COALESCE(
+        NULLIF(src_bbc_team, ''),
+        MAX(NULLIF(src_bbc_team, '')) 
+            OVER (PARTITION BY ad_name)
+    ) AS src_bbc_team,
 adset_name,
 case when length(ad_id) =14 then 'microsoft' else 'google' end as source,
 from final_google
