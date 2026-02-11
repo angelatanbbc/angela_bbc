@@ -6,6 +6,12 @@ dbt_internal_packages/
 
 # macOS
 .DS_Store
-
+.venv
 profiles.yml
 .user.yml
+
+pyproject.toml
+
+*.ipynb
+
+uv.lock

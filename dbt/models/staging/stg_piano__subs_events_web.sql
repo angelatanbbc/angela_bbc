@@ -53,8 +53,17 @@ SELECT
     page_content_type,
     
     -- Device / App
-    device_type,
-    'web' AS app_type,
+    CASE
+        WHEN LOWER(device_type) NOT IN ('mobile phone', 'desktop', 'tablet') THEN 'Other'
+        WHEN device_type IS NULL THEN 'Unknown'
+        ELSE device_type
+    END AS device_type,
+    'Web' AS app_type,
+    CASE
+        WHEN LOWER(os_group) NOT IN ('ios', 'android', 'windows', 'macos', 'ipados', 'chrome os', 'linux') THEN 'Other'
+        WHEN os_group IS NULL THEN 'Unknown'
+        ELSE os_group
+    END AS os_group,
     
     -- Geography
     {{ dbt_utils.generate_surrogate_key(['geo_country', 'geo_region']) }} AS geo_id,

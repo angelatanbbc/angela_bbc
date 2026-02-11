@@ -30,7 +30,9 @@ subscriber_states AS (
     SELECT
         user_id,
         subscription_id,
+        conversion_device_type,
         conversion_app_type,
+        conversion_os_group,
         event_time::DATE AS event_date,
         event_type,
         term_id,
@@ -68,7 +70,9 @@ final_snapshot AS (
         d.date_day,
         ss.user_id,
         s.subscription_id,
+        ss.conversion_device_type,
         ss.conversion_app_type,
+        ss.conversion_os_group,
 
         -- State attributes
         ss.event_type AS last_subscription_action,

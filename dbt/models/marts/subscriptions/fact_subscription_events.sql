@@ -14,7 +14,9 @@ WITH conversions AS (
         'New Subscription' AS event_type,
         user_id,
         subscription_id,
+        device_type AS conversion_device_type,
         app_type AS conversion_app_type,
+        os_group AS conversion_os_group,
         term_id,
         term_name,
         billing_period,
@@ -40,10 +42,16 @@ subs_actions AS (
         a.subscription_action AS event_type,
         a.user_id,
         a.subscription_id,
+        c.conversion_device_type,
         c.conversion_app_type,
+        c.conversion_os_group,
         c.term_id,
         c.term_name,
-        a.billing_period,
+        CASE
+            WHEN a.billing_period = 'NON_RECURRING' AND c.term_name ILIKE '%annual%' THEN '1 year'
+            WHEN a.billing_period = 'NON_RECURRING' AND c.term_name ILIKE '%month%' THEN '1 month'
+            ELSE a.billing_period
+        END AS billing_period,
         a.cart_turnovertaxfree AS transaction_value,
         a.subscription_period_number,
         c.geo_id,

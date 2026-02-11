@@ -1,39 +1,51 @@
-{{ config(materialized="table") }}
+{{ config(
+    materialized="view",
+    tags=["piano", "intermediate"]
+) }}
 
-WITH converted_visitors AS (
+WITH consolidated_conversions AS (
 
-    SELECT
-        visitor_id,
-        visit_id,
-        event_time AS conversion_time
-    FROM {{ ref('stg_piano__subs_events_app') }}
-    WHERE event_name = 'vx.conversion'
+    SELECT *
+    FROM {{ ref('int_piano__app_conversion_event_consolidation') }}
 
 ),
 
 app_experiences AS (
 
-    SELECT *
+    SELECT
+        experience_id,
+        experience_name
     FROM {{ ref('app_experiences') }}
 ),
 
 app_templates AS (
 
-    SELECT *
+    SELECT 
+        template_id,
+        template_name
     FROM {{ ref('app_templates') }}
 ),
 
 lead_up_ctas AS (
 
     SELECT
-        e.*,
-        c.conversion_time
+        c.*,
+        e.event_name,
+        e.event_time,
+        e.experience_id,
+        e.experience_name,
+        e.card_id,
+        e.card_name,
+        e.card_action,
+        e.template_id,
+        e.template_name,
+        e.ab_test_variant_name
     FROM {{ ref('stg_piano__subs_events_app') }} e
-    JOIN converted_visitors c
-        ON e.visitor_id = c.visitor_id
-        AND e.visit_id = c.visit_id
-        AND e.event_name IN ('vx.conversion', 'experience.action', 'experience.interaction')
-    ORDER BY e.visitor_id, event_time
+    JOIN consolidated_conversions c
+        ON e.visit_id = c.visit_id
+        AND e.event_time <= c.conversion_time
+        AND e.event_name IN ('experience.action', 'experience.interaction')
+    ORDER BY c.conversion_id, e.event_time
 
 ),
 
@@ -81,13 +93,13 @@ named AS (
 )
 
 SELECT
-    -- Generated IDs because these are not coming through right now
-    {{ dbt_utils.generate_surrogate_key(['visitor_id', 'conversion_time']) }} AS conversion_id,
-    {{ dbt_utils.generate_surrogate_key(['visitor_id', 'visit_id', 'conversion_time']) }} AS subscription_id,
+    conversion_id,
+    subscription_id,
     visitor_id,
     user_id,
     visit_id,
     visit_time,
+    device_type,
     app_type,
     os_group,
     conversion_time,
@@ -96,9 +108,15 @@ SELECT
     term_offer_id,
     term_offer_name,
     billing_period,
-    vx_promo_code,
-    cart_turnovertaxfree,
-    IFNULL(subscription_period_number, 1) AS subscription_period_number,
+    NULL AS vx_promo_code,
+    CASE
+        WHEN billing_period = '1 month' AND LOWER(os_group) IN ('ios', 'ipados') THEN 8.99 * 0.7  -- Assuming 30% app store fee for iOS
+        WHEN billing_period = '1 year' AND LOWER(os_group) IN ('ios', 'ipados') THEN 49.99 * 0.7  -- Assuming 30% app store fee for iOS
+        WHEN billing_period = '1 month' AND LOWER(os_group) = 'android' THEN 8.99 * 0.85  -- Assuming 15% app store fee for Android
+        WHEN billing_period = '1 year' AND LOWER(os_group) = 'android' THEN 49.99 * 0.85  -- Assuming 15% app store fee for Android
+        ELSE NULL
+    END AS cart_turnovertaxfree,
+    subscription_period_number,
     src,
     src_detail,
     geo_id,
@@ -120,4 +138,4 @@ SELECT
     NULL AS c1x_likelihood_to_return,
     NULL AS c1x_revenue_auto_optimization
 FROM named
-WHERE event_name = 'vx.conversion'
+QUALIFY ROW_NUMBER() OVER (PARTITION BY conversion_id ORDER BY event_time DESC) = 1

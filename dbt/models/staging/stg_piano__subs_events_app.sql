@@ -53,9 +53,19 @@ SELECT
     page_content_type,
     
     -- Device / App
-    device_type,
-    app_type,
-    os_group,
+    CASE
+        WHEN LOWER(device_type) NOT IN ('mobile phone', 'desktop', 'tablet') THEN 'Other'
+        WHEN device_type IS NULL THEN 'Unknown'
+        ELSE device_type
+    END AS device_type,
+    'Mobile App' AS app_type,
+    CASE
+        WHEN LOWER(os_group) = 'ios' THEN 'iOS'
+        WHEN LOWER(os_group) = 'ipados' THEN 'iPadOS'
+        WHEN LOWER(os_group) = 'android' THEN 'Android'
+        WHEN os_group IS NULL THEN 'Unknown'
+        ELSE os_group
+    END AS os_group,
     
     -- Geography
     {{ dbt_utils.generate_surrogate_key(['geo_country', 'geo_region']) }} AS geo_id,
@@ -76,8 +86,7 @@ SELECT
     
     -- Subscription / Commercial
     subscription_id,
-    term[0]['term_id2']::STRING AS term_id,
-    term[0]['term_name']::STRING AS term_name,
+    term,
     term_offer_id,
     term_offer_name,
     billing_period,
@@ -92,6 +101,10 @@ FROM {{ source('studios_piano', 'studios_piano_events') }} e
 WHERE 
     e.event_time::DATE >= '2026-01-05'
     AND e.site_id = 638824
-    AND event_name IN ('page.display', 'vx.conversion', 'experience.action', 'experience.interaction', 'subscription.select')
-    AND LOWER(geo_country) = 'united states'
-    AND app_type = 'mobile-app'
+    AND ((
+        event_name IN ('page.display', 'vx.conversion', 'experience.action', 'experience.interaction', 'subscription.select')
+        AND LOWER(geo_country) = 'united states'
+        AND app_type = 'mobile-app'
+    ) OR (
+        event_name = 'vx.conversion.offsite'
+    ))

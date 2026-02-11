@@ -1,4 +1,7 @@
-{{ config(materialized="table") }}
+{{ config(
+    materialized="view",
+    tags=["piano", "intermediate"]
+) }}
 
 WITH conversion_events AS (
 
@@ -45,7 +48,9 @@ joined AS (
         c.visit_id,
         c.visit_time,
         c.event_time AS conversion_time,
+        c.device_type,
         c.app_type,
+        c.os_group,
         c.term_id,
         c.term_name,
         c.term_offer_id,
@@ -141,8 +146,9 @@ attribution AS (
         user_id,
         visit_id,
         visit_time,
+        device_type,
         app_type,
-        'N/A' AS os_group,
+        os_group,
         conversion_time,
         term_id,
         term_name,

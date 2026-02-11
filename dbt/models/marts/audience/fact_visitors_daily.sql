@@ -1,7 +1,7 @@
 {{
     config(
         materialized="incremental",
-        unique_key=['geo_country', 'app_type', 'date_day', 'visitor_id'],
+        unique_key=['geo_country', 'app_type', 'os_group', 'date_day', 'visitor_id'],
         incremental_strategy='merge',
         on_schema_change='sync_all_columns'
     )
@@ -15,31 +15,39 @@
 
 WITH web_visitors AS (
 
-    SELECT DISTINCT
+    SELECT
         geo_country,
+        device_type,
         app_type,
+        os_group,
         visit_time::DATE AS date_day,
-        visitor_id
+        visitor_id,
+        COUNT(DISTINCT visit_id) AS n_visits
     FROM {{ ref('stg_piano__subs_events_web') }}
     WHERE event_name = 'page.display'
     {% if is_incremental() %}
         AND event_time::DATE >= DATEADD(DAY, -1, (SELECT MAX(date_day) FROM {{ this }}))
     {% endif %}
+    GROUP BY ALL
 
 ),
 
 app_visitors AS (
 
-    SELECT DISTINCT
+    SELECT
         geo_country,
+        device_type,
         app_type,
+        os_group,
         visit_time::DATE AS date_day,
-        visitor_id
+        visitor_id,
+        COUNT(DISTINCT visit_id) AS n_visits
     FROM {{ ref('stg_piano__subs_events_app') }}
     WHERE event_name = 'page.display'
     {% if is_incremental() %}
         AND event_time::DATE >= DATEADD(DAY, -1, (SELECT MAX(date_day) FROM {{ this }}))
     {% endif %}
+    GROUP BY ALL
 
 )
 
