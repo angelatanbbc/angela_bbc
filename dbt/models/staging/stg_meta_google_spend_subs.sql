@@ -84,7 +84,9 @@ final_facebook as (
 select *,
 COUNT(DISTINCT visitor_id) OVER (PARTITION BY ad_id, date) AS total_visitors,
 case when visitor_id is null then spend else 
-spend / COUNT(DISTINCT visitor_id) OVER (PARTITION BY ad_id, date) end AS spend_per_visitor
+spend / COUNT(DISTINCT visitor_id) OVER (PARTITION BY ad_id, date) end AS spend_per_visitor,
+case when visitor_id is null then impressions else 
+impressions / COUNT(DISTINCT visitor_id) OVER (PARTITION BY ad_id, date) end AS impressions_per_visitor
 from staging_facebook
 where 1=1
 -- and ad_id=120231784754050423
@@ -158,6 +160,7 @@ src_ptr_name,
 account_id,
 visitor_id,
 spend_per_visitor,
+impressions_per_visitor,
 cast (ad_id as string) as ad_id,
 ad_name,
 COALESCE(
@@ -181,6 +184,7 @@ src_ptr_name,
 account_id,
 visitor_id,
 spend_per_visitor,
+null as impressions_per_visitor,
 cast (ad_id as string) as ad_id,
 ad_name,
 COALESCE(
