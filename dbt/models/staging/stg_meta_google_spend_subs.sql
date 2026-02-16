@@ -43,6 +43,7 @@ ad_data_facebook as (
         account_id,
         ad_name,
         adset_name,
+        impressions,
         spend as spend
     FROM {{ source('FACEBOOK_ADS', 'basic_ad') }}
     where 1=1
