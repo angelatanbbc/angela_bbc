@@ -9,8 +9,10 @@ WITH first_event AS (
         subscription_id,
         event_time::DATE AS start_date,
         term_id,
-        billing_period
-
+        billing_period,
+        conversion_device_type,
+        conversion_app_type,
+        conversion_os_group
     FROM
         {{ ref('fact_subscription_events') }}
     WHERE
@@ -34,9 +36,11 @@ final_survival_table AS (
         f.subscription_id,
         f.term_id,
         f.billing_period,
+        f.conversion_device_type,
+        f.conversion_app_type,
+        f.conversion_os_group,
         f.start_date,
         c.churn_date,
-        
         -- Today is the "censoring" date for all active subscribers
         CURRENT_DATE() AS censoring_date
         
@@ -51,6 +55,11 @@ SELECT
     subscription_id,
     term_id,
     billing_period,
+    conversion_device_type,
+    conversion_app_type,
+    conversion_os_group,
+    start_date,
+    churn_date,
     
     -- The event is a 1 (churn) if a churn date exists AND it's before today
     CASE 
