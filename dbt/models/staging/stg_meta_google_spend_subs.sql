@@ -44,6 +44,8 @@ ad_data_facebook as (
         ad_name,
         adset_name,
         impressions,
+        reach,
+        inline_link_clicks,
         spend as spend
     FROM {{ source('FACEBOOK_ADS', 'basic_ad') }}
     where 1=1
@@ -87,7 +89,11 @@ COUNT(DISTINCT visitor_id) OVER (PARTITION BY ad_id, date) AS total_visitors,
 case when visitor_id is null then spend else 
 spend / COUNT(DISTINCT visitor_id) OVER (PARTITION BY ad_id, date) end AS spend_per_visitor,
 case when visitor_id is null then impressions else 
-impressions / COUNT(DISTINCT visitor_id) OVER (PARTITION BY ad_id, date) end AS impressions_per_visitor
+impressions / COUNT(DISTINCT visitor_id) OVER (PARTITION BY ad_id, date) end AS impressions_per_visitor,
+case when visitor_id is null then reach else 
+reach / COUNT(DISTINCT visitor_id) OVER (PARTITION BY ad_id, date) end AS reach_per_visitor,
+case when visitor_id is null then inline_link_clicks else 
+inline_link_clicks / COUNT(DISTINCT visitor_id) OVER (PARTITION BY ad_id, date) end AS inline_link_clicks_per_visitor
 from staging_facebook
 where 1=1
 -- and ad_id=120231784754050423
@@ -162,6 +168,8 @@ account_id,
 visitor_id,
 spend_per_visitor,
 impressions_per_visitor,
+reach_per_visitor,
+inline_link_clicks_per_visitor,
 cast (ad_id as string) as ad_id,
 ad_name,
 COALESCE(
@@ -186,6 +194,8 @@ account_id,
 visitor_id,
 spend_per_visitor,
 null as impressions_per_visitor,
+null as reach_per_visitor,
+null as inline_link_clicks_per_visitor,
 cast (ad_id as string) as ad_id,
 ad_name,
 COALESCE(
