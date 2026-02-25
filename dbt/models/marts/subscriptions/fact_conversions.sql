@@ -22,8 +22,22 @@ unioned AS (
 
     SELECT * FROM app_conversions
 
+),
+
+attribution AS (
+
+    SELECT
+        subscription_id,
+        attribution_source,
+        position_weight
+    FROM {{ ref('subscription_attribution_model') }}
+
 )
 
-SELECT *
-FROM unioned
-QUALIFY ROW_NUMBER() OVER (PARTITION BY conversion_id ORDER BY conversion_time DESC) = 1
+SELECT
+    c.*,
+    IFNULL(IFF(a.attribution_source != 'Paid', 'Organic', a.attribution_source), 'Organic') AS attribution_source,
+    a.attribution_source AS attribution_source_detail,
+    IFNULL(a.position_weight, 1) AS position_weight
+FROM unioned c
+LEFT JOIN attribution a USING (subscription_id)

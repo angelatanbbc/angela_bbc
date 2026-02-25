@@ -10,6 +10,7 @@
 WITH conversions AS (
 
     SELECT
+        conversion_id,
         conversion_time AS event_time,
         'New Subscription' AS event_type,
         user_id,
@@ -32,6 +33,7 @@ WITH conversions AS (
     {% if is_incremental() %}
         AND event_time::DATE >= DATEADD(DAY, -1, (SELECT MAX(event_time::DATE) FROM {{ this }}))
     {% endif %}
+    QUALIFY ROW_NUMBER() OVER (PARTITION BY conversion_id ORDER BY event_time DESC) = 1
 
 ),
 
@@ -72,7 +74,7 @@ subs_actions AS (
 
 unioned AS (
 
-    SELECT *
+    SELECT * EXCLUDE (conversion_id)
     FROM conversions
 
     UNION ALL

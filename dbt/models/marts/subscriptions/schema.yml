@@ -2,18 +2,16 @@ version: 2
 
 models:
   - name: fact_conversions
-    description: This table contains correctly attributed conversion events with relevant attributes.
+    description: This table contains correctly attributed conversion events with relevant attributes, at the grain of one row per marketing touchpoint.
     columns:
       - name: conversion_id
         description: Piano unique identifier for the conversion event.
         tests:
           - not_null
-          - unique
       - name: subscription_id
         description: Identifier for the subscription associated with the conversion.
         tests:
           - not_null
-          - unique
       - name: visitor_id
         description: Piano unique identifier for the visitor.
         tests:
