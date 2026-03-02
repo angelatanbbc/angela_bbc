@@ -113,7 +113,7 @@ from temp3
 /* ============================================================
    STEP 4: Promo code detection
    ============================================================ */
-temp4 as (
+temp4x as (
 select *,
 COUNT(*) OVER (PARTITION BY visitor_id,signup_event) AS total_events,
 MAX(CASE WHEN event_name = 'vx.conversion' AND vx_promo_code IS NOT NULL THEN 1 ELSE 0 END)
@@ -126,11 +126,43 @@ MIN(CASE WHEN is_paid_event = 1 THEN event_date END)
     OVER (PARTITION BY visitor_id,signup_event) AS first_paid_event,
 MAX(CASE WHEN is_paid_event = 1 THEN event_date END) 
     OVER (PARTITION BY visitor_id,signup_event) AS last_paid_event,
-    
+ROW_NUMBER() OVER (PARTITION BY visitor_id,signup_event ORDER BY event_date) AS rn,
 -- Count total paid events
+ROW_NUMBER() OVER (PARTITION BY visitor_id,signup_event, CASE WHEN is_paid_event = 1 THEN 1 END ORDER BY event_date) AS paid_rn,
 SUM(is_paid_event) OVER (PARTITION BY visitor_id,signup_event) AS total_paid_events
 
 from temp3_int),
+
+temp4 as (
+SELECT
+        *,
+        CASE WHEN rn = 1 THEN 'first' 
+             WHEN rn = total_events THEN 'last'
+             ELSE 'middle' 
+        END AS position_role,
+        
+        CASE WHEN is_paid_event = 1 AND paid_rn = 1 THEN TRUE ELSE FALSE END AS is_first_paid,
+        CASE WHEN is_paid_event = 1 AND paid_rn = total_paid_events THEN TRUE ELSE FALSE END AS is_last_paid,
+        
+        -- Count of middle events that are NOT first_paid or last_paid
+        SUM(
+            CASE WHEN rn != 1 
+                  AND rn != total_events 
+                  AND NOT (is_paid_event = 1 AND paid_rn = 1)
+                  AND NOT (is_paid_event = 1 AND paid_rn = total_paid_events)
+            THEN 1 ELSE 0 END
+        ) OVER (PARTITION BY visitor_id, signup_event) AS middle_count,
+            SUM(
+        CASE 
+            WHEN rn != 1 
+             AND rn != total_events 
+             AND NOT (is_paid_event = 1 AND paid_rn = 1)
+             AND NOT (is_paid_event = 1 AND paid_rn = total_paid_events)
+            THEN 1 ELSE 0 
+        END
+    ) OVER (PARTITION BY visitor_id, signup_event) AS eligible_middle_count
+
+    FROM temp4x
 
 /* ============================================================
    STEP 5: Attribution models & weighting logic
@@ -234,6 +266,76 @@ CASE
         END
 END AS position_weight_last_non_direct_v2,
 
+-- new logic
+CASE
+    -- PROMO CODE PATH (30/30/30/10 distribution)
+    WHEN has_promo = 1 THEN
+        CASE
+            -- Single touchpoint with promo
+            WHEN total_events = 1 THEN 1.0
+            
+            -- Two touchpoints with promo - split 50/50
+            WHEN total_events = 2 THEN 0.5
+            
+            -- Three touchpoints with promo (first/last paid/promo = 30% each, remaining 10%)
+            WHEN total_events = 3 THEN 1/3
+            
+            -- 4+ touchpoints with promo
+            ELSE
+                CASE
+                    WHEN event_date = first_event AND event_date = first_paid_event THEN 0.3
+                    WHEN event_date = first_event THEN 0.3
+                    WHEN event_date = first_paid_event THEN 0.3
+                    WHEN event_date = last_event AND event_date = last_paid_event THEN 0.3
+                    WHEN event_date = last_event THEN 0.3
+                    WHEN event_date = last_paid_event THEN 0.3
+                    WHEN event_name = 'vx.conversion' AND vx_promo_code IS NOT NULL THEN 0.3
+                    ELSE 0.1 / NULLIF(total_events - 3, 0)
+                END
+        END
+
+ELSE
+  CASE
+  WHEN total_events = 1 THEN 1.0
+  WHEN total_events = 2 THEN 0.5
+  WHEN total_events = 3 THEN 1.0/3
+  ELSE
+    -- 0.2 First touch
+    (CASE WHEN position_role = 'first' THEN 0.2 ELSE 0 END)
+
+    -- 0.2 Last touch (base)
+  + (CASE WHEN position_role = 'last' THEN 0.2 ELSE 0 END)
+
+    -- 0.2 First paid (or if no paid, give to first touch)
+  + (CASE
+       WHEN total_paid_events = 0 AND position_role = 'first' THEN 0.2
+       WHEN total_paid_events > 0 AND is_first_paid THEN 0.2
+       ELSE 0
+     END)
+
+    -- 0.2 Last paid (or if no paid, give to last touch)
+  + (CASE
+       WHEN total_paid_events = 0 AND position_role = 'last' THEN 0.2
+       WHEN total_paid_events > 0 AND is_last_paid THEN 0.2
+       ELSE 0
+     END)
+
+    -- 0.2 Middle bucket, split across eligible middles;
+    -- if none exist, give the whole 0.2 to last touch (prevents 0.8 totals)
+  + (CASE
+       WHEN eligible_middle_count > 0
+        AND position_role = 'middle'
+        AND NOT is_first_paid
+        AND NOT is_last_paid
+       THEN 0.2 / eligible_middle_count
+
+       WHEN eligible_middle_count = 0 AND position_role = 'last'
+       THEN 0.2
+       ELSE 0
+     END)
+     END
+END AS attribution_weight_fixed,
+
 -- Original position weight (40/40/20 split)
 case when count(*) over (partition by visitor_id)=1 then 1
      when first_event=last_event then 0.5
@@ -315,7 +417,8 @@ IS_PAID_EVENT,
 FIRST_EVENT,
 LAST_EVENT,
 PROMO_CODE_FROM_CONVERSION,
-POSITION_WEIGHT_LAST_NON_DIRECT_V2 as Position_weight,
+POSITION_WEIGHT_LAST_NON_DIRECT_V2,
+attribution_weight_fixed as Position_weight,
 POSITION_WEIGHT as Position_signup_touch_weight,
 FIRST_TOUCH,
 LAST_TOUCH,
