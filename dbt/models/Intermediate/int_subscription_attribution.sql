@@ -162,7 +162,7 @@ SELECT
         END
     ) OVER (PARTITION BY visitor_id, signup_event) AS eligible_middle_count
 
-    FROM temp4x
+    FROM temp4x),
 
 /* ============================================================
    STEP 5: Attribution models & weighting logic
