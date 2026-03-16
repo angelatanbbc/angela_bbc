@@ -1,143 +1,448 @@
 # DNS Transformations Project - Transformations
 
-This repository contains the dbt project for transforming Piano analytics data into a structured dimensional model, ready for analysis. The primary goal is to model user behavior, subscription events, and exposure to on-site experiences.
+This repository contains the dbt project for transforming Piano analytics data into a structured dimensional model, ready for analysis. The primary goal is to model user behaviour, subscription events, and exposure to on-site experiences — as well as attribution of conversions to paid and organic traffic sources.
 
-## 📈 The Data Model
+## The Data Model
 
-This dbt project follows a layered data modeling approach to systematically progress data from its raw source format to clean, well-documented, and analysis-ready tables.
+This dbt project follows a layered data modelling approach to systematically progress data from its raw source format to clean, well-documented, and analysis-ready tables.
 
-The layers are organized as follows:
+1. **Staging (`models/staging`)**: Light-touch cleaning of source data. Includes column renaming, type casting, device/OS standardisation, and basic filtering. Each staging model corresponds to one or two closely related source tables.
 
-1.  **Staging (`models/staging`)**: Models in this layer perform light-touch cleaning of the source data. This includes column renaming, type casting, and basic transformations to create a consistent foundation for downstream models. Each staging model generally corresponds to a single source table.
+2. **Intermediate (`models/intermediate`)**: Complex transformations including multi-source joins, attribution logic, experience attribution, and incremental exposure deduplication. These produce reusable building blocks for the marts.
 
-2.  **Intermediate (`models/intermediate`)**: This layer contains more complex transformations. Models here often join multiple staging models, apply business logic, and aggregate data to create building blocks for the final mart tables. For example, user sessions might be reconstructed here.
+3. **Marts (`models/marts`)**: Final user-facing models structured as fact and dimension tables, designed for querying by analysts, data scientists, and BI tools.
 
-3.  **Marts (`models/marts`)**: These are the final, user-facing models. They are designed for specific business purposes and are structured as fact and dimension tables. These tables are what data consumers (analysts, data scientists, BI tools) will query directly.
+---
 
-### Data Flow Diagram
+## Data Sources
 
-Here is a high-level overview of the data flow through the dbt project:
+| Source | Schema | Description |
+|--------|--------|-------------|
+| `studios_piano_events` | `sdp_silver.studios_piano` | Piano events from the new BBC Studios organisation |
+| `ps_piano_events` | `sdp_bronze.ps_piano` | Piano events from the legacy BBC organisation |
+| `FACEBOOK_ADS.basic_ad` | `sdp_bronze` | Facebook Ads spend and impression data |
+| `GOOGLE_ADS.STG_GOOGLE_ADS` | `sdp_project_sandbox` | Google Ads spend and impression data |
+
+---
+
+## Pipeline Overview
 
 ```mermaid
 graph TD
-    subgraph Raw Sources
-        A[src_studios_piano_events]
-        B[src_ps_piano_events]
+    subgraph Sources
+        A[studios_piano_events]
+        B[ps_piano_events]
+        C[Facebook Ads]
+        D[Google Ads]
     end
 
-    subgraph Staging Layer
-        C(stg_piano_events)
+    subgraph Staging
+        E(stg_piano__subs_events_web)
+        F(stg_piano__subs_events_app)
+        G(stg_subscription_attribution)
+        H(stg_meta_google_spend_subs)
     end
 
-    subgraph Intermediate Layer
-        D(int_sessionized_events)
-        E(int_subscription_lifecycle)
+    subgraph Intermediate
+        I(int_piano__conversion_attribution_web)
+        J(int_piano__conversion_attribution_app)
+        K(int_piano__app_conversion_event_consolidation)
+        L(int_piano__exposures_web)
+        M(int_piano__exposures_app)
+        N(int_subscription_attribution)
+        O(int_subscription_attribution_src_corrected)
+        P(int_subscriber_survival)
     end
 
-    subgraph Marts Layer
-        F[dim_users]
-        G[dim_visits]
-        H[dim_experiences]
-        I[fact_conversions]
-        J[fact_exposures]
-        K[fact_subscription_events]
+    subgraph Marts - Subscriptions
+        Q[fact_conversions]
+        R[fact_exposures]
+        S[fact_subscription_events]
+        T[fact_subscriber_daily_snapshot]
+        U[fact_cohort_retention]
+        V[dim_experience]
+        W[dim_template]
+        X[dim_term]
     end
 
-    A --> C
-    B --> C
-    C --> D
-    C --> E
+    subgraph Marts - Attribution
+        Y[subscription_attribution_model]
+        Z[marketing_spend_subs]
+    end
+
+    A --> E
+    B --> E
+    A --> F
+    B --> F
+    E --> G
+    C --> G
     D --> G
-    D --> I
-    D --> J
-    E --> K
-    I --> F
-    J --> F
-    I --> G
-    J --> G
-    I --> H
-    J --> H
+    C --> H
+    D --> H
+
+    E --> I
+    F --> J
+    F --> K
+    E --> L
+    F --> M
+    G --> N
+    N --> O
+    E --> P
+    F --> P
+
+    I --> Q
+    J --> Q
+    L --> R
+    M --> R
+    E --> S
+    F --> S
+    S --> T
+    S --> U
+
+    Q --> V
+    Q --> W
+    Q --> X
+
+    O --> Y
+    H --> Z
 ```
 
-### Dimensional Model
+---
 
-The marts layer is organized as a dimensional model to facilitate analytics on key business processes. The core components are fact tables, which store events and metrics, and dimension tables, which provide descriptive context.
+## Staging Models
+
+| Model | Source | Description |
+|-------|--------|-------------|
+| `stg_piano__subs_events_web` | `studios_piano`, `ps_piano` | Web events from Piano. Standardises device/OS, extracts URL parameters (e.g. `at_bbc_team`), maps C1X fields. Filters to US geo and BBC subscription events since June 2025. |
+| `stg_piano__subs_events_app` | `studios_piano`, `ps_piano` | Mobile app events from Piano. Classifies iOS/iPadOS/Android, labels as "Mobile App". Filters to US geo and mobile-app events since January 2026. |
+| `stg_subscription_attribution` | `studios_piano`, `ps_piano`, Facebook Ads, Google Ads | Combines Piano events with ad platform data. Calculates per-visitor ad spend allocation and identifies paid traffic signals. |
+| `stg_meta_google_spend_subs` | Facebook Ads, Google Ads | Joins ad platform spend, impressions, and clicks with Piano events for marketing spend analysis. |
+
+---
+
+## Intermediate Models
+
+| Model | Materialisation | Description |
+|-------|-----------------|-------------|
+| `int_piano__conversion_attribution_web` | View | Attributes web conversions to the Piano experience that drove them. Looks back 1 day before conversion; prioritises paywall interactions over ribbon actions; defaults to landing page experience. |
+| `int_piano__conversion_attribution_app` | View | Attributes mobile app conversions to experiences. Consolidates offsite (App Store/Play Store) and onsite conversions; fills forward experience/template IDs across the journey. |
+| `int_piano__app_conversion_event_consolidation` | View | Merges offsite and onsite app conversion events within a 1-hour window. Estimates net revenue after app store fees (iOS 30%, Android 15%). |
+| `int_piano__exposures_web` | Incremental (merge) | Deduplicates web exposure events by surrogate key. Fills forward experience names and flags paid traffic (`src='paid'` or `bbc_team IN ('8MS','DBS')`). |
+| `int_piano__exposures_app` | Incremental (merge) | Mobile app exposure events. Joins with `app_experiences` and `app_templates` seed data; fills unknown experiences with default values. |
+| `int_subscription_attribution` | View | Multi-touch attribution model. Identifies valid signups, paid touchpoints, and promo codes. Applies position-based weighting: 40/40/20 (first/last/middle) for organic, 30/30/30/10 (first/last/paid/middle) when a paid touchpoint exists, and a separate split when a promo code is in the path. |
+| `int_subscription_attribution_src_corrected` | Table | Redistributes NULL attribution sources proportionally using deterministic hash-based random assignment. Breaks down generic "Search engines" into specific engines. |
+| `int_subscriber_survival` | Table | Builds subscriber birth/death records for survival analysis. Records first subscription date, churn date, duration in days, and a binary churn event flag. |
+
+---
+
+## Marts
+
+### Subscriptions (`marts/subscriptions/`)
 
 #### Fact Tables
 
-- `fact_conversions`: An event-based fact table where each row represents a single subscription conversion. It captures key details about the conversion, such as the promo code used, billing period, and the Composer experience that drove it.
-- `fact_exposures`: A daily snapshot fact table that aggregates user exposures to Composer experiences. It counts the number of times a user was exposed to or interacted with a specific A/B test variant on a given day.
-- `fact_subscription_events`: An event-based fact table that logs the entire lifecycle of a subscription. It includes events like 'New Subscription', 'Canceled', and 'Expired', which is crucial for churn and survival analysis.
+**`fact_conversions`** — One row per subscription conversion touchpoint.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `conversion_id` | STRING | Piano unique conversion event ID |
+| `subscription_id` | STRING | Related subscription ID |
+| `visitor_id` | STRING | Piano unique visitor ID |
+| `user_id` | STRING | Piano registered user ID |
+| `visit_id` | STRING | Piano visit/session ID |
+| `visit_time` | TIMESTAMP | Time of the visit |
+| `conversion_time` | TIMESTAMP | Time of the conversion event |
+| `term_id` | STRING | Subscription term ID |
+| `term_name` | STRING | e.g. "Monthly", "Annual" |
+| `term_offer_id` | STRING | Offer ID associated with the term |
+| `term_offer_name` | STRING | Offer name |
+| `billing_period` | STRING | e.g. "1 month", "1 year" |
+| `vx_promo_code` | STRING | Promo code used at conversion (if any) |
+| `subscription_period_number` | INT | Always 1 for new subscriptions |
+| `cart_turnovertaxfree` | NUMERIC | Revenue excluding tax |
+| `experience_id` | STRING | Piano Composer experience ID that drove the conversion |
+| `experience_name` | STRING | Experience name |
+| `card_id` | STRING | Piano card ID |
+| `card_name` | STRING | Piano card name |
+| `template_id` | STRING | Piano template ID |
+| `template_name` | STRING | Template name |
+| `ab_test_variant_name` | STRING | A/B test variant the user was in |
+| `attribution_source` | STRING | "Paid" or "Organic" |
+| `attribution_source_detail` | STRING | Detailed source (e.g. specific search engine, paid channel) |
+| `position_weight` | NUMERIC | Multi-touch attribution weight (0.0–1.0) |
+| `src` | STRING | Traffic source |
+| `src_detail` | STRING | Detailed traffic source |
+| `geo_id` | STRING | Surrogate key for geography |
+| `geo_country` | STRING | Country |
+| `geo_region` | STRING | Region/state |
+| `geo_city` | STRING | City |
+| `device_type` | STRING | Mobile / Desktop / Tablet |
+| `app_type` | STRING | Web / Mobile App |
+| `os_group` | STRING | iOS / Android / Windows / etc. |
+| `c1x_lts` | STRING | C1X lifetime value score bucket |
+| `c1x_content_likely_to_convert` | STRING | C1X propensity score |
+| `c1x_likelihood_to_register` | STRING | C1X propensity score |
+| `c1x_likelihood_to_return` | STRING | C1X propensity score |
+| `c1x_revenue_auto_optimization` | STRING | C1X revenue optimisation signal |
+
+---
+
+**`fact_exposures`** — One row per exposure event (a visitor seeing a Piano Composer experience).
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `exposure_id` | STRING | Surrogate key (unique per exposure) |
+| `visit_id` | STRING | Piano visit/session ID |
+| `visitor_id` | STRING | Piano unique visitor ID |
+| `user_id` | STRING | Registered user ID (null for unregistered visitors) |
+| `visit_time` | TIMESTAMP | Time of the visit |
+| `exposure_time` | TIMESTAMP | Time of the exposure event |
+| `experience_id` | STRING | Piano experience ID |
+| `experience_name` | STRING | Experience name |
+| `card_id` | STRING | Piano card ID |
+| `card_name` | STRING | Piano card name |
+| `card_action` | STRING | "showOffer" or "showTemplate" |
+| `template_id` | STRING | Piano template ID |
+| `template_name` | STRING | Template name |
+| `ab_test_variant_name` | STRING | A/B test variant |
+| `device_type` | STRING | Mobile / Desktop / Tablet |
+| `app_type` | STRING | Web / Mobile App |
+| `os_group` | STRING | Operating system group |
+| `bbc_team` | STRING | Team identifier for paid campaigns |
+| `is_paid_exposure` | BOOLEAN | True if the exposure was driven by paid advertising |
+
+---
+
+**`fact_subscription_events`** — One row per subscription lifecycle event.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `subscription_action_id` | STRING | Surrogate key |
+| `subscription_id` | STRING | Piano subscription ID |
+| `user_id` | STRING | Piano user ID |
+| `event_time` | TIMESTAMP | Time of the event |
+| `event_type` | STRING | "New Subscription", "Renewed", "Canceled", "Expired", "Renewal failed, will not retry" |
+| `term_id` | STRING | Subscription term ID |
+| `term_name` | STRING | Term name |
+| `billing_period` | STRING | Billing period |
+| `subscription_period_number` | INT | Renewal cycle number |
+| `transaction_value` | NUMERIC | Revenue for this event |
+| `previous_mrr` | NUMERIC | MRR before this event |
+| `mrr_amount` | NUMERIC | MRR after this event |
+| `mrr_change_amount` | NUMERIC | Change in MRR from this event |
+| `cohort_month` | STRING | YYYY-MM of the subscriber's first conversion |
+| `conversion_device_type` | STRING | Device at time of original conversion |
+| `conversion_app_type` | STRING | App type at time of original conversion |
+| `conversion_os_group` | STRING | OS at time of original conversion |
+| `geo_id` | STRING | Geography surrogate key |
+| `geo_country` | STRING | Country |
+| `geo_region` | STRING | Region/state |
+| `geo_city` | STRING | City |
+
+---
+
+**`fact_subscriber_daily_snapshot`** — One row per subscriber per day. Tracks daily subscription state.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `date_day` | DATE | Snapshot date (PK with subscription_id) |
+| `subscription_id` | STRING | Piano subscription ID (PK with date_day) |
+| `user_id` | STRING | Piano user ID |
+| `subscriber_status` | STRING | "Active", "Churned", or "Not Subscribed" |
+| `last_subscription_action` | STRING | Most recent event type |
+| `days_since_churned` | INT | 0 if currently active |
+| `term_id` | STRING | Current term ID |
+| `term_name` | STRING | Current term name |
+| `billing_period` | STRING | Current billing period |
+| `subscription_period_number` | INT | Current renewal cycle |
+| `mrr_amount` | NUMERIC | Current MRR |
+| `conversion_date` | DATE | Date of first "New Subscription" event |
+| `days_since_conversion` | INT | Days since initial conversion |
+| `months_since_conversion` | INT | Months since initial conversion (handles month-end edge cases) |
+| `geo_id` | STRING | Geography surrogate key |
+| `geo_country` | STRING | Country |
+| `geo_region` | STRING | Region/state |
+| `geo_city` | STRING | City |
+
+---
+
+**`fact_cohort_retention`** — One row per cohort × months since conversion. Used for cohort retention analysis.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `cohort_month` | STRING | YYYY-MM of subscribers' first conversion |
+| `cohort_size` | INT | Number of subscribers in the cohort |
+| `months_since_conversion` | INT | Months elapsed since conversion |
+| `active_subscribers` | INT | Subscribers still active at this period |
+
+---
 
 #### Dimension Tables
 
-While not explicitly defined in the provided files, the fact tables are designed to be joined with dimension tables such as:
+**`dim_experience`**
 
-- `dim_users`: Contains information about registered users.
-- `dim_visits`: Contains details about a user's visit (session), such as start time and landing page.
-- `dim_experiences`: A dimension for Composer experiences, containing details about the experience, template, and A/B test variant.
+| Column | Type | Description |
+|--------|------|-------------|
+| `experience_id` | STRING (PK) | Piano Composer experience ID |
+| `experience_name` | STRING | Experience name |
 
-### Marts Schema Diagram
+**`dim_template`**
 
-The relationship between the core fact and dimension tables can be visualized as a star schema.
+| Column | Type | Description |
+|--------|------|-------------|
+| `template_id` | STRING (PK) | Piano template ID |
+| `template_name` | STRING | Template name |
+| `template_type` | STRING | "Paywall", "Ribbon", "Subscription Landing Page", or "Other" |
+
+**`dim_term`**
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `term_id` | STRING (PK) | Piano subscription term ID |
+| `term_name` | STRING | Term name |
+| `billing_period` | STRING | Billing period |
+| `term_offer_id` | STRING | Offer ID |
+| `term_offer_name` | STRING | Offer name |
+
+---
+
+### Attribution (`marts/SubscriptionAttribution/`)
+
+| Model | Description |
+|-------|-------------|
+| `subscription_attribution_model` | Attribution-weighted conversions with annualised revenue estimates. Joins renewal data and applies lifetime-weighted revenue calculations. |
+| `marketing_spend_subs` | Pass-through of aggregated marketing spend data for reporting. |
+| `facebook_ads__url_report` | Breakdown of Facebook Ads performance by URL parameters. |
+
+### Audience (`marts/audience/`)
+
+| Model | Description |
+|-------|-------------|
+| `fact_visitors_daily` | Daily visitor counts broken down by device type, app type, and OS. |
+| `dim_app_type` | Mobile / Web app type reference dimension. |
+| `dim_device_type` | Device type reference dimension. |
+| `dim_os_group` | Operating system group reference dimension. |
+
+---
+
+## Star Schema
 
 ```mermaid
 erDiagram
     fact_conversions {
         string conversion_id PK
-        string subscription_id FK
-        string visitor_id FK
-        string user_id FK
-        string visit_id FK
+        string subscription_id
+        string visitor_id
+        string user_id
+        string visit_id
         string experience_id FK
+        string template_id FK
+        string term_id FK
         timestamp conversion_time
         string billing_period
+        numeric cart_turnovertaxfree
+        string attribution_source
+        numeric position_weight
     }
     fact_exposures {
         string exposure_id PK
-        string visit_id FK
-        string visitor_id FK
-        string user_id FK
+        string visit_id
+        string visitor_id
+        string user_id
         string experience_id FK
-        date exposure_date
-        int count_exposures
-        int count_interactions
+        string template_id FK
+        timestamp exposure_time
+        boolean is_paid_exposure
     }
-    dim_users {
-        string user_id PK
-        string visitor_id
-        string c1x_lts
+    fact_subscription_events {
+        string subscription_action_id PK
+        string subscription_id
+        string user_id
+        string term_id FK
+        timestamp event_time
+        string event_type
+        numeric mrr_change_amount
     }
-    dim_visits {
-        string visit_id PK
-        string visitor_id
-        timestamp visit_time
+    fact_subscriber_daily_snapshot {
+        date date_day PK
+        string subscription_id PK
+        string user_id
+        string term_id FK
+        string subscriber_status
+        numeric mrr_amount
     }
-    dim_experiences {
+    dim_experience {
         string experience_id PK
-        string template_id
-        string ab_test_variant_name
+        string experience_name
+    }
+    dim_template {
+        string template_id PK
+        string template_name
+        string template_type
+    }
+    dim_term {
+        string term_id PK
+        string term_name
+        string billing_period
     }
 
-    fact_conversions }o--|| dim_users : "by"
-    fact_conversions }o--|| dim_visits : "during"
-    fact_conversions }o--|| dim_experiences : "driven by"
-
-    fact_exposures }o--|| dim_users : "by"
-    fact_exposures }o--|| dim_visits : "during"
-    fact_exposures }o--|| dim_experiences : "of"
+    fact_conversions }o--|| dim_experience : "driven by"
+    fact_conversions }o--|| dim_template : "shown via"
+    fact_conversions }o--|| dim_term : "subscribes to"
+    fact_exposures }o--|| dim_experience : "of"
+    fact_exposures }o--|| dim_template : "using"
+    fact_subscription_events }o--|| dim_term : "for"
+    fact_subscriber_daily_snapshot }o--|| dim_term : "on"
 ```
 
-## 🔬 Analyses
+---
 
-The `analyses/` directory contains exploratory queries and scripts that leverage the mart tables. An example is `survival_data.sql`, which uses `fact_subscription_events` to prepare data for a subscriber survival analysis, calculating tenure duration and churn status for each subscription.
+## Attribution Model
 
-## ⚙️ Development
+The subscription attribution model (`int_subscription_attribution`) implements a position-based multi-touch attribution approach:
 
-To run this dbt project locally, ensure you have a `profiles.yml` file configured for your Snowflake connection. Refer to the dbt documentation for setup instructions.
+1. **Valid signups** are identified from new subscription conversion events.
+2. **Paid touchpoints** are identified from staging data where ad spend can be attributed.
+3. **First, last, and paid touchpoints** are extracted for each conversion.
+4. **Promo code detection** flags conversions where a promo code appeared in the journey.
+5. **Weights are assigned** based on the path type:
+   - *Organic, no promo*: 40% first touch / 40% last touch / 20% distributed across middle touches
+   - *Paid touchpoint present*: 30% first touch / 30% last touch / 30% paid touch / 10% distributed across remaining
+   - *Promo code in path*: adjusted split to credit the promo touchpoint
+
+NULL attribution sources are redistributed proportionally using deterministic hash-based random assignment in `int_subscription_attribution_src_corrected`.
+
+---
+
+## Seeds
+
+| Seed | Description |
+|------|-------------|
+| `app_experiences` | Lookup of known mobile app experience IDs and names |
+| `app_templates` | Lookup of known mobile app template IDs and names |
+| `geo_mapping` | Geography reference data |
+| `piano_retention_curves` | Expected retention curves for survival analysis benchmarking |
+
+---
+
+## Analyses
+
+The `analyses/` directory contains exploratory queries that build on the mart tables:
+
+- `survival_data.sql`: Uses `fact_subscription_events` to prepare data for subscriber survival analysis, calculating tenure duration and churn status per subscription.
+
+---
+
+## Development
+
+Ensure you have a `profiles.yml` configured for your Snowflake connection. See the [dbt documentation](https://docs.getdbt.com/docs/core/connect-data-platform/connection-profiles) for setup instructions.
 
 Key commands:
 
-- `dbt run`: Executes all models.
-- `dbt test`: Runs all data and schema tests.
-- `dbt build`: Runs models and tests.
+```bash
+dbt run          # Execute all models
+dbt test         # Run all data and schema tests
+dbt build        # Run models and tests together
+dbt run -s staging.*          # Run only staging models
+dbt run -s marts.subscriptions.*  # Run only subscription marts
+```
