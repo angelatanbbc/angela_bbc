@@ -1,11 +1,4 @@
-{{
-    config(
-        materialized="incremental",
-        unique_key=['subscription_action_id'],
-        incremental_strategy='merge',
-        on_schema_change='sync_all_columns'
-    )
-}}
+{{ config(materialized="table") }}
 
 WITH conversions AS (
 
@@ -29,10 +22,6 @@ WITH conversions AS (
         geo_city,
         cohort_month
     FROM {{ ref('fact_conversions') }}
-    WHERE 1=1
-    {% if is_incremental() %}
-        AND event_time::DATE >= DATEADD(DAY, -1, (SELECT MAX(event_time::DATE) FROM {{ this }}))
-    {% endif %}
     QUALIFY ROW_NUMBER() OVER (PARTITION BY conversion_id ORDER BY event_time DESC) = 1
 
 ),
@@ -66,9 +55,6 @@ subs_actions AS (
         ON a.subscription_id = c.subscription_id
     WHERE 1=1
         AND a.event_name ILIKE 'subscription.action%'
-    {% if is_incremental() %}
-        AND a.event_time::DATE >= DATEADD(DAY, -1, (SELECT MAX(event_time::DATE) FROM {{ this }}))
-    {% endif %}
 
 ),
 
@@ -93,7 +79,7 @@ mrr AS (
             PARTITION BY subscription_id
             ORDER BY event_time
         ) AS previous_transaction_value,
-        IFF(billing_period ILIKE '%year%', previous_transaction_value / 12, previous_transaction_value) AS previous_mrr,
+        IFF(billing_period ILIKE '%year%', previous_transaction_value / 12, previous_transaction_value) AS previous_mrr, 
 
         CASE event_type
             WHEN 'New Subscription' THEN IFF(billing_period ILIKE '%year%', transaction_value / 12, transaction_value)

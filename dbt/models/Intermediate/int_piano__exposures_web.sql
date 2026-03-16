@@ -29,7 +29,15 @@ WITH exposures AS (
         card_action,
         template_id,
         template_name,
-        ab_test_variant_name
+        ab_test_variant_name,
+        COALESCE(src_bbc_team, at_bbc_team) AS bbc_team,
+        -- Identify paid traffic
+        CASE
+            WHEN COALESCE(NULLIF(src, ''), NULLIF(at_bbc_team, '')) = 'paid'
+                OR UPPER(COALESCE(src_bbc_team, at_bbc_team)) IN ('8MS', 'DBS')
+            THEN TRUE
+            ELSE FALSE
+        END AS is_paid_exposure
     FROM {{ ref('stg_piano__subs_events_web') }} e
     WHERE
         event_name IN ('experience.action', 'experience.interaction')
@@ -66,7 +74,9 @@ final AS (
         card_action,
         template_id,
         template_name,
-        ab_test_variant_name
+        ab_test_variant_name,
+        bbc_team,
+        is_paid_exposure
     FROM exposures
 
 )

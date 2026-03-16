@@ -25,7 +25,11 @@ SELECT
     visit_sales,
     src,
     src_detail,
-    
+    src_bbc_team,
+
+    -- URL Attribution Parameters
+    REGEXP_SUBSTR(event_url, 'at_bbc_team=([^&]+)', 1, 1, '', 1) AS at_bbc_team,
+
     -- Visit Entry/Exit
     visit_entry_aisle1,
     visit_entry_aisle2,
