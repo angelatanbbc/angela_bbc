@@ -40,7 +40,7 @@ lead_up_ctas AS (
         e.template_id,
         e.template_name,
         e.ab_test_variant_name
-    FROM {{ ref('stg_piano__subs_events_app') }} e
+    FROM {{ ref('int_piano__app_events') }} e
     JOIN consolidated_conversions c
         ON e.visit_id = c.visit_id
         AND e.event_time <= c.conversion_time

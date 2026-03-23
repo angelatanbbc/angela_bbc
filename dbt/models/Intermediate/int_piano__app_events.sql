@@ -1,4 +1,7 @@
-{{ config(materialized="view") }}
+{{ config(
+    materialized="view",
+    tags=["piano", "intermediate"]
+) }}
 
 SELECT
     -- IDs
@@ -8,12 +11,14 @@ SELECT
     visitor_id,
     user_id,
     pageview_id,
-    
+
     -- Event Info
     event_name,
     event_time,
     event_url,
-    
+    event_url_domain,
+    event_url_full,
+
     -- Visit Info
     visit_time,
     visit_time_utc,
@@ -55,26 +60,29 @@ SELECT
     page,
     page_title,
     page_content_type,
-    
+    content_id,
+
     -- Device / App
     CASE
         WHEN LOWER(device_type) NOT IN ('mobile phone', 'desktop', 'tablet') THEN 'Other'
         WHEN device_type IS NULL THEN 'Unknown'
         ELSE device_type
     END AS device_type,
-    'Web' AS app_type,
+    'Mobile App' AS app_type,
     CASE
-        WHEN LOWER(os_group) NOT IN ('ios', 'android', 'windows', 'macos', 'ipados', 'chrome os', 'linux') THEN 'Other'
+        WHEN LOWER(os_group) = 'ios' THEN 'iOS'
+        WHEN LOWER(os_group) = 'ipados' THEN 'iPadOS'
+        WHEN LOWER(os_group) = 'android' THEN 'Android'
         WHEN os_group IS NULL THEN 'Unknown'
         ELSE os_group
     END AS os_group,
-    
+
     -- Geography
     {{ dbt_utils.generate_surrogate_key(['geo_country', 'geo_region']) }} AS geo_id,
     geo_country,
     geo_region,
     geo_city,
-    
+
     -- Experience / Template
     conversion_id,
     experience_id,
@@ -85,11 +93,10 @@ SELECT
     template_id,
     template_name,
     ab_test_variant_name,
-    
+
     -- Subscription / Commercial
     subscription_id,
-    term[0]['term_id2']::STRING AS term_id,
-    term[0]['term_name']::STRING AS term_name,
+    term,
     term_offer_id,
     term_offer_name,
     billing_period,
@@ -98,7 +105,7 @@ SELECT
     cart_turnovertaxfree,
     subscription_action,
     subscription_period_number,
-    
+
     -- C1X Fields
     c1x_lts,
     c1x_content_likely_to_convert,
@@ -109,32 +116,13 @@ SELECT
     c1x_checkout_abandonment,
     c1x_subscription_length,
     c1x_subscription_tenure,
-    c1x_expiring_subscribers,
-    c1x_visitor_frequency,
-    c1x_visitor_interest,
-    c1x_visitor_recency
+    c1x_expiring_subscribers
 
-FROM {{ source('studios_piano', 'studios_piano_events') }} e
+FROM {{ ref('stg_piano__events') }}
 
-WHERE 
-    e.event_time::DATE > '2025-06-25'
-    AND e.site_id = 638824
-    AND (
-        -- Conversion / Exposure Events
-        (
-            event_name IN ('vx.conversion', 'experience.action', 'experience.interaction', 'subscription.select')
-            AND (experience_name RLIKE '.*[0-9]{3} -.*' OR experience_name IS NULL)
-            AND (term_offer_name IS NULL OR term_offer_name = 'BBC Subscription')
-            AND LOWER(geo_country) IN ('united states')
-            AND (app_type IN ('responsive', 'mobile-responsive') OR app_type IS NULL)
-        )
-        OR
-        -- Page Views
-        (
-            event_name = 'page.display'
-            AND LOWER(geo_country) IN ('united states')
-            AND app_type IN ('responsive', 'bbc_responsive', 'mobile-responsive')
-        )
-        -- Subscription Actions
-        OR event_name ILIKE 'subscription.action%'
-    )
+WHERE
+    event_time::DATE >= '2026-01-05'
+    AND site_id = 638824
+    AND event_name IN ('page.display', 'vx.conversion', 'experience.action', 'experience.interaction', 'subscription.select')
+    AND LOWER(geo_country) = 'united states'
+    AND app_type = 'mobile-app'

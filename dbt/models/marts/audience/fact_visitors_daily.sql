@@ -16,33 +16,34 @@
 WITH web_visitors AS (
 
     SELECT
+        pageview_time::DATE AS date_day,
         geo_country,
         device_type,
         app_type,
         os_group,
-        visit_time::DATE AS date_day,
         visitor_id,
         COUNT(DISTINCT visit_id) AS n_visits
-    FROM {{ ref('stg_piano__subs_events_web') }}
-    WHERE event_name = 'page.display'
+    FROM {{ ref('fact_page_views') }}
+    WHERE app_type = 'Web'
     {% if is_incremental() %}
-        AND event_time::DATE >= DATEADD(DAY, -1, (SELECT MAX(date_day) FROM {{ this }}))
+        AND pageview_time::DATE >= DATEADD(DAY, -1, (SELECT MAX(date_day) FROM {{ this }}))
     {% endif %}
     GROUP BY ALL
 
 ),
 
+-- TODO: When we can bring app events to pageview fact table then we migrate this logic
 app_visitors AS (
 
     SELECT
+        visit_time::DATE AS date_day,
         geo_country,
         device_type,
         app_type,
         os_group,
-        visit_time::DATE AS date_day,
         visitor_id,
         COUNT(DISTINCT visit_id) AS n_visits
-    FROM {{ ref('stg_piano__subs_events_app') }}
+    FROM {{ ref('int_piano__app_events') }}
     WHERE event_name = 'page.display'
     {% if is_incremental() %}
         AND event_time::DATE >= DATEADD(DAY, -1, (SELECT MAX(date_day) FROM {{ this }}))

@@ -16,10 +16,10 @@ latest_experience_name AS (
     SELECT
         experience_id,
         experience_name,
-        MAX(visit_time) AS latest_visit_time,
+        MAX(exposure_time) AS latest_exposure_time,
         ROW_NUMBER() OVER (
             PARTITION BY experience_id
-            ORDER BY latest_visit_time DESC
+            ORDER BY latest_exposure_time DESC
         ) AS rn
     FROM exposures
     GROUP BY 1,2

@@ -6,7 +6,7 @@
 WITH conversion_events AS (
 
     SELECT *
-    FROM {{ ref('stg_piano__subs_events_web') }}
+    FROM {{ ref('int_piano__web_events') }}
     WHERE event_name = 'vx.conversion'
 
 ),
@@ -21,7 +21,7 @@ lead_up_events AS (
             PARTITION BY e.visitor_id, e.event_name, c.event_time
             ORDER BY e.event_time DESC
         ) AS rn
-    FROM {{ ref('stg_piano__subs_events_web') }} e
+    FROM {{ ref('int_piano__web_events') }} e
     INNER JOIN conversion_events c
         ON c.visitor_id = e.visitor_id
         AND e.event_time < c.event_time  -- Strictly before conversion

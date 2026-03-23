@@ -7,79 +7,90 @@
     )
 }}
 
-WITH exposures AS (
-    
-    SELECT
-        -- Dims
-        {{ dbt_utils.generate_surrogate_key(
-            ['event_time', 'experience_id', 'card_id', 'template_id', 'ab_test_variant_name']
-        ) }} AS exposure_id,
-        event_time AS exposure_time,
-        visit_id,
-        visit_time,
-        visitor_id,
-        user_id,
-        device_type,
-        app_type,
-        os_group,
-        experience_id,
-        experience_name,
-        card_id,
-        card_name,
-        card_action,
-        template_id,
-        template_name,
-        ab_test_variant_name,
-        COALESCE(src_bbc_team, at_bbc_team) AS bbc_team,
-        -- Identify paid traffic
-        CASE
-            WHEN COALESCE(NULLIF(src, ''), NULLIF(at_bbc_team, '')) = 'paid'
-                OR UPPER(COALESCE(src_bbc_team, at_bbc_team)) IN ('8MS', 'DBS')
-            THEN TRUE
-            ELSE FALSE
-        END AS is_paid_exposure
-    FROM {{ ref('stg_piano__subs_events_web') }} e
+WITH composer_events AS (
+
+    SELECT *
+    FROM {{ ref('int_piano__web_events') }}
     WHERE
-        event_name IN ('experience.action', 'experience.interaction')
+        event_name IN ('experience.action', 'experience.interaction', 'vx.conversion')
         AND experience_id != 'EXFXDKMDXAX0' -- Policy Modal
         AND template_name != 'Outside Region Error Message'
         {% if is_incremental() %}
-        AND event_time >= DATEADD(DAY, -1, (SELECT MAX(exposure_time) FROM {{ this }}))
+            AND event_time::DATE >= DATEADD(DAY, -1, (SELECT MAX(exposure_time)::DATE FROM {{ this }}))
         {% endif %}
-    QUALIFY ROW_NUMBER() OVER (PARTITION BY exposure_id ORDER BY exposure_time DESC) = 1
+
+),
+
+-- Use attributes from Piano Analytics events (page.display) instead of Composer attributes since there are various issues
+-- issues with the Composer attributes. Join back to the page.display events using pageview_id to get the relevant attributes for exposures.
+pageview_join AS (
+    
+    SELECT
+        ce.experience_execution_id,
+        ce.event_time AS exposure_time,
+        ce.pageview_id,
+
+        -- Inherit from Piano Analytics using pageview_id
+        pv.visitor_id,
+        pv.visit_id,
+        pv.user_id,
+        pv.device_type,
+        pv.app_type,
+        pv.os_group,
+
+        -- Page Info
+        pv.page,
+        pv.page_title,
+        pv.page_content_type,
+        pv.content_id,
+        pv.page_url,
+        pv.page_url_domain,
+        pv.page_url_full,
+
+        -- Geography
+        pv.geo_id,
+        pv.geo_country,
+        pv.geo_region,
+        pv.geo_city,
+
+        -- Experience Info
+        ce.experience_id,
+        ce.experience_name,
+        ce.card_id,
+        ce.card_name,
+        ce.card_action,
+        ce.template_id,
+        ce.template_name,
+        ce.ab_test_card_title,
+        ce.ab_test_variant_name
+
+    FROM composer_events ce
+    JOIN {{ ref('fact_page_views') }} pv USING (pageview_id)
+    WHERE ce.event_name = 'experience.action'
+
     
 ),
 
-final AS (
+-- If the visitor had experience.interaction event on the same pageview_id, experience_id, card_id
+-- and template_id then flag that they interacted with the experience, otherwise just exposed to it
+interactions AS (
 
     SELECT
-        exposure_id,
-        exposure_time,
-        visit_id,
-        visit_time,
-        visitor_id,
-        user_id,
-        device_type,
-        app_type,
-        os_group,
-        experience_id,
-        -- Fill forward experience_name to handle cases where it is NULL
-        LAST_VALUE(experience_name) IGNORE NULLS OVER (
-            PARTITION BY experience_id
-            ORDER BY exposure_time
-            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-        ) AS experience_name,
-        card_id,
-        card_name,
-        card_action,
-        template_id,
-        template_name,
-        ab_test_variant_name,
-        bbc_team,
-        is_paid_exposure
-    FROM exposures
+        pv.*,
+        IFNULL(MAX(ce.event_name = 'experience.interaction'), FALSE) AS is_interacted_with,
+        IFNULL(MAX(ce.event_name = 'vx.conversion'), FALSE) AS is_last_touch_conversion
+    FROM pageview_join pv
+    LEFT JOIN composer_events ce
+        ON pv.pageview_id = ce.pageview_id
+        AND pv.experience_id = ce.experience_id
+        AND pv.card_id = ce.card_id
+        AND pv.template_id = ce.template_id
+        AND ce.event_name IN ('experience.interaction', 'vx.conversion')
+    GROUP BY ALL
 
 )
 
-SELECT *
-FROM final
+SELECT
+    {{dbt_utils.generate_surrogate_key(['experience_execution_id', 'exposure_time'])}} AS exposure_id,
+    *
+FROM interactions
