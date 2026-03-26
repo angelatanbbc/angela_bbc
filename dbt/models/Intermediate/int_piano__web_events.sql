@@ -134,7 +134,7 @@ WHERE
             -- Below is a fix for when experience_id and experience_name are not populated for some Composer events prior to 2025-07-15.
             -- We want to include these events as long as they meet the other criteria, but for events after 2025-07-15 we want to ensure
             -- experience_name follows the expected format.
-            AND (experience_name RLIKE '.*[0-9]{3} -.*' OR (experience_name IS NULL AND event_time::DATE <= '2025-07-15'))  
+            AND (experience_name RLIKE '.*[0-9]{3} -.*' OR experience_name ILIKE '%web%' OR (experience_name IS NULL AND event_time::DATE <= '2025-07-15'))  
         )
         OR
         -- Page Views
