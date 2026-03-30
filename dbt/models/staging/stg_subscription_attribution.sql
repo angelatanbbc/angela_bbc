@@ -20,14 +20,14 @@ WHERE 1=1
     AND TO_DATE(event_time) > '2025-06-25'
   AND event_name IN ('vx.conversion')
   AND (vx_promo_code NOT IN ('BBCEMPLOYEE','BBCEDITORIAL','BBCACCOUNT','') OR vx_promo_code IS null)
-  AND (
-        experience_name LIKE '%00%' 
-        OR experience_name IS NULL
-      )
-  AND (
-        term_offer_name IS NULL 
-        OR term_offer_name = 'BBC Subscription'
-      )
+  -- AND (
+  --       experience_name LIKE '%00%' 
+  --       OR experience_name IS NULL
+  --     )
+  -- AND (
+  --       term_offer_name IS NULL 
+  --       OR term_offer_name = 'BBC Subscription'
+  --     )
   group by all
 ),
 
