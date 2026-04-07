@@ -126,10 +126,10 @@ WHERE
     AND (
         -- Conversion / Exposure Events
         (
-            event_name IN ('vx.conversion', 'experience.action', 'experience.interaction', 'subscription.select')
+            event_name IN ('vx.conversion', 'vx.conversion.optout', 'experience.action', 'experience.interaction', 'subscription.select')
             AND term_offer_name = 'BBC Subscription'
-            AND LOWER(geo_country) = 'united states'
-            AND (app_type = 'responsive' OR app_type IS NULL)  -- I HATE this.
+            -- AND LOWER(geo_country) = 'united states'
+            AND (app_type IN ('responsive', 'mobile-responsive') OR app_type IS NULL)  -- I HATE this.
             
             -- Below is a fix for when experience_id and experience_name are not populated for some Composer events prior to 2025-07-15.
             -- We want to include these events as long as they meet the other criteria, but for events after 2025-07-15 we want to ensure
