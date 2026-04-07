@@ -3,11 +3,17 @@
     tags=["piano", "intermediate"]
 ) }}
 
-WITH conversion_events AS (
+WITH web_conversion_events AS (
 
-    SELECT *
-    FROM {{ ref('int_piano__web_events') }}
-    WHERE event_name IN ('vx.conversion', 'vx.conversion.optout')
+    SELECT
+        a.* EXCLUDE (app_type),
+        b.app_type
+    FROM {{ ref('stg_piano__composer_events') }} a
+    JOIN {{ ref('dim_experience') }} b USING (experience_id)
+    WHERE
+        a.event_name IN ('vx.conversion', 'vx.conversion.optout')
+        AND b.app_type = 'Web'
+        AND b.is_current
 
 ),
 
@@ -21,8 +27,8 @@ lead_up_events AS (
             PARTITION BY e.visitor_id, e.event_name, c.event_time
             ORDER BY e.event_time DESC
         ) AS rn
-    FROM {{ ref('int_piano__web_events') }} e
-    INNER JOIN conversion_events c
+    FROM {{ ref('stg_piano__composer_events') }} e
+    INNER JOIN web_conversion_events c
         ON c.visitor_id = e.visitor_id
         AND e.event_time < c.event_time  -- Strictly before conversion
         AND e.event_time >= DATEADD(DAY, -1, c.event_time)
@@ -114,7 +120,7 @@ joined AS (
         -- subscribe.select event tells us if they click the subscribe button
         IFF(s.event_time IS NOT NULL, TRUE, FALSE) AS clicked_subscribe
 
-    FROM conversion_events c
+    FROM web_conversion_events c
 
     LEFT JOIN (SELECT *
                FROM lead_up_events

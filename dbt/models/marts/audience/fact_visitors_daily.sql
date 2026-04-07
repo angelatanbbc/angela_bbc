@@ -43,8 +43,8 @@ app_visitors AS (
         os_group,
         visitor_id,
         COUNT(DISTINCT visit_id) AS n_visits
-    FROM {{ ref('int_piano__app_events') }}
-    WHERE event_name = 'page.display'
+    FROM {{ ref('stg_piano__analytics_events') }}
+    WHERE app_type = 'Mobile App'
     {% if is_incremental() %}
         AND event_time::DATE >= DATEADD(DAY, -1, (SELECT MAX(date_day) FROM {{ this }}))
     {% endif %}

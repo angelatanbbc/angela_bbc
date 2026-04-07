@@ -1,0 +1,12 @@
+version: 2
+
+seeds:
+  - name: experience_app_type
+    columns:
+      - name: experience_id
+        tests:
+          - not_null
+          - unique
+      - name: app_type
+        tests:
+          - not_null

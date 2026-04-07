@@ -50,7 +50,7 @@ subs_actions AS (
         c.geo_region,
         c.geo_city,
         c.cohort_month
-    FROM {{ ref('int_piano__offsite_events') }} a
+    FROM {{ ref('stg_piano__offsite_events') }} a
     JOIN conversions c  -- This join ensures we only get subscription actions for subscriptions that have converted
         ON a.subscription_id = c.subscription_id
     WHERE 1=1

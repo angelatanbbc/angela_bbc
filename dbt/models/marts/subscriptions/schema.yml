@@ -137,6 +137,25 @@ models:
       - name: c1x_revenue_auto_optimization
         description: Revenue Optimization bucket of the page view at the time of conversion.
 
+  - name: dim_experience
+    description: Dimension table for Composer experiences, tracking name versions over time with app type classification.
+    columns:
+      - name: experience_version_key
+        description: Surrogate primary key, derived from experience_id and name_version_number.
+        tests:
+          - not_null
+          - unique
+      - name: experience_name
+        description: Name of the Composer experience. May be null if no name has ever been sent for this experience_id.
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: app_type
+        description: The app type associated with the experience.
+        tests:
+          - not_null
+
   - name: fact_exposures
     description: Daily-visitor level fact table capturing exposure events to Composer experiences.
     columns:

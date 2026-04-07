@@ -5,7 +5,7 @@
 
 WITH consolidated_conversions AS (
 
-    SELECT *
+    SELECT * EXCLUDE (app_type)
     FROM {{ ref('int_piano__app_conversion_event_consolidation') }}
 
 ),
@@ -14,8 +14,9 @@ app_experiences AS (
 
     SELECT
         experience_id,
-        experience_name
-    FROM {{ ref('app_experiences') }}
+        experience_name,
+        app_type
+    FROM {{ ref('dim_experience') }}
 ),
 
 app_templates AS (
@@ -23,7 +24,7 @@ app_templates AS (
     SELECT 
         template_id,
         template_name
-    FROM {{ ref('app_templates') }}
+    FROM {{ ref('dim_template') }}
 ),
 
 lead_up_ctas AS (
@@ -40,7 +41,7 @@ lead_up_ctas AS (
         e.template_id,
         e.template_name,
         e.ab_test_variant_name
-    FROM {{ ref('int_piano__app_events') }} e
+    FROM {{ ref('stg_piano__composer_events') }} e
     JOIN consolidated_conversions c
         ON e.visit_id = c.visit_id
         AND e.event_time <= c.conversion_time
@@ -82,7 +83,8 @@ named AS (
     
     SELECT
         f.*,
-        IFNULL(e.experience_name, '000 - Unknown Experience') AS experience_name,
+        'Mobile App' AS app_type,
+        IFNULL(e.experience_name, '000 - Unknown Experience') AS experience_name,  -- TODO: Need to implement Yukiko's logic for non-experience app conversions
         IFNULL(t.template_name, 'Unknown Template') AS template_name
     FROM last_fix f
     LEFT JOIN app_experiences e

@@ -10,7 +10,7 @@
 WITH composer_events AS (
 
     SELECT *
-    FROM {{ ref('int_piano__web_events') }}
+    FROM {{ ref('stg_piano__composer_events') }}
     WHERE
         event_name IN ('experience.action', 'experience.interaction', 'vx.conversion')
         AND experience_id != 'EXFXDKMDXAX0' -- Policy Modal

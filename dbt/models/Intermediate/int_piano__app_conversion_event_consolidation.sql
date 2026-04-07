@@ -12,12 +12,11 @@ WITH offsite_conversions AS (
         user_id,
         term_id,
         term_name,
-        term_type,
-        term_offer_id,
-        term_offer_name,
+        COALESCE(term_offer_id, 'OFR1N7V2XJPI') AS term_offer_id,
+        COALESCE(term_offer_name, 'BBC Subscription') AS term_offer_name,
         IFF(term_name ILIKE '%monthly%', '1 month', '1 year') AS billing_period,
         subscription_period_number
-    FROM {{ ref('int_piano__offsite_events') }}
+    FROM {{ ref('stg_piano__offsite_events') }}
     WHERE event_name = 'vx.conversion.offsite'
 
 ),
@@ -35,10 +34,10 @@ onsite_conversions AS (
         src,
         src_detail,
         geo_id,
-        NULLIF(geo_country, 'Unknown') AS geo_country,
-        NULLIF(geo_region, 'Unknown') AS geo_region,
-        NULLIF(geo_city, 'Unknown') AS geo_city
-    FROM {{ ref('int_piano__app_events') }}
+        geo_country,
+        geo_region,
+        geo_city
+    FROM {{ ref('stg_piano__composer_events') }}
     WHERE event_name = 'vx.conversion'
 
 ),

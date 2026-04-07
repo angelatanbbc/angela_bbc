@@ -10,13 +10,14 @@
 WITH web_page_views AS (
 
     SELECT *
-    FROM {{ ref('int_piano__web_events') }}
+    FROM {{ ref('stg_piano__analytics_events') }}
     WHERE
-        event_name = 'page.display'
+        app_type = 'Web'
         AND pageview_id IS NOT NULL
         {% if is_incremental() %}
             AND event_time::DATE >= DATEADD(DAY, -1, (SELECT MAX(pageview_time)::DATE FROM {{ this }}))
         {% endif %}
+        AND geo_country = 'United states' -- Temporary filter to focus on US market, will remove later
 
 ),
 
@@ -38,7 +39,7 @@ web_composer_flags AS (
         COUNT(DISTINCT experience_id) AS num_composer_experiences_shown,
         MAX(IFF(template_name ILIKE '%gate%', true, false)) AS is_paywall_shown,
         MAX(IFF(template_name ILIKE '%ribbon%', true, false)) AS is_ribbon_shown
-    FROM {{ ref('int_piano__web_events') }}
+    FROM {{ ref('stg_piano__composer_events') }}
     WHERE
         event_name IN ('experience.action', 'experience.interaction', 'vx.conversion')
         AND pageview_id IS NOT NULL
