@@ -7,7 +7,7 @@ WITH conversion_events AS (
 
     SELECT *
     FROM {{ ref('int_piano__web_events') }}
-    WHERE event_name = 'vx.conversion'
+    WHERE event_name IN ('vx.conversion', 'vx.conversion.optout')
 
 ),
 
