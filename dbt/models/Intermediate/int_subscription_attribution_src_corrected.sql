@@ -1,4 +1,9 @@
-{{ config(materialized="table") }}
+{{ config(
+    materialized='incremental',
+    unique_key=['visitor_id', 'pageview_id', 'event_date', 'attribution_source'],
+    incremental_strategy='merge',
+    on_schema_change='sync_all_columns'
+) }}
     
 /* ============================================================
    PURPOSE
@@ -75,6 +80,10 @@ staging_with_random AS (
         UNIFORM(0::FLOAT, 1::FLOAT, HASH(VISITOR_ID, EVENT_DATE, EVENT_URL_FULL)) AS random_value
 
     FROM {{ ref('int_subscription_attribution') }}
+    WHERE 1=1
+    {% if is_incremental() %}
+        AND event_date >= (SELECT DATEADD(day, -3, MAX(event_date)) FROM {{ this }})
+    {% endif %}
 ),
 
 /* ============================================================
@@ -317,10 +326,12 @@ from setup
 FROM {{ source('studios_piano', 'studios_piano_events') }}
 WHERE 1=1
     AND TO_DATE(event_time) > '2025-06-25'
-
   -- AND site_id = 638824
   AND event_name IN ('vx.conversion')
   AND (vx_promo_code NOT IN ('BBCEMPLOYEE','BBCEDITORIAL','BBCACCOUNT','') OR vx_promo_code IS null)
+  {% if is_incremental() %}
+        AND TO_DATE(event_time) >= (SELECT DATEADD(day, -3, MAX(event_date)) FROM {{ this }})
+    {% endif %}
 )
 
 select 
