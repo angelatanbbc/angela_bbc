@@ -6,17 +6,21 @@
 -- 1. Get the "birth" event: each subscriber's first-ever subscription
 WITH first_event AS (
     SELECT
-        subscription_id,
-        event_time::DATE AS start_date,
-        term_id,
-        billing_period,
-        conversion_device_type,
-        conversion_app_type,
-        conversion_os_group
+        e.subscription_id,
+        IFF(c.experience_name ILIKE '%lfv%', 'LFV', 'Non-LFV') AS experience_type,  -- Classify as LFV vs Non-LFV based on experience_name
+        e.event_time::DATE AS start_date,
+        e.term_id,
+        e.billing_period,
+        e.conversion_device_type,
+        e.conversion_app_type,
+        e.conversion_os_group
     FROM
-        {{ ref('fact_subscription_events') }}
+        {{ ref('fact_subscription_events') }} e
+    LEFT JOIN (SELECT * FROM {{ ref('fact_conversions') }} QUALIFY ROW_NUMBER() OVER (PARTITION BY conversion_id ORDER BY conversion_time) = 1) c
+        ON e.subscription_id = c.subscription_id
     WHERE
-        event_type = 'New Subscription'
+        e.event_type = 'New Subscription'
+
 ),
 
 -- 2. Get the "death" event: the churn date, if it exists
@@ -34,6 +38,7 @@ churn_event AS (
 final_survival_table AS (
     SELECT
         f.subscription_id,
+        f.experience_type,
         f.term_id,
         f.billing_period,
         f.conversion_device_type,
@@ -53,6 +58,7 @@ final_survival_table AS (
 -- 4. Calculate the final duration and event status
 SELECT
     subscription_id,
+    experience_type,
     term_id,
     billing_period,
     conversion_device_type,
