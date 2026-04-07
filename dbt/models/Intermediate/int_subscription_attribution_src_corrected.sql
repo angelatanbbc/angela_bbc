@@ -141,7 +141,8 @@ SELECT
     s.SIGNUP_TOUCH
 FROM staging_with_random s
 LEFT JOIN attribution_ranges_with_prev ar
-    ON s.random_value BETWEEN ar.prev_cumulative_prob AND ar.cumulative_prob
+    ON s.random_value >= ar.prev_cumulative_prob 
+    AND s.random_value < ar.cumulative_prob
     AND s.ATTRIBUTION_SOURCE IS NULL
 ),
 
