@@ -329,6 +329,7 @@ WHERE 1=1
   -- AND site_id = 638824
   AND event_name IN ('vx.conversion')
   AND (vx_promo_code NOT IN ('BBCEMPLOYEE','BBCEDITORIAL','BBCACCOUNT','') OR vx_promo_code IS null)
+  AND (app_type!='mobile-app' or app_type is null)
   {% if is_incremental() %}
         AND TO_DATE(event_time) >= (SELECT DATEADD(day, -3, MAX(event_date)) FROM {{ this }})
     {% endif %}
