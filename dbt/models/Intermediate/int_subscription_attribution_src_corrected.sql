@@ -1,7 +1,7 @@
 {{ config(
     materialized='incremental',
     incremental_strategy='delete+insert',
-    unique_key='event_date',
+    unique_key='signup_event',
     on_schema_change='sync_all_columns'
 ) }}
     
@@ -82,7 +82,7 @@ staging_with_random AS (
     FROM {{ ref('int_subscription_attribution') }}
     WHERE 1=1
     {% if is_incremental() %}
-        AND event_date >= (SELECT DATEADD(day, -3, MAX(event_date)) FROM {{ this }})
+        AND SIGNUP_EVENT >= (SELECT DATEADD(day, -3, MAX(SIGNUP_EVENT)) FROM {{ this }})
     {% endif %}
 ),
 
@@ -323,6 +323,7 @@ from setup
    cart_turnovertaxfree,
    subscription_id,
    subscription_action,
+   MIN(event_time) as signup_event
 FROM {{ source('studios_piano', 'studios_piano_events') }}
 WHERE 1=1
     AND TO_DATE(event_time) > '2025-06-25'
@@ -331,8 +332,9 @@ WHERE 1=1
   AND (vx_promo_code NOT IN ('BBCEMPLOYEE','BBCEDITORIAL','BBCACCOUNT','') OR vx_promo_code IS null)
   AND (app_type!='mobile-app' or app_type is null)
   {% if is_incremental() %}
-        AND TO_DATE(event_time) >= (SELECT DATEADD(day, -3, MAX(event_date)) FROM {{ this }})
+        AND TO_DATE(event_time) >= (SELECT DATEADD(day, -3, MAX(signup_event)) FROM {{ this }})
     {% endif %}
+  GROUP BY pageview_id, billing_period, cart_turnovertaxfree, subscription_id, subscription_action
 )
 
 select 
