@@ -1,4 +1,4 @@
-{{config(materialized="view")}}
+{{config(materialized="table")}}
   
 /* ============================================================
    STEP 1: Normalize source fields & flag paid interactions
