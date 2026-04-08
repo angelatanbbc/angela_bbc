@@ -1,7 +1,7 @@
 {{ config(
     materialized='incremental',
-    unique_key=['visitor_id', 'pageview_id', 'event_date', 'attribution_source'],
-    incremental_strategy='merge',
+    incremental_strategy='delete+insert',
+    unique_key='event_date',
     on_schema_change='sync_all_columns'
 ) }}
     
