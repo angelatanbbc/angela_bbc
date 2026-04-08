@@ -20,6 +20,7 @@ WHERE 1=1
     AND TO_DATE(event_time) > '2025-06-25'
   AND event_name IN ('vx.conversion')
   AND (vx_promo_code NOT IN ('BBCEMPLOYEE','BBCEDITORIAL','BBCACCOUNT','') OR vx_promo_code IS null)
+  AND (app_type!='mobile-app' or app_type is null)
   -- AND (
   --       experience_name LIKE '%00%' 
   --       OR experience_name IS NULL
