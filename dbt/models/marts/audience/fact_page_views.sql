@@ -47,7 +47,7 @@ web_composer_flags AS (
             AND event_time::DATE >= DATEADD(DAY, -2, (SELECT MAX(pageview_time)::DATE FROM {{ this }}))
         {% endif %}
     GROUP BY pageview_id
-    
+
 )
 
 SELECT
@@ -75,9 +75,9 @@ SELECT
 
     -- Geography
     pv.geo_id,
-    pv.geo_country,
-    pv.geo_region,
-    pv.geo_city,
+    IFNULL(pv.geo_country, 'Unknown') AS geo_country,
+    IFNULL(pv.geo_region, 'Unknown') AS geo_region,
+    IFNULL(pv.geo_city, 'Unknown') AS geo_city,
 
     -- C1X Fields
     cf.c1x_lts,

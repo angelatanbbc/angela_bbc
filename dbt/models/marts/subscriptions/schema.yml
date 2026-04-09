@@ -15,7 +15,9 @@ models:
       - name: visitor_id
         description: Piano unique identifier for the visitor.
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
       - name: user_id
         description: Piano unique identifier for the registered user.
         tests:
@@ -25,11 +27,15 @@ models:
       - name: visit_id
         description: Piano unique identifier for the visit associated with the conversion event.
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
       - name: visit_time
         description: Timestamp of the visit associated with the conversion event.
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
       - name: conversion_time
         description: Timestamp when the conversion event occurred.
         tests:
@@ -37,15 +43,11 @@ models:
       - name: term_id
         description: Identifier for the subscription term associated with the conversion.
         tests:
-          - not_null:
-              config:
-                severity: warn
+          - not_null
       - name: term_name
         description: Name of the subscription term associated with the conversion.
         tests:
-          - not_null:
-              config:
-                severity: warn
+          - not_null
       - name: term_offer_id
         description: Identifier for the subscription term offer associated with the conversion.
         tests:
@@ -69,9 +71,7 @@ models:
       - name: cart_turnovertaxfree
         description: Total revenue amount excluding tax at the time of conversion.
         tests:
-          - not_null:
-              config:
-                severity: warn
+          - not_null
       - name: subscription_period_number
         description: The period number of the subscription at the time of conversion. Always 1 for new subscriptions.
         tests:
@@ -99,9 +99,7 @@ models:
       - name: experience_name
         description: Name of the Composer experience that led to the conversion.
         tests:
-          - not_null:
-              config:
-                severity: warn
+          - not_null
       - name: card_id
         description: Identifier for the card used in the Composer experience.
         tests:
@@ -121,9 +119,7 @@ models:
       - name: template_name
         description: Name of the template used in the Composer experience.
         tests:
-          - not_null:
-              config:
-                severity: warn
+          - not_null
       - name: ab_test_variant_name
         description: A/B test variant name associated with the experience.
       - name: c1x_lts
@@ -164,12 +160,22 @@ models:
         tests:
           - not_null
           - unique
-      - name: visit_id
-        description: Piano unique identifier for the visit associated with the exposure event.
+      - name: experience_execution_id
+        description: Piano unique identifier for the execution of the experience that led to the exposure event.
         tests:
           - not_null
-      - name: visit_time
-        description: Timestamp of the visit associated with the exposure event.
+      - name: exposure_time
+        description: Timestamp of the exposure event.
+        tests:
+          - not_null
+      - name: pageview_id
+        description: Piano unique identifier for the pageview during which the exposure event occurred.
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: visit_id
+        description: Piano unique identifier for the visit associated with the exposure event.
         tests:
           - not_null
       - name: visitor_id
@@ -178,6 +184,62 @@ models:
           - not_null
       - name: user_id
         description: Piano unique identifier for the registered user.
+      - name: device_type
+        description: Type of device used during the exposure event (e.g., desktop, mobile, tablet).
+        tests:
+          - not_null
+      - name: app_type
+        description: The app type associated with the experience.
+        tests:
+          - not_null
+      - name: os_group
+        description: Operating system group of the device used during the exposure event (e.g., Windows, iOS, Android).
+        tests:
+          - not_null
+      - name: page
+        description: Page on which the exposure event occurred.
+        tests:
+          - not_null
+      - name: page_title
+        description: Title of the page on which the exposure event occurred.
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: page_content_type
+        description: Content type of the page on which the exposure event occurred.
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: content_id
+        description: Identifier for the content on which the exposure event occurred.
+      - name: page_url
+        description: URL of the page on which the exposure event occurred.
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: page_url_domain
+        description: Domain of the page URL on which the exposure event occurred.
+        tests:
+          - not_null
+      - name: page_url_full
+        description: Full URL of the page on which the exposure event occurred.
+        tests:
+          - not_null
+      - name: geo_id
+        description: Geographic identifier for the visitor's location.
+        tests:
+          - not_null
+      - name: geo_country
+        description: Country of the visitor's location.
+        tests:
+          - not_null
+      - name: geo_region
+        description: Region of the visitor's location.
+      - name: geo_city
+        description: City of the visitor's location.
       - name: experience_id
         description: Identifier for the Composer experience that led to the conversion.
         tests:

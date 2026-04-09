@@ -21,7 +21,7 @@ app_experiences AS (
 
 app_templates AS (
 
-    SELECT 
+    SELECT
         template_id,
         template_name
     FROM {{ ref('dim_template') }}
@@ -80,7 +80,7 @@ last_fix AS (
 ),
 
 named AS (
-    
+
     SELECT
         f.*,
         'Mobile App' AS app_type,
@@ -112,10 +112,14 @@ SELECT
     billing_period,
     NULL AS vx_promo_code,
     CASE
-        WHEN billing_period = '1 month' AND LOWER(os_group) IN ('ios', 'ipados') THEN 8.99 * 0.7  -- Assuming 30% app store fee for iOS
-        WHEN billing_period = '1 year' AND LOWER(os_group) IN ('ios', 'ipados') THEN 49.99 * 0.7  -- Assuming 30% app store fee for iOS
-        WHEN billing_period = '1 month' AND LOWER(os_group) = 'android' THEN 8.99 * 0.85  -- Assuming 15% app store fee for Android
-        WHEN billing_period = '1 year' AND LOWER(os_group) = 'android' THEN 49.99 * 0.85  -- Assuming 15% app store fee for Android
+        WHEN billing_period = '1 month' AND LOWER(term_name) ILIKE '%ios%' THEN 8.99 * 0.7  -- Assuming 30% app store fee for iOS
+        WHEN billing_period = '1 year' AND LOWER(term_name) ILIKE '%ios%' THEN 49.99 * 0.7  -- Assuming 30% app store fee for iOS
+        WHEN billing_period = '1 month' AND LOWER(term_name) ILIKE '%android%' THEN 8.99 * 0.85  -- Assuming 15% app store fee for Android
+        WHEN billing_period = '1 year' AND LOWER(term_name) ILIKE '%android%' THEN 49.99 * 0.85  -- Assuming 15% app store fee for Android
+        WHEN billing_period = '1 month' AND LOWER(os_group) IN ('ios', 'ipados', 'macos') THEN 8.99 * 0.7  -- Assuming 30% app store fee for iOS
+        WHEN billing_period = '1 year' AND LOWER(os_group) IN ('ios', 'ipados', 'macos') THEN 49.99 * 0.7  -- Assuming 30% app store fee for iOS
+        WHEN billing_period = '1 month' AND LOWER(os_group) IN ('android', 'chrome os', 'windows') THEN 8.99 * 0.85  -- Assuming 15% app store fee for Android
+        WHEN billing_period = '1 year' AND LOWER(os_group) IN ('android', 'chrome os', 'windows') THEN 49.99 * 0.85  -- Assuming 15% app store fee for Android
         ELSE NULL
     END AS cart_turnovertaxfree,
     subscription_period_number,
