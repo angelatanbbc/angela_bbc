@@ -1,20 +1,17 @@
 {{ config(materialized="table") }}
 
-WITH base AS (
+WITH composer_events AS (
 
     SELECT
         experience_id,
         experience_name,
         event_time
-    FROM sdp_silver.studios_piano.studios_piano_events
+    FROM {{ ref('stg_piano__composer_events') }}
     WHERE
-        site_id = 638824
-        AND event_time::DATE >= '2025-06-25'
-        AND event_name IN (
+        event_name IN (
             'experience.action',
             'experience.interaction',
             'vx.conversion',
-            'vx.conversion.offsite',
             'vx.conversion.optout'
         )
         AND experience_id IS NOT NULL
@@ -29,7 +26,7 @@ name_spans AS (
         experience_name,
         MIN(event_time) AS first_seen,
         MAX(event_time) AS last_seen
-    FROM base
+    FROM composer_events
     WHERE experience_name IS NOT NULL
     GROUP BY ALL
 

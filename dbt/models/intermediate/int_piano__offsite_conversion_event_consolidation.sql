@@ -3,6 +3,7 @@
     tags=["piano", "intermediate"]
 ) }}
 
+-- Get offsite conversions, these are processed on app stores rather than onsite (Braintree/Spripe)
 WITH offsite_conversions AS (
 
     SELECT
@@ -21,6 +22,7 @@ WITH offsite_conversions AS (
 
 ),
 
+-- Get onsite conversion events for mobile app experiences
 onsite_conversions AS (
 
     SELECT
@@ -29,7 +31,6 @@ onsite_conversions AS (
         visit_id,
         visit_time,
         device_type,
-        app_type,
         os_group,
         src,
         src_detail,
@@ -38,7 +39,9 @@ onsite_conversions AS (
         geo_region,
         geo_city
     FROM {{ ref('stg_piano__composer_events') }}
-    WHERE event_name = 'vx.conversion'
+    WHERE
+        event_name = 'vx.conversion'
+        AND subscription_id IS NULL  -- Selects only mobile app conversions
 
 ),
 
@@ -65,7 +68,6 @@ SELECT
     visit_id,
     visit_time,
     device_type,
-    app_type,
     os_group,
     conversion_time,
     term_id,
@@ -79,7 +81,7 @@ SELECT
     geo_id,
     geo_country,
     geo_region,
-    geo_city
+    geo_city,
 FROM ranked_matches
 WHERE
     visitor_id IS NOT NULL

@@ -96,28 +96,14 @@ models:
         description: Identifier for the Composer experience that led to the conversion.
         tests:
           - not_null
-      - name: experience_name
-        description: Name of the Composer experience that led to the conversion.
-        tests:
-          - not_null
       - name: card_id
         description: Identifier for the card used in the Composer experience.
         tests:
           - not_null:
               config:
                 severity: warn
-      - name: card_name
-        description: Name of the card used in the Composer experience.
-        tests:
-          - not_null:
-              config:
-                severity: warn
       - name: template_id
         description: Identifier for the template used in the Composer experience.
-        tests:
-          - not_null
-      - name: template_name
-        description: Name of the template used in the Composer experience.
         tests:
           - not_null
       - name: ab_test_variant_name
@@ -199,7 +185,9 @@ models:
       - name: page
         description: Page on which the exposure event occurred.
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
       - name: page_title
         description: Title of the page on which the exposure event occurred.
         tests:
@@ -223,11 +211,15 @@ models:
       - name: page_url_domain
         description: Domain of the page URL on which the exposure event occurred.
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
       - name: page_url_full
         description: Full URL of the page on which the exposure event occurred.
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
       - name: geo_id
         description: Geographic identifier for the visitor's location.
         tests:

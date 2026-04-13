@@ -19,6 +19,7 @@ SELECT
     event_url,
     event_url_domain,
     event_url_full,
+    event_collection_platform,
 
     -- Visit Info
     visit_time,
@@ -65,7 +66,7 @@ SELECT
 
     -- Device / App
     {{ clean_device_type('device_type') }} AS device_type,
-    NULL AS app_type,  -- This will be populated in the dim_experience table
+    -- We don't take app_type from Composer events since it's often missing, group manually by experience_id instead
     {{ clean_os_group('os_group') }} AS os_group,
 
     -- Geography
@@ -99,6 +100,7 @@ SELECT
     cart_turnovertaxfree,
     subscription_action,
     subscription_period_number,
+    created_via_upgrade,
 
     -- C1X Fields
     c1x_lts,

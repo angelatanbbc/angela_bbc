@@ -5,8 +5,10 @@
 
 WITH consolidated_conversions AS (
 
-    SELECT * EXCLUDE (app_type)
-    FROM {{ ref('int_piano__app_conversion_event_consolidation') }}
+    SELECT
+        *,
+        'Mobile App' AS app_type
+    FROM {{ ref('int_piano__offsite_conversion_event_consolidation') }}
 
 ),
 
@@ -15,16 +17,22 @@ app_experiences AS (
     SELECT
         experience_id,
         experience_name,
-        app_type
+        valid_from,
+        valid_until
     FROM {{ ref('dim_experience') }}
+    WHERE app_type = 'Mobile App'
+
 ),
 
 app_templates AS (
 
     SELECT
         template_id,
-        template_name
+        template_name,
+        valid_from,
+        valid_until
     FROM {{ ref('dim_template') }}
+
 ),
 
 lead_up_ctas AS (
@@ -34,18 +42,17 @@ lead_up_ctas AS (
         e.event_name,
         e.event_time,
         e.experience_id,
-        e.experience_name,
         e.card_id,
-        e.card_name,
         e.card_action,
         e.template_id,
-        e.template_name,
         e.ab_test_variant_name
-    FROM {{ ref('stg_piano__composer_events') }} e
-    JOIN consolidated_conversions c
+    FROM consolidated_conversions c
+    LEFT JOIN {{ ref('stg_piano__composer_events') }} e
         ON e.visit_id = c.visit_id
         AND e.event_time <= c.conversion_time
-        AND e.event_name IN ('experience.action', 'experience.interaction')
+        AND e.event_name IN ('experience.action', 'experience.interaction', 'subscription.select')
+        -- AND e.page != 'subscription.app.native.gate.page'  -- Just use Piano gate for experience properties.
+        AND e.template_id != 'OTA89Y3WW201'  -- Exclude privacy policy
     ORDER BY c.conversion_id, e.event_time
 
 ),
@@ -53,14 +60,23 @@ lead_up_ctas AS (
 fill_forward_ids AS (
 
     SELECT
-        * EXCLUDE (experience_id, experience_name, template_id, template_name, ab_test_variant_name),
-        COALESCE(LAST_VALUE(experience_id) IGNORE NULLS OVER (PARTITION BY visitor_id ORDER BY event_time), 'EX0000000000') AS experience_id,
-        COALESCE(LAST_VALUE(template_id) IGNORE NULLS OVER (PARTITION BY visitor_id ORDER BY event_time), 'OT0000000000') AS template_id,
-        LAST_VALUE(ab_test_variant_name) IGNORE NULLS OVER (PARTITION BY visitor_id ORDER BY event_time) AS ab_test_variant_name
+        * EXCLUDE (experience_id, template_id, ab_test_variant_name),
+        COALESCE(
+            LAST_VALUE(experience_id IGNORE NULLS) OVER (PARTITION BY visitor_id ORDER BY event_time),
+            'EX0000000000'
+        ) AS experience_id,
+        COALESCE(
+            LAST_VALUE(template_id IGNORE NULLS) OVER (PARTITION BY visitor_id ORDER BY event_time),
+            'OT0000000000'
+        ) AS template_id,
+        LAST_VALUE(ab_test_variant_name IGNORE NULLS) OVER (PARTITION BY visitor_id ORDER BY event_time) AS ab_test_variant_name
     FROM lead_up_ctas
 
 ),
 
+-- This step is to fix specific known issue where the wrong experience_id or template_id was associated with certain conversions,
+-- likely due to a bug in the event tracking or data processing. We are hardcoding the correct mappings for these specific cases
+-- based on historical data and analysis.
 last_fix AS (
 
     SELECT
@@ -76,21 +92,6 @@ last_fix AS (
             ELSE template_id
         END AS template_id
     FROM fill_forward_ids
-
-),
-
-named AS (
-
-    SELECT
-        f.*,
-        'Mobile App' AS app_type,
-        IFNULL(e.experience_name, '000 - Unknown Experience') AS experience_name,  -- TODO: Need to implement Yukiko's logic for non-experience app conversions
-        IFNULL(t.template_name, 'Unknown Template') AS template_name
-    FROM last_fix f
-    LEFT JOIN app_experiences e
-        ON f.experience_id = e.experience_id
-    LEFT JOIN app_templates t
-        ON f.template_id = t.template_id
 
 )
 
@@ -131,17 +132,14 @@ SELECT
     geo_city,
     TO_VARCHAR(conversion_time, 'YYYY-MM') AS cohort_month,
     experience_id,
-    experience_name,
     card_id,
-    card_name,
     card_action,
     template_id,
-    template_name,
     ab_test_variant_name,
     NULL AS c1x_lts,
     NULL AS c1x_content_likely_to_convert,
     NULL AS c1x_likelihood_to_register,
     NULL AS c1x_likelihood_to_return,
     NULL AS c1x_revenue_auto_optimization
-FROM named
+FROM fill_forward_ids
 QUALIFY ROW_NUMBER() OVER (PARTITION BY conversion_id ORDER BY event_time DESC) = 1

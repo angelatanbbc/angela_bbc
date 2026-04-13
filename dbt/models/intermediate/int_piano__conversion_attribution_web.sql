@@ -6,14 +6,13 @@
 WITH web_conversion_events AS (
 
     SELECT
-        a.* EXCLUDE (app_type),
-        b.app_type
-    FROM {{ ref('stg_piano__composer_events') }} a
-    JOIN {{ ref('dim_experience') }} b USING (experience_id)
+        *,
+        'Web' AS app_type
+    FROM {{ ref('stg_piano__composer_events') }}
     WHERE
-        a.event_name IN ('vx.conversion', 'vx.conversion.optout')
-        AND b.app_type = 'Web'
-        AND b.is_current
+        event_name IN ('vx.conversion', 'vx.conversion.optout')
+        AND term_offer_id = 'OFR1N7V2XJPI'  -- BBC Subscription in Prod. Also filters App connversions.
+        AND NOT created_via_upgrade        
 
 ),
 
@@ -74,12 +73,9 @@ joined AS (
 
         -- vx.conversion shared properties
         c.experience_id AS conversion_experience_id,
-        c.experience_name AS conversion_experience_name,
         c.card_id AS conversion_card_id,
-        c.card_name AS conversion_card_name,
         c.card_action AS conversion_card_action,
         c.template_id AS conversion_template_id,
-        c.template_name AS conversion_template_name,
         c.ab_test_variant_name AS conversion_ab_test_variant_name,
         c.c1x_lts AS conversion_c1x_lts,
         c.c1x_content_likely_to_convert AS conversion_c1x_content_likely_to_convert,
@@ -89,12 +85,9 @@ joined AS (
 
         -- last experience.action relevant properties
         a.experience_id AS action_experience_id,
-        a.experience_name AS action_experience_name,
         a.card_id AS action_card_id,
-        a.card_name AS action_card_name,
         a.card_action AS action_card_action,
         a.template_id AS action_template_id,
-        a.template_name AS action_template_name,
         a.ab_test_variant_name AS action_ab_test_variant_name,
         a.c1x_lts AS action_c1x_lts,
         a.c1x_content_likely_to_convert AS action_c1x_content_likely_to_convert,
@@ -104,12 +97,9 @@ joined AS (
         
         -- last experience.interaction relevant properties
         i.experience_id AS interaction_experience_id,
-        i.experience_name AS interaction_experience_name,
         i.card_id AS interaction_card_id,
-        i.card_name AS interaction_card_name,
         i.card_action AS interaction_card_action,
         i.template_id AS interaction_template_id,
-        i.template_name AS interaction_template_name,
         i.ab_test_variant_name AS interaction_ab_test_variant_name,
         i.c1x_lts AS interaction_c1x_lts,
         i.c1x_content_likely_to_convert AS interaction_c1x_content_likely_to_convert,
@@ -179,20 +169,10 @@ attribution AS (
             ELSE COALESCE(interaction_experience_id, action_experience_id, 'EX843FEP7H0N')
         END AS experience_id,
 
-        CASE
-            WHEN conversion_experience_id = 'EX843FEP7H0N' AND clicked_subscribe THEN '003 - Subscription Landing Page'
-            ELSE COALESCE(interaction_experience_name, action_experience_name, '003 - Subscription Landing Page')
-        END AS experience_name,
-
         CASE 
             WHEN conversion_experience_id = 'EX843FEP7H0N' AND clicked_subscribe THEN 'showOfferU1L6WTFCILCB9'
             ELSE COALESCE(interaction_card_id, action_card_id, 'showOfferU1L6WTFCILCB9')
         END AS card_id,
-
-        CASE
-            WHEN conversion_experience_id = 'EX843FEP7H0N' AND clicked_subscribe THEN 'Show offer'
-            ELSE COALESCE(interaction_card_name, action_card_name, 'Show offer')
-        END AS card_name,
 
         CASE
             WHEN conversion_experience_id = 'EX843FEP7H0N' AND clicked_subscribe THEN 'showOffer'
@@ -203,11 +183,6 @@ attribution AS (
             WHEN conversion_experience_id = 'EX843FEP7H0N' AND clicked_subscribe THEN 'OTSEA34UH0YZ'
             ELSE COALESCE(interaction_template_id, action_template_id, 'OTSEA34UH0YZ')
         END AS template_id,
-
-        CASE
-            WHEN conversion_experience_id = 'EX843FEP7H0N' AND clicked_subscribe THEN 'Subscription Landing Page'
-            ELSE COALESCE(interaction_template_name, action_template_name, 'Subscription Landing Page')
-        END AS template_name,
 
         COALESCE(conversion_ab_test_variant_name, interaction_ab_test_variant_name, action_ab_test_variant_name) AS ab_test_variant_name,
         COALESCE(conversion_c1x_lts, interaction_c1x_lts, action_c1x_lts) AS c1x_lts,

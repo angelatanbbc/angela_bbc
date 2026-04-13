@@ -7,7 +7,7 @@
 WITH first_event AS (
     SELECT
         e.subscription_id,
-        IFF(c.experience_name ILIKE '%lfv%', 'LFV', 'Non-LFV') AS experience_type,  -- Classify as LFV vs Non-LFV based on experience_name
+        IFF(exp.experience_name ILIKE '%lfv%', 'LFV', 'Non-LFV') AS experience_type,  -- Classify as LFV vs Non-LFV based on experience_name
         e.event_time::DATE AS start_date,
         e.term_id,
         e.billing_period,
@@ -18,8 +18,11 @@ WITH first_event AS (
         {{ ref('fact_subscription_events') }} e
     LEFT JOIN (SELECT * FROM {{ ref('fact_conversions') }} QUALIFY ROW_NUMBER() OVER (PARTITION BY conversion_id ORDER BY conversion_time) = 1) c
         ON e.subscription_id = c.subscription_id
+    LEFT JOIN {{ ref('dim_experience') }} exp
+        ON c.experience_id = exp.experience_id
     WHERE
         e.event_type = 'New Subscription'
+        AND exp.is_current
 
 ),
 
