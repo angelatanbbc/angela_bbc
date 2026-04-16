@@ -1,9 +1,11 @@
-{{ config(
-    materialized='incremental',
-    incremental_strategy='delete+insert',
-    unique_key='signup_event',
-    on_schema_change='sync_all_columns'
-) }}
+-- {{ config(
+--     materialized='incremental',
+--     incremental_strategy='delete+insert',
+--     unique_key='signup_event',
+--     on_schema_change='sync_all_columns'
+-- ) }}
+
+{{config(materialized="table")}}
 
 /* ============================================================
    PURPOSE
