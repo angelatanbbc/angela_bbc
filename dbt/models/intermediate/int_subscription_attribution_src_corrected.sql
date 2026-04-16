@@ -64,9 +64,9 @@ non_null_rows AS (
     SELECT *
     FROM {{ ref('int_subscription_attribution') }}
     WHERE ATTRIBUTION_SOURCE IS NOT NULL
-    {% if is_incremental() %}
-        AND SIGNUP_EVENT >= (SELECT COALESCE(DATEADD(day, -3, MAX(signup_event)), '2025-06-25') FROM {{ this }})
-    {% endif %}
+    -- {% if is_incremental() %}
+    --     AND SIGNUP_EVENT >= (SELECT COALESCE(DATEADD(day, -3, MAX(signup_event)), '2025-06-25') FROM {{ this }})
+    -- {% endif %}
 ),
 
 /* ============================================================
@@ -78,9 +78,9 @@ null_rows AS (
         UNIFORM(0::FLOAT, 1::FLOAT, HASH(VISITOR_ID, EVENT_DATE, EVENT_URL_FULL)) AS random_value
     FROM {{ ref('int_subscription_attribution') }}
     WHERE ATTRIBUTION_SOURCE IS NULL
-    {% if is_incremental() %}
-        AND SIGNUP_EVENT >= (SELECT COALESCE(DATEADD(day, -3, MAX(signup_event)), '2025-06-25') FROM {{ this }})
-    {% endif %}
+    -- {% if is_incremental() %}
+    --     AND SIGNUP_EVENT >= (SELECT COALESCE(DATEADD(day, -3, MAX(signup_event)), '2025-06-25') FROM {{ this }})
+    -- {% endif %}
 ),
 
 /* ============================================================
@@ -354,9 +354,9 @@ signupevent AS (
         AND event_name IN ('vx.conversion')
         AND (vx_promo_code NOT IN ('BBCEMPLOYEE','BBCEDITORIAL','BBCACCOUNT','') OR vx_promo_code IS NULL)
         AND (app_type != 'mobile-app' OR app_type IS NULL)
-        {% if is_incremental() %}
-            AND TO_DATE(event_time) >= (SELECT COALESCE(DATEADD(day, -3, MAX(signup_event)), '2025-06-25') FROM {{ this }})
-        {% endif %}
+        -- {% if is_incremental() %}
+        --     AND TO_DATE(event_time) >= (SELECT COALESCE(DATEADD(day, -3, MAX(signup_event)), '2025-06-25') FROM {{ this }})
+        -- {% endif %}
     GROUP BY pageview_id, billing_period, cart_turnovertaxfree, subscription_id, subscription_action
     QUALIFY ROW_NUMBER() OVER (PARTITION BY pageview_id ORDER BY MIN(event_time) DESC) = 1
 )
