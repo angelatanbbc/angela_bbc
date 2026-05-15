@@ -45,7 +45,7 @@ SELECT
     CASE
         WHEN template_name ILIKE '%gate%' THEN 'Paywall'
         WHEN template_name ILIKE '%ribbon%' THEN 'Ribbon'
-        WHEN template_name ILIKE '%landing page%' THEN 'Subscription Landing Page'
+        WHEN template_name ILIKE '%landing%page%' THEN 'Subscription Landing Page'
         ELSE 'Other'
     END AS template_type,
     name_version_number,
