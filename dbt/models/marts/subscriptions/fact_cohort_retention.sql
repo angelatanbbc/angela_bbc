@@ -2,7 +2,7 @@
 
 WITH cohort_base AS (
 
-    SELECT
+    SELECT DISTINCT
         subscription_id,
         term_id,
         conversion_device_type,
@@ -15,6 +15,7 @@ WITH cohort_base AS (
         {{ ref('fact_subscriber_daily_snapshot') }}
     WHERE
         subscriber_status = 'Active'
+    ORDER BY cohort_month, subscription_id, months_since_conversion
 
 ),
 
