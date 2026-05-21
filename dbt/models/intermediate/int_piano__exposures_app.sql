@@ -46,7 +46,14 @@ WITH composer_events AS (
         c.template_id,
         c.template_name,
         c.ab_test_card_title,
-        c.ab_test_variant_name
+        c.ab_test_variant_name,
+
+        -- C1X attributes
+        NULL AS c1x_lts,
+        NULL AS c1x_content_likely_to_convert,
+        NULL AS c1x_likelihood_to_register,
+        NULL AS c1x_likelihood_to_return,
+        NULL AS c1x_revenue_auto_optimization
 
     FROM {{ ref('stg_piano__composer_events') }} c
     JOIN {{ ref('dim_experience') }} e USING (experience_id)

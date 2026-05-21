@@ -62,7 +62,14 @@ pageview_join AS (
         ce.template_id,
         ce.template_name,
         ce.ab_test_card_title,
-        ce.ab_test_variant_name
+        ce.ab_test_variant_name,
+
+        -- C1X attributes
+        ce.c1x_lts,
+        ce.c1x_content_likely_to_convert,
+        ce.c1x_likelihood_to_register,
+        ce.c1x_likelihood_to_return,
+        ce.c1x_revenue_auto_optimization
 
     FROM composer_events ce
     JOIN {{ ref('fact_page_views') }} pv USING (pageview_id)
