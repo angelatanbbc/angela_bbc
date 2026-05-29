@@ -24,38 +24,24 @@ name_spans AS (
     SELECT
         experience_id,
         experience_name,
-        MIN(event_time) AS first_seen,
-        MAX(event_time) AS last_seen
+        MIN(event_time) AS first_seen
     FROM composer_events
     WHERE experience_name IS NOT NULL
     GROUP BY ALL
 
-),
-
-ranked AS (
-
-    SELECT
-        *,
-        ROW_NUMBER() OVER (
-            PARTITION BY experience_id
-            ORDER BY first_seen
-        ) AS name_version_number,
-        COUNT(*) OVER (PARTITION BY experience_id) AS total_name_versions
-    FROM name_spans
-
 )
 
 SELECT
-    {{ dbt_utils.generate_surrogate_key(['r.experience_id', 'r.name_version_number']) }} AS experience_version_key,
-    r.experience_id,
-    r.experience_name,
-    s.app_type,
-    r.name_version_number,
-    r.total_name_versions,
-    r.first_seen AS valid_from,
-    LEAD(r.first_seen) OVER (PARTITION BY r.experience_id ORDER BY r.first_seen) AS valid_until,
-    IFF(r.name_version_number = r.total_name_versions, TRUE, FALSE) AS is_current
-FROM ranked r
+    n.experience_id,
+    n.experience_name,
+    COALESCE(
+        CASE
+            WHEN n.experience_name ILIKE '%_web_%' THEN 'Web'
+            WHEN n.experience_name ILIKE '%_app_%' THEN 'Mobile App'
+            ELSE NULL
+        END,
+        s.app_type) AS app_type
+FROM name_spans n
 LEFT JOIN {{ ref('experience_app_type') }} s
-    ON r.experience_id = s.experience_id
-ORDER BY r.experience_id, valid_from
+    ON n.experience_id = s.experience_id
+QUALIFY ROW_NUMBER() OVER (PARTITION BY n.experience_id ORDER BY first_seen DESC) = 1

@@ -22,7 +22,6 @@ WITH first_event AS (
         ON c.experience_id = exp.experience_id
     WHERE
         e.event_type = 'New Subscription'
-        AND exp.is_current
 
 ),
 
