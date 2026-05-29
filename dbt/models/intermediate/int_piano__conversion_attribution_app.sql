@@ -16,9 +16,7 @@ app_experiences AS (
 
     SELECT
         experience_id,
-        experience_name,
-        valid_from,
-        valid_until
+        experience_name
     FROM {{ ref('dim_experience') }}
     WHERE app_type = 'Mobile App'
 
