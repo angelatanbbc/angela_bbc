@@ -122,17 +122,15 @@ models:
   - name: dim_experience
     description: Dimension table for Composer experiences, tracking name versions over time with app type classification.
     columns:
-      - name: experience_version_key
-        description: Surrogate primary key, derived from experience_id and name_version_number.
+      - name: experience_id
+        description: Identifier for the Composer experience.
         tests:
           - not_null
           - unique
       - name: experience_name
-        description: Name of the Composer experience. May be null if no name has ever been sent for this experience_id.
+        description: Name of the Composer experience.
         tests:
-          - not_null:
-              config:
-                severity: warn
+          - not_null
       - name: app_type
         description: The app type associated with the experience.
         tests:
