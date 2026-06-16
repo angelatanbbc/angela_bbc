@@ -1,0 +1,61 @@
+version: 2
+
+models:
+  - name: fact_page_views
+    description: Web pageview fact table, at the grain of one row per Piano pageview.
+    tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "num_composer_experiences_shown >= 0"
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "NOT ((is_paywall_shown OR is_ribbon_shown) AND num_composer_experiences_shown = 0)"
+    columns:
+      - name: pageview_id
+        description: Piano unique identifier for the pageview.
+        tests:
+          - not_null
+          - unique
+      - name: pageview_time
+        description: Timestamp when the pageview occurred.
+        tests:
+          - not_null
+      - name: visitor_id
+        description: Piano unique identifier for the visitor.
+        tests:
+          - not_null
+      - name: visit_id
+        description: Piano unique identifier for the visit.
+        tests:
+          - not_null
+      - name: app_type
+        description: App type for the pageview.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Web']
+      - name: geo_country
+        description: Country of the visitor's location.
+        tests:
+          - not_null
+      - name: geo_region
+        description: Region of the visitor's location.
+        tests:
+          - not_null
+      - name: geo_city
+        description: City of the visitor's location.
+        tests:
+          - not_null
+      - name: num_composer_experiences_shown
+        description: Count of distinct Composer experiences shown during the pageview.
+        tests:
+          - not_null
+      - name: is_paywall_shown
+        description: Whether a Composer gate template was shown during the pageview.
+        tests:
+          - not_null
+      - name: is_ribbon_shown
+        description: Whether a Composer ribbon template was shown during the pageview.
+        tests:
+          - not_null
