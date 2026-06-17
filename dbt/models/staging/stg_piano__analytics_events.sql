@@ -10,6 +10,7 @@ SELECT
     visit_id,
     visitor_id,
     user_id,
+    user_first_party_id,
     pageview_id,
 
     -- Event Info
@@ -29,6 +30,7 @@ SELECT
     visit_page_views,
     visit_sales,
     src,
+    src_url,
     src_detail,
     src_bbc_team,
 
@@ -60,9 +62,17 @@ SELECT
     page,
     page_title,
     page_content_type,
+    content_type,
     content_id,
+    content_section,
+    content_topic,
+    content_pillar,
+    date_published,
+    url,
 
     -- Device / App
+    event_collection_platform,
+    app_name,
     {{ clean_device_type('device_type') }} AS device_type,
     {{ clean_app_type('app_type') }} AS app_type,
     {{ clean_os_group('os_group') }} AS os_group,

@@ -28,6 +28,14 @@ models:
         description: Piano unique identifier for the visit.
         tests:
           - not_null
+      - name: user_first_party_id
+        description: Piano first-party user identifier for logged-in visitors, used for subscriber activity counts.
+      - name: src
+        description: Piano visit source used to identify newsletter-driven pageviews and other acquisition paths.
+      - name: src_detail
+        description: Additional Piano visit source detail.
+      - name: src_url
+        description: Referring source URL captured by Piano for the visit.
       - name: app_type
         description: App type for the pageview.
         tests:
@@ -35,6 +43,32 @@ models:
           - accepted_values:
               arguments:
                 values: ['Web']
+      - name: app_name
+        description: Piano application name for the pageview, used to distinguish international app usage from UK, Chrysalis, and Sport apps.
+      - name: page
+        description: Piano page identifier for the pageview.
+      - name: page_title
+        description: Most specific title captured on the pageview.
+      - name: page_content_type
+        description: Piano page content type captured on the pageview.
+      - name: content_type
+        description: Piano content type captured on the pageview.
+      - name: content_id
+        description: Content identifier associated with the pageview when available.
+      - name: content_section
+        description: Editorial section associated with the pageview content.
+      - name: content_topic
+        description: Editorial topic associated with the pageview content.
+      - name: content_pillar
+        description: Editorial pillar associated with the pageview content.
+      - name: date_published
+        description: Publication timestamp associated with the content when captured by Piano.
+      - name: content_url
+        description: Canonical content URL captured by Piano for content metadata.
+      - name: page_url
+        description: Page URL captured on the pageview event.
+      - name: page_url_full
+        description: Full page URL captured on the pageview event, including query string when present.
       - name: geo_country
         description: Country of the visitor's location.
         tests:
@@ -47,6 +81,10 @@ models:
         description: City of the visitor's location.
         tests:
           - not_null
+      - name: pageview_c1x_brand_relationship
+        description: C1X brand relationship value captured on the pageview event, used to filter subscriber and paid-trial usage.
+      - name: is_paid_trial_or_subscriber
+        description: Whether the pageview's C1X brand relationship marks the visitor as a paid trial user or subscriber.
       - name: num_composer_experiences_shown
         description: Count of distinct Composer experiences shown during the pageview.
         tests:

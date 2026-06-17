@@ -1,0 +1,18 @@
+version: 2
+
+models:
+  - name: int_subscription_analytics_events
+    description: Analytics page display events that occurred while the associated user had an active subscription, at the grain of one row per subscription and analytics event. Excludes null user IDs and the shared Piano unidentified-user placeholder.
+    columns:
+      - name: subscription_analytics_event_id
+        description: Surrogate key for the subscription and analytics event combination.
+      - name: subscription_id
+        description: Piano identifier for the subscription active when the analytics event occurred.
+      - name: user_id
+        description: Piano identifier for the registered user/account linked to the subscription and analytics event.
+      - name: user_first_party_id
+        description: Alternative first-party identifier for the subscribed user/account, sourced from the subscription dimension.
+      - name: event_id
+        description: Piano identifier for the analytics event.
+      - name: event_time
+        description: Timestamp when the analytics event occurred.
