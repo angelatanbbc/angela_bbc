@@ -11,6 +11,7 @@ SELECT
     visit_id,
     visitor_id,
     user_id,
+    user_first_party_id,
     pageview_id,
 
     -- Event Info

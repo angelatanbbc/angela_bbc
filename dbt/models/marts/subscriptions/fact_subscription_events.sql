@@ -7,7 +7,9 @@ WITH conversions AS (
         conversion_time AS event_time,
         'New Subscription' AS event_type,
         user_id,
+        user_first_party_id,
         subscription_id,
+        created_via_upgrade,
         device_type AS conversion_device_type,
         app_type AS conversion_app_type,
         os_group AS conversion_os_group,
@@ -29,10 +31,13 @@ WITH conversions AS (
 subs_actions AS (
 
     SELECT
+        c.conversion_id,
         a.event_time,
         a.subscription_action AS event_type,
         a.user_id,
+        a.user_first_party_id,
         a.subscription_id,
+        c.created_via_upgrade,
         c.conversion_device_type,
         c.conversion_app_type,
         c.conversion_os_group,
@@ -60,7 +65,7 @@ subs_actions AS (
 
 unioned AS (
 
-    SELECT * EXCLUDE (conversion_id)
+    SELECT *
     FROM conversions
 
     UNION ALL

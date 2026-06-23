@@ -11,12 +11,14 @@ WITH offsite_conversions AS (
         subscription_id,
         event_time AS conversion_time,
         user_id,
+        user_first_party_id,
         term_id,
         term_name,
-        COALESCE(term_offer_id, 'OFR1N7V2XJPI') AS term_offer_id,
-        COALESCE(term_offer_name, 'BBC Subscription') AS term_offer_name,
+        -- COALESCE(term_offer_id, 'OFR1N7V2XJPI') AS term_offer_id,
+        -- COALESCE(term_offer_name, 'BBC Subscription') AS term_offer_name,
         IFF(term_name ILIKE '%monthly%', '1 month', '1 year') AS billing_period,
-        subscription_period_number
+        subscription_period_number,
+        created_via_upgrade
     FROM {{ ref('stg_piano__offsite_events') }}
     WHERE event_name = 'vx.conversion.offsite'
 
@@ -51,8 +53,8 @@ ranked_matches AS (
         ofs.*,
         ons.* EXCLUDE (conversion_time),
         ROW_NUMBER() OVER (
-            PARTITION BY ofs.conversion_id 
-            ORDER BY ABS(DATEDIFF(second, ofs.conversion_time, ons.conversion_time)) 
+            PARTITION BY ofs.conversion_id
+            ORDER BY ABS(DATEDIFF(second, ofs.conversion_time, ons.conversion_time))
         ) AS ranking
     FROM offsite_conversions ofs
     LEFT JOIN onsite_conversions ons
@@ -65,6 +67,7 @@ SELECT
     subscription_id,
     visitor_id,
     user_id,
+    user_first_party_id,
     visit_id,
     visit_time,
     device_type,
@@ -72,10 +75,14 @@ SELECT
     conversion_time,
     term_id,
     term_name,
-    term_offer_id,
-    term_offer_name,
+    CASE geo_country
+        WHEN 'Canada' THEN 'OFC29VO25AKU'
+        ELSE 'OFR1N7V2XJPI'  -- Assume United States
+    END AS term_offer_id,
+    'BBC Subscription' AS term_offer_name,
     billing_period,
     subscription_period_number,
+    created_via_upgrade,
     src,
     src_detail,
     geo_id,

@@ -76,6 +76,8 @@ models:
         description: The period number of the subscription at the time of conversion. Always 1 for new subscriptions.
         tests:
           - not_null
+      - name: created_via_upgrade
+        description: Whether the conversion created this subscription as part of an upgrade flow.
       - name: src
         description: Source through which the visitor came to the site (e.g., email, social, direct).
       - name: src_detail
@@ -259,3 +261,85 @@ models:
       - name: ab_test_variant_name
         description: A/B test variant name associated with the experience.
 
+  - name: dim_subscription
+    description: Type 1 dimension at the grain of one row per subscription, focused on subscription lifecycle, status and term state.
+    columns:
+      - name: subscription_key
+        description: Surrogate key for the subscription.
+        tests:
+          - not_null
+          - unique
+      - name: subscription_id
+        description: Piano identifier for the subscription.
+        tests:
+          - not_null
+          - unique
+      - name: user_id
+        description: Piano identifier for the registered user/account linked to the subscription and behavioural facts.
+        tests:
+          - not_null
+      - name: user_first_party_id
+        description: Alternative first-party identifier for the registered user/account linked to the subscription.
+      - name: conversion_id
+        description: Piano identifier for the conversion event that created the subscription.
+        tests:
+          - not_null
+      - name: subscription_sequence_number
+        description: The order of this subscription within the user's observed subscription history.
+        tests:
+          - not_null
+      - name: subscription_start_type
+        description: Classification of how the subscription began for the user.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['brand_new', 're_subscription', 'upgrade']
+      - name: subscription_end_type
+        description: Classification of how the subscription ended; null when the subscription is active.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['cancelled', 'payment_failed', 'expired', 'upgraded', 'unknown']
+      - name: is_active
+        description: Whether the subscription is currently active.
+        tests:
+          - not_null
+      - name: subscription_started_at
+        description: Timestamp of the first observed event for the subscription.
+        tests:
+          - not_null
+      - name: subscription_ended_at
+        description: Timestamp when the subscription ended, if inactive.
+      - name: latest_subscription_event_at
+        description: Timestamp of the latest observed subscription event.
+        tests:
+          - not_null
+      - name: latest_subscription_action
+        description: Latest observed subscription action or event type.
+        tests:
+          - not_null
+      - name: created_via_upgrade
+        description: Whether the subscription was created by an explicit upgrade flow.
+        tests:
+          - not_null
+      - name: is_ended_by_upgrade
+        description: Whether the next subscription for the same user explicitly started via upgrade from this subscription.
+        tests:
+          - not_null
+      - name: ended_by_upgrade_subscription_id
+        description: Subscription ID that superseded this subscription through an upgrade, when applicable.
+      - name: ended_by_upgrade_conversion_id
+        description: Conversion ID that created the upgrade subscription, when applicable.
+      - name: term_id
+        description: Term ID attached to the subscription.
+      - name: term_name
+        description: Term name attached to the subscription.
+      - name: billing_period
+        description: Billing period attached to the subscription.
+      - name: subscription_period_number
+        description: Latest observed subscription period number.
+      - name: mrr_amount
+        description: Current MRR amount for the subscription, set to zero when superseded by an upgrade.
+        tests:
+          - not_null

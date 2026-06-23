@@ -28,6 +28,7 @@ pageview_join AS (
     SELECT
         ce.experience_execution_id,
         ce.event_time AS exposure_time,
+        ce.event_time::DATE AS exposure_date,
         ce.pageview_id,
 
         -- Inherit from Piano Analytics using pageview_id

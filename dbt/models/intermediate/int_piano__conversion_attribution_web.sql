@@ -11,8 +11,9 @@ WITH web_conversion_events AS (
     FROM {{ ref('stg_piano__composer_events') }}
     WHERE
         event_name IN ('vx.conversion', 'vx.conversion.optout')
-        AND term_offer_id = 'OFR1N7V2XJPI'  -- BBC Subscription in Prod. Also filters App connversions.
-        AND NOT created_via_upgrade        
+        AND term_offer_id IN ('OFR1N7V2XJPI',  -- USA BBC Subscription in Prod. Also filters App connversions.
+                              'OFC29VO25AKU')  -- Canada
+        AND NOT created_via_upgrade
 
 ),
 
@@ -50,9 +51,11 @@ joined AS (
         c.subscription_id,
         c.visitor_id,
         c.user_id,
+        c.user_first_party_id,
         c.visit_id,
         c.visit_time,
         c.event_time AS conversion_time,
+        c.event_time::DATE AS conversion_date,
         c.device_type,
         c.app_type,
         c.os_group,
@@ -64,6 +67,7 @@ joined AS (
         c.vx_promo_code,
         c.cart_turnovertaxfree,
         c.subscription_period_number,
+        COALESCE(c.created_via_upgrade, FALSE) AS created_via_upgrade,
         c.src,
         c.src_detail,
         c.geo_id,
@@ -94,7 +98,7 @@ joined AS (
         a.c1x_likelihood_to_register AS action_c1x_likelihood_to_register,
         a.c1x_likelihood_to_return AS action_c1x_likelihood_to_return,
         a.c1x_revenue_auto_optimization AS action_c1x_revenue_auto_optimization,
-        
+
         -- last experience.interaction relevant properties
         i.experience_id AS interaction_experience_id,
         i.card_id AS interaction_card_id,
@@ -130,7 +134,7 @@ joined AS (
                WHERE event_name = 'subscription.select' AND rn=1) s
         ON s.visitor_id = c.visitor_id
         AND s.event_time BETWEEN DATEADD(HOUR, -1, c.event_time) AND c.event_time
-        
+
 ),
 
 attribution AS (
@@ -140,12 +144,14 @@ attribution AS (
         subscription_id,
         visitor_id,
         user_id,
+        user_first_party_id,
         visit_id,
         visit_time,
         device_type,
         app_type,
         os_group,
         conversion_time,
+        conversion_date,
         term_id,
         term_name,
         term_offer_id,
@@ -154,6 +160,7 @@ attribution AS (
         vx_promo_code,
         cart_turnovertaxfree,
         subscription_period_number,
+        created_via_upgrade,
         src,
         src_detail,
         geo_id,
@@ -169,7 +176,7 @@ attribution AS (
             ELSE COALESCE(interaction_experience_id, action_experience_id, 'EX843FEP7H0N')
         END AS experience_id,
 
-        CASE 
+        CASE
             WHEN conversion_experience_id = 'EX843FEP7H0N' AND clicked_subscribe THEN 'showOfferU1L6WTFCILCB9'
             ELSE COALESCE(interaction_card_id, action_card_id, 'showOfferU1L6WTFCILCB9')
         END AS card_id,
@@ -178,7 +185,7 @@ attribution AS (
             WHEN conversion_experience_id = 'EX843FEP7H0N' AND clicked_subscribe THEN 'showOffer'
             ELSE COALESCE(interaction_card_action, action_card_action, 'showOffer')
         END AS card_action,
-        
+
         CASE
             WHEN conversion_experience_id = 'EX843FEP7H0N' AND clicked_subscribe THEN 'OTSEA34UH0YZ'
             ELSE COALESCE(interaction_template_id, action_template_id, 'OTSEA34UH0YZ')
@@ -190,7 +197,7 @@ attribution AS (
         COALESCE(conversion_c1x_likelihood_to_register, interaction_c1x_likelihood_to_register, action_c1x_likelihood_to_register) AS c1x_likelihood_to_register,
         COALESCE(conversion_c1x_likelihood_to_return, interaction_c1x_likelihood_to_return, action_c1x_likelihood_to_return) AS c1x_likelihood_to_return,
         COALESCE(conversion_c1x_revenue_auto_optimization, interaction_c1x_revenue_auto_optimization, action_c1x_revenue_auto_optimization) AS c1x_revenue_auto_optimization
-    
+
     FROM joined
 
 )

@@ -12,6 +12,7 @@ WITH composer_events AS (
     SELECT
         c.experience_execution_id,
         c.event_time AS exposure_time,
+        c.event_time::DATE AS exposure_date,
         c.pageview_id,
 
         -- Inherit from Piano Analytics using pageview_id

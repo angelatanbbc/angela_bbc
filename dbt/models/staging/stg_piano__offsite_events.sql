@@ -9,6 +9,7 @@ SELECT
     event_id,
     site_id,
     user_id,
+    user_first_party_id,
 
     -- Event Info
     event_name,
@@ -28,7 +29,8 @@ SELECT
     vx_promo_code,
     cart_turnovertaxfree,
     subscription_action,
-    subscription_period_number
+    subscription_period_number,
+    created_via_upgrade
 
 FROM {{ source('studios_piano', 'studios_piano_events') }}
 

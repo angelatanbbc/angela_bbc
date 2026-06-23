@@ -53,22 +53,36 @@ web_composer_flags AS (
 SELECT
     pageview_id,
     pv.event_time AS pageview_time,
+    pv.event_time::DATE AS pageview_date,
 
     -- IDs
     pv.visitor_id,
     pv.visit_id,
     pv.user_id,
+    pv.user_first_party_id,
+
+    -- Acquisition / visit source
+    pv.src,
+    pv.src_detail,
+    pv.src_url,
 
     -- Device / App
     pv.device_type,
     pv.app_type,
+    pv.app_name,
     pv.os_group,
 
     -- Page Info
     pv.page,
     pv.page_title,
     pv.page_content_type,
+    pv.content_type,
     pv.content_id,
+    pv.content_section,
+    pv.content_topic,
+    pv.content_pillar,
+    pv.date_published,
+    pv.url AS content_url,
     pv.event_url AS page_url,
     pv.event_url_domain AS page_url_domain,
     pv.event_url_full AS page_url_full,
@@ -94,7 +108,9 @@ SELECT
     -- Composer flags
     COALESCE(cf.num_composer_experiences_shown, 0) AS num_composer_experiences_shown,
     COALESCE(cf.is_paywall_shown, FALSE) AS is_paywall_shown,
-    COALESCE(cf.is_ribbon_shown, FALSE) AS is_ribbon_shown
+    COALESCE(cf.is_ribbon_shown, FALSE) AS is_ribbon_shown,
+    pv.c1x_brand_relationship AS pageview_c1x_brand_relationship,
+    pv.c1x_brand_relationship IN ('Paid trial users', 'Subscribers') AS is_paid_trial_or_subscriber,
 
 FROM web_page_views pv
 LEFT JOIN web_composer_flags cf USING (pageview_id)
