@@ -76,9 +76,8 @@ SELECT
     term_id,
     term_name,
     CASE geo_country
-        WHEN 'United states' THEN 'OFR1N7V2XJPI'
         WHEN 'Canada' THEN 'OFC29VO25AKU'
-        ELSE NULL
+        ELSE 'OFR1N7V2XJPI'  -- Assume United States
     END AS term_offer_id,
     'BBC Subscription' AS term_offer_name,
     billing_period,
