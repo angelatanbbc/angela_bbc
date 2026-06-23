@@ -22,17 +22,6 @@ app_experiences AS (
 
 ),
 
-app_templates AS (
-
-    SELECT
-        template_id,
-        template_name,
-        valid_from,
-        valid_until
-    FROM {{ ref('dim_template') }}
-
-),
-
 lead_up_ctas AS (
 
     SELECT
