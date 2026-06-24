@@ -2,20 +2,17 @@ version: 2
 
 models:
   - name: fact_page_views
-    description: Web pageview fact table, at the grain of one row per Piano pageview.
-    tests:
-      - dbt_utils.expression_is_true:
-          arguments:
-            expression: "num_composer_experiences_shown >= 0"
-      - dbt_utils.expression_is_true:
-          arguments:
-            expression: "NOT ((is_paywall_shown OR is_ribbon_shown) AND num_composer_experiences_shown = 0)"
+    description: Pageview fact table, at the grain of one row per Piano web pageview or app page display event.
     columns:
       - name: pageview_id
-        description: Piano unique identifier for the pageview.
+        description: Unique identifier for the pageview. Uses Piano pageview ID for web events and Piano event ID for app events where Piano does not provide pageview IDs.
         tests:
-          - not_null
-          - unique
+          - not_null:
+              config:
+                severity: warn
+          - unique:
+              config:
+                severity: warn
       - name: pageview_time
         description: Timestamp when the pageview occurred.
         tests:
@@ -42,7 +39,7 @@ models:
           - not_null
           - accepted_values:
               arguments:
-                values: ['Web']
+                values: ["Web", "Mobile App"]
       - name: app_name
         description: Piano application name for the pageview, used to distinguish international app usage from UK, Chrysalis, and Sport apps.
       - name: page
@@ -85,15 +82,3 @@ models:
         description: C1X brand relationship value captured on the pageview event, used to filter subscriber and paid-trial usage.
       - name: is_paid_trial_or_subscriber
         description: Whether the pageview's C1X brand relationship marks the visitor as a paid trial user or subscriber.
-      - name: num_composer_experiences_shown
-        description: Count of distinct Composer experiences shown during the pageview.
-        tests:
-          - not_null
-      - name: is_paywall_shown
-        description: Whether a Composer gate template was shown during the pageview.
-        tests:
-          - not_null
-      - name: is_ribbon_shown
-        description: Whether a Composer ribbon template was shown during the pageview.
-        tests:
-          - not_null

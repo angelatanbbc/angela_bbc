@@ -72,10 +72,10 @@ SELECT
 
     -- Device / App
     event_collection_platform,
+    app_type,
     app_name,
-    {{ clean_device_type('device_type') }} AS device_type,
-    {{ clean_app_type('app_type') }} AS app_type,
-    {{ clean_os_group('os_group') }} AS os_group,
+    device_type,
+    os_group,
 
     -- Geography
     {{ dbt_utils.generate_surrogate_key(['geo_country', 'geo_region']) }} AS geo_id,
