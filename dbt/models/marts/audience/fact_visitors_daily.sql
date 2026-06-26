@@ -13,7 +13,7 @@
 -- redundant expensive DISTINCT operations on the event-level table
 
 
-WITH web_visitors AS (
+WITH visitors AS (
 
     SELECT
         pageview_time::DATE AS date_day,
@@ -24,38 +24,12 @@ WITH web_visitors AS (
         visitor_id,
         COUNT(DISTINCT visit_id) AS n_visits
     FROM {{ ref('fact_page_views') }}
-    WHERE app_type = 'Web'
     {% if is_incremental() %}
-        AND pageview_time::DATE >= DATEADD(DAY, -1, (SELECT MAX(date_day) FROM {{ this }}))
-    {% endif %}
-    GROUP BY ALL
-
-),
-
--- TODO: When we can bring app events to pageview fact table then we migrate this logic
-app_visitors AS (
-
-    SELECT
-        visit_time::DATE AS date_day,
-        geo_country,
-        device_type,
-        app_type,
-        os_group,
-        visitor_id,
-        COUNT(DISTINCT visit_id) AS n_visits
-    FROM {{ ref('stg_piano__analytics_events') }}
-    WHERE app_type = 'Mobile App'
-    {% if is_incremental() %}
-        AND event_time::DATE >= DATEADD(DAY, -1, (SELECT MAX(date_day) FROM {{ this }}))
+        WHERE pageview_time::DATE >= DATEADD(DAY, -1, (SELECT MAX(date_day) FROM {{ this }}))
     {% endif %}
     GROUP BY ALL
 
 )
 
 SELECT *
-FROM web_visitors
-
-UNION ALL
-
-SELECT *
-FROM app_visitors
+FROM visitors
