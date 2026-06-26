@@ -63,7 +63,13 @@ SELECT
     page,
     page_title,
     page_content_type,
+    content_type,
     content_id,
+    content_section,
+    content_topic,
+    content_pillar,
+    date_published,
+    url,
 
     -- Device / App
     {{ clean_device_type('device_type') }} AS device_type,
