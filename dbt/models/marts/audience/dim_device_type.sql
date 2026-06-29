@@ -1,7 +1,29 @@
 {{ config(materialized="table") }}
 
 
-SELECT DISTINCT
-    {{ dbt_utils.generate_surrogate_key(['device_type']) }} AS device_type_id,
+WITH device_types AS (
+
+    SELECT 'Mobile Phone' AS device_type
+
+    UNION ALL
+
+    SELECT 'Desktop' AS device_type
+
+    UNION ALL
+
+    SELECT 'Tablet' AS device_type
+
+    UNION ALL
+
+    SELECT 'Other' AS device_type
+
+    UNION ALL
+
+    SELECT 'Unknown' AS device_type
+
+)
+
+SELECT
+    md5(device_type) AS device_type_id,
     device_type
-FROM {{ ref('fact_visitors_daily') }}
+FROM device_types

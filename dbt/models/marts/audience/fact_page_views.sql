@@ -20,10 +20,9 @@ WITH web_page_views AS (
         src,
         src_detail,
         src_url,
-        device_type,
-        'Web' AS app_type,
-        app_name,
-        os_group,
+        app_type_id,
+        device_type_id,
+        os_group_id,
         event_collection_platform,
         page,
         page_title,
@@ -45,7 +44,7 @@ WITH web_page_views AS (
         c1x_brand_relationship
     FROM {{ ref('stg_piano__analytics_events') }}
     WHERE
-        event_collection_platform = 'js'
+        app_type_id = MD5('Web')
         AND geo_country IN ('United states', 'Canada')
         AND pageview_id IS NOT NULL
         {% if is_incremental() %}
@@ -69,10 +68,9 @@ app_page_views AS (
         src,
         src_detail,
         src_url,
-        device_type,
-        'Mobile App' AS app_type,
-        app_name,
-        os_group,
+        app_type_id,
+        device_type_id,
+        os_group_id,
         event_collection_platform,
         page,
         page_title,
@@ -94,7 +92,7 @@ app_page_views AS (
         c1x_brand_relationship
     FROM {{ ref('stg_piano__analytics_events') }}
     WHERE
-        LOWER(event_collection_platform) IN ('android', 'ios')
+        app_type_id = MD5('Mobile App')
         AND geo_country IN ('United states', 'Canada')
         AND event_id IS NOT NULL
         {% if is_incremental() %}
@@ -107,7 +105,9 @@ unioned_page_views AS (
 
     SELECT *
     FROM web_page_views
+
     UNION ALL
+    
     SELECT *
     FROM app_page_views
 
@@ -131,10 +131,9 @@ SELECT
 
     -- Device / App
     event_collection_platform,
-    app_type,
-    app_name,
-    {{ clean_device_type('device_type') }} AS device_type,
-    {{ clean_os_group('os_group') }} AS os_group,
+    app_type_id,
+    device_type_id,
+    os_group_id,
 
     -- Page Info
     page,

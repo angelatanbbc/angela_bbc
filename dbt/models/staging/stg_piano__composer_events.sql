@@ -72,9 +72,9 @@ SELECT
     url,
 
     -- Device / App
-    {{ clean_device_type('device_type') }} AS device_type,
-    -- We don't take app_type from Composer events since it's often missing, group manually by experience_id instead
-    {{ clean_os_group('os_group') }} AS os_group,
+    -- {{ generate_app_type_id('app_type') }} AS app_type_id,
+    {{ generate_device_type_id('device_type') }} AS device_type_id,
+    {{ generate_os_group_id('os_group') }} AS os_group_id,
 
     -- Geography
     {{ dbt_utils.generate_surrogate_key(['geo_country', 'geo_region']) }} AS geo_id,

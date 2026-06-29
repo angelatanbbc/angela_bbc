@@ -15,7 +15,7 @@ WITH composer_events AS (
         event_name IN ('experience.action', 'experience.interaction', 'vx.conversion')
         AND experience_id IN (SELECT DISTINCT dim_experience.experience_id
                               FROM {{ ref('dim_experience') }}
-                              WHERE dim_experience.app_type = 'Web')
+                              WHERE dim_experience.app_type_id = MD5('Web'))
         AND template_name != 'Outside Region Error Message'
         {% if is_incremental() %}
             AND event_time::DATE >= DATEADD(DAY, -1, (SELECT MAX(exposure_time)::DATE FROM {{ this }}))
@@ -48,9 +48,9 @@ SELECT
     visitor_id,
     visit_id,
     user_id,
-    device_type,
-    'Web' AS app_type,
-    os_group,
+    MD5('Web') AS app_type_id,
+    device_type_id,
+    os_group_id,
 
     -- Page Info
     page,

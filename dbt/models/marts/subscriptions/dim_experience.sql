@@ -36,11 +36,11 @@ SELECT
     n.experience_name,
     COALESCE(
         CASE
-            WHEN n.experience_name ILIKE '%_web_%' THEN 'Web'
-            WHEN n.experience_name ILIKE '%_app_%' THEN 'Mobile App'
+            WHEN n.experience_name ILIKE '%_web_%' THEN MD5('Web')
+            WHEN n.experience_name ILIKE '%_app_%' THEN MD5('Mobile App')
             ELSE NULL
         END,
-        s.app_type) AS app_type
+        MD5(s.app_type)) AS app_type_id
 FROM name_spans n
 LEFT JOIN {{ ref('experience_app_type') }} s
     ON n.experience_id = s.experience_id

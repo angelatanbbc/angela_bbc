@@ -19,9 +19,9 @@ WITH composer_events AS (
         c.visitor_id,
         c.visit_id,
         c.user_id,
-        c.device_type,
-        e.app_type,
-        c.os_group,
+        e.app_type_id,
+        c.device_type_id,
+        c.os_group_id,
 
         -- Page Info
         NULL AS page,
@@ -61,7 +61,7 @@ WITH composer_events AS (
     WHERE
         c.event_name = 'experience.action'
         AND c.event_collection_platform = 'da-composer-vx'
-        AND e.app_type = 'Mobile App'
+        AND e.app_type_id = MD5('Mobile App')
         {% if is_incremental() %}
             AND c.event_time::DATE >= DATEADD(DAY, -1, (SELECT MAX(exposure_time)::DATE FROM {{ this }}))
         {% endif %}

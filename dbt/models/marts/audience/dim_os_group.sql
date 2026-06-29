@@ -1,7 +1,41 @@
 {{ config(materialized="table") }}
 
 
-SELECT DISTINCT
-    {{ dbt_utils.generate_surrogate_key(['os_group']) }} AS os_group_id,
+WITH os_groups AS (
+
+    SELECT 'iOS' AS os_group
+
+    UNION ALL
+
+    SELECT 'macOS' AS os_group
+
+    UNION ALL
+
+    SELECT 'Windows' AS os_group
+
+    UNION ALL
+
+    SELECT 'Linux' AS os_group
+
+    UNION ALL
+
+    SELECT 'Android' AS os_group
+
+    UNION ALL
+
+    SELECT 'Chrome OS' AS os_group
+
+    UNION ALL
+
+    SELECT 'Other' AS os_group
+
+    UNION ALL
+
+    SELECT 'Unknown' AS os_group
+
+)
+
+SELECT
+    md5(os_group) AS os_group_id,
     os_group
-FROM {{ ref('fact_visitors_daily') }}
+FROM os_groups
