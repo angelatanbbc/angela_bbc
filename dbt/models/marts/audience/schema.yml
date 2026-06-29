@@ -33,15 +33,30 @@ models:
         description: Additional Piano visit source detail.
       - name: src_url
         description: Referring source URL captured by Piano for the visit.
-      - name: app_type
-        description: App type for the pageview.
+      - name: app_type_id
+        description: App type dimension identifier for the pageview.
         tests:
           - not_null
-          - accepted_values:
+          - relationships:
               arguments:
-                values: ["Web", "Mobile App"]
-      - name: app_name
-        description: Piano application name for the pageview, used to distinguish international app usage from UK, Chrysalis, and Sport apps.
+                to: ref('dim_app_type')
+                field: app_type_id
+      - name: device_type_id
+        description: Device type dimension identifier for the pageview.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_device_type')
+                field: device_type_id
+      - name: os_group_id
+        description: Operating system group dimension identifier for the pageview.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_os_group')
+                field: os_group_id
       - name: page
         description: Piano page identifier for the pageview.
       - name: page_title
@@ -82,3 +97,51 @@ models:
         description: C1X brand relationship value captured on the pageview event, used to filter subscriber and paid-trial usage.
       - name: is_paid_trial_or_subscriber
         description: Whether the pageview's C1X brand relationship marks the visitor as a paid trial user or subscriber.
+
+  - name: dim_app_type
+    description: App type dimension used by Piano audience and subscription facts.
+    columns:
+      - name: app_type_id
+        description: Stable hash identifier for the app type.
+        tests:
+          - not_null
+          - unique
+      - name: app_type
+        description: Normalised app type label.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["Web", "Mobile App", "Other", "Unknown"]
+
+  - name: dim_device_type
+    description: Device type dimension used by Piano audience and subscription facts.
+    columns:
+      - name: device_type_id
+        description: Stable hash identifier for the device type.
+        tests:
+          - not_null
+          - unique
+      - name: device_type
+        description: Normalised device type label.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["Mobile Phone", "Desktop", "Tablet", "Other", "Unknown"]
+
+  - name: dim_os_group
+    description: Operating system group dimension used by Piano audience and subscription facts.
+    columns:
+      - name: os_group_id
+        description: Stable hash identifier for the operating system group.
+        tests:
+          - not_null
+          - unique
+      - name: os_group
+        description: Normalised operating system group label.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["iOS", "macOS", "Windows", "Linux", "Android", "Chrome OS", "Other", "Unknown"]
