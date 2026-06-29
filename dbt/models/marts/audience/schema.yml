@@ -1,40 +1,24 @@
 version: 2
 
 models:
-  - name: fact_page_views
-    description: Pageview fact table, at the grain of one row per Piano web pageview or app page display event.
+  - name: fact_visitors_daily
+    description: Daily visitor fact table at the grain of one row per visitor, date, geography, app type, device type and operating system group.
     columns:
-      - name: pageview_id
-        description: Unique identifier for the pageview. Uses Piano pageview ID for web events and Piano event ID for app events where Piano does not provide pageview IDs.
+      - name: visitor_date_key
+        description: Surrogate key for the visitor-date and dimensional grain.
         tests:
-          - not_null:
-              config:
-                severity: warn
-          - unique:
-              config:
-                severity: warn
-      - name: pageview_time
-        description: Timestamp when the pageview occurred.
+          - not_null
+          - unique
+      - name: date_key
+        description: Date of the visitor activity.
         tests:
           - not_null
       - name: visitor_id
         description: Piano unique identifier for the visitor.
         tests:
           - not_null
-      - name: visit_id
-        description: Piano unique identifier for the visit.
-        tests:
-          - not_null
-      - name: user_first_party_id
-        description: Piano first-party user identifier for logged-in visitors, used for subscriber activity counts.
-      - name: src
-        description: Piano visit source used to identify newsletter-driven pageviews and other acquisition paths.
-      - name: src_detail
-        description: Additional Piano visit source detail.
-      - name: src_url
-        description: Referring source URL captured by Piano for the visit.
       - name: app_type_id
-        description: App type dimension identifier for the pageview.
+        description: App type dimension identifier for the visitor activity.
         tests:
           - not_null
           - relationships:
@@ -42,7 +26,7 @@ models:
                 to: ref('dim_app_type')
                 field: app_type_id
       - name: device_type_id
-        description: Device type dimension identifier for the pageview.
+        description: Device type dimension identifier for the visitor activity.
         tests:
           - not_null
           - relationships:
@@ -50,53 +34,29 @@ models:
                 to: ref('dim_device_type')
                 field: device_type_id
       - name: os_group_id
-        description: Operating system group dimension identifier for the pageview.
+        description: Operating system group dimension identifier for the visitor activity.
         tests:
           - not_null
           - relationships:
               arguments:
                 to: ref('dim_os_group')
                 field: os_group_id
-      - name: page
-        description: Piano page identifier for the pageview.
-      - name: page_title
-        description: Most specific title captured on the pageview.
-      - name: page_content_type
-        description: Piano page content type captured on the pageview.
-      - name: content_type
-        description: Piano content type captured on the pageview.
-      - name: content_id
-        description: Content identifier associated with the pageview when available.
-      - name: content_section
-        description: Editorial section associated with the pageview content.
-      - name: content_topic
-        description: Editorial topic associated with the pageview content.
-      - name: content_pillar
-        description: Editorial pillar associated with the pageview content.
-      - name: date_published
-        description: Publication timestamp associated with the content when captured by Piano.
-      - name: content_url
-        description: Canonical content URL captured by Piano for content metadata.
-      - name: page_url
-        description: Page URL captured on the pageview event.
-      - name: page_url_full
-        description: Full page URL captured on the pageview event, including query string when present.
-      - name: geo_country
-        description: Country of the visitor's location.
+      - name: geo_id
+        description: Geographic identifier for the visitor's country and region.
         tests:
           - not_null
-      - name: geo_region
-        description: Region of the visitor's location.
+          - relationships:
+              arguments:
+                to: ref('dim_geography')
+                field: geo_id
+      - name: n_visits
+        description: Number of distinct Piano visits for the visitor on the date and dimensional grain.
         tests:
           - not_null
-      - name: geo_city
-        description: City of the visitor's location.
+      - name: n_pageviews
+        description: Number of Piano page display events for the visitor on the date and dimensional grain.
         tests:
           - not_null
-      - name: pageview_c1x_brand_relationship
-        description: C1X brand relationship value captured on the pageview event, used to filter subscriber and paid-trial usage.
-      - name: is_paid_trial_or_subscriber
-        description: Whether the pageview's C1X brand relationship marks the visitor as a paid trial user or subscriber.
 
   - name: dim_app_type
     description: App type dimension used by Piano audience and subscription facts.

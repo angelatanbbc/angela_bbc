@@ -290,11 +290,6 @@ models:
   - name: dim_subscription
     description: Type 1 dimension at the grain of one row per subscription, focused on subscription lifecycle, status and term state.
     columns:
-      - name: subscription_key
-        description: Surrogate key for the subscription.
-        tests:
-          - not_null
-          - unique
       - name: subscription_id
         description: Piano identifier for the subscription.
         tests:
@@ -320,13 +315,20 @@ models:
           - not_null
           - accepted_values:
               arguments:
-                values: ['brand_new', 're_subscription', 'upgrade']
+                values: ["Brand New", "Re-subscription", "Upgrade"]
       - name: subscription_end_type
         description: Classification of how the subscription ended; null when the subscription is active.
         tests:
           - accepted_values:
               arguments:
-                values: ['cancelled', 'payment_failed', 'expired', 'upgraded', 'unknown']
+                values:
+                  [
+                    "Canceled",
+                    "Renewal failed, will not retry",
+                    "Expired",
+                    "Upgraded",
+                    "Unknown",
+                  ]
       - name: is_active
         description: Whether the subscription is currently active.
         tests:
