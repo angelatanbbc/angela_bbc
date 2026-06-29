@@ -5,15 +5,17 @@
 
 WITH web_conversion_events AS (
 
-    SELECT
-        *,
-        'Web' AS app_type
+    SELECT *
     FROM {{ ref('stg_piano__composer_events') }}
     WHERE
         event_name IN ('vx.conversion', 'vx.conversion.optout')
-        AND term_offer_id IN ('OFR1N7V2XJPI',  -- USA BBC Subscription in Prod. Also filters App connversions.
-                              'OFC29VO25AKU')  -- Canada
-        AND NOT created_via_upgrade
+        AND term_offer_id IN ('OFR1N7V2XJPI',  -- Initial Offer (USA)
+                              'OFC29VO25AKU',  -- Initial Offer (Canada)
+                              'OFNG74GEQIKA',  -- ACP Upgrade for Annual Plan (USA)
+                              'OFR18ARIK45H',  -- ACP Upgrade for Monthly Plan (USA)
+                              'OF9Z5HTBLJ7O',  -- ACP Upgrade for Annual Plan (Canada)
+                              'OFHRCL9PQBXN')  -- ACP Upgrade for Monthly Plan (Canada)
+        -- AND NOT created_via_upgrade
 
 ),
 
@@ -56,9 +58,8 @@ joined AS (
         c.visit_time,
         c.event_time AS conversion_time,
         c.event_time::DATE AS conversion_date,
-        c.device_type,
-        c.app_type,
-        c.os_group,
+        c.device_type_id,
+        c.os_group_id,
         c.term_id,
         c.term_name,
         c.term_offer_id,
@@ -147,9 +148,9 @@ attribution AS (
         user_first_party_id,
         visit_id,
         visit_time,
-        device_type,
-        app_type,
-        os_group,
+        MD5('Web') AS app_type_id,
+        device_type_id,
+        os_group_id,
         conversion_time,
         conversion_date,
         term_id,

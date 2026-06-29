@@ -11,9 +11,9 @@ WITH first_event AS (
         e.event_time::DATE AS start_date,
         e.term_id,
         e.billing_period,
-        e.conversion_device_type,
-        e.conversion_app_type,
-        e.conversion_os_group
+        e.conversion_app_type_id,
+        e.conversion_device_type_id,
+        e.conversion_os_group_id
     FROM
         {{ ref('fact_subscription_events') }} e
     LEFT JOIN (SELECT * FROM {{ ref('fact_conversions') }} QUALIFY ROW_NUMBER() OVER (PARTITION BY conversion_id ORDER BY conversion_time) = 1) c
@@ -21,7 +21,7 @@ WITH first_event AS (
     LEFT JOIN {{ ref('dim_experience') }} exp
         ON c.experience_id = exp.experience_id
     WHERE
-        e.event_type = 'New Subscription'
+        e.subscription_action = 'New subscription'
 
 ),
 
@@ -33,7 +33,7 @@ churn_event AS (
     FROM
         {{ ref('fact_subscription_events') }}
     WHERE
-        event_type IN ('Canceled', 'Expired', 'Renewal failed, will not retry') -- Define churn event types
+        subscription_action IN ('Canceled', 'Expired', 'Renewal failed, will not retry') -- Define churn event types
 ),
 
 -- 3. Combine them to build the final survival table
@@ -43,9 +43,9 @@ final_survival_table AS (
         f.experience_type,
         f.term_id,
         f.billing_period,
-        f.conversion_device_type,
-        f.conversion_app_type,
-        f.conversion_os_group,
+        f.conversion_app_type_id,
+        f.conversion_device_type_id,
+        f.conversion_os_group_id,
         f.start_date,
         c.churn_date,
         -- Today is the "censoring" date for all active subscribers
@@ -63,9 +63,9 @@ SELECT
     experience_type,
     term_id,
     billing_period,
-    conversion_device_type,
-    conversion_app_type,
-    conversion_os_group,
+    conversion_app_type_id,
+    conversion_device_type_id,
+    conversion_os_group_id,
     start_date,
     churn_date,
     

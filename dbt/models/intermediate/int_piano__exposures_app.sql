@@ -19,18 +19,21 @@ WITH composer_events AS (
         c.visitor_id,
         c.visit_id,
         c.user_id,
-        c.device_type,
-        e.app_type,
-        c.os_group,
+        e.app_type_id,
+        c.device_type_id,
+        c.os_group_id,
 
         -- Page Info
         NULL AS page,
         NULL AS page_title,
         NULL AS page_content_type,
+        NULL AS content_type,
         NULL AS content_id,
-        NULL AS page_url,
-        NULL AS page_url_domain,
-        NULL AS page_url_full,
+        NULL AS content_section,
+        NULL AS content_topic,
+        NULL AS content_pillar,
+        NULL AS date_published,
+        NULL AS url,
 
         -- Geography
         c.geo_id,
@@ -61,30 +64,14 @@ WITH composer_events AS (
     WHERE
         c.event_name = 'experience.action'
         AND c.event_collection_platform = 'da-composer-vx'
-        AND e.app_type = 'Mobile App'
+        AND e.app_type_id = MD5('Mobile App')
         {% if is_incremental() %}
             AND c.event_time::DATE >= DATEADD(DAY, -1, (SELECT MAX(exposure_time)::DATE FROM {{ this }}))
         {% endif %}
-
-),
-
--- If the visitor had experience.interaction event on the same pageview_id, experience_id, card_id
--- and template_id then flag that they interacted with the experience, otherwise just exposed to it
-interactions AS (
-
-    SELECT
-        e.*,
-        BOOLOR_AGG(i.experience_execution_id IS NOT NULL) AS is_interacted_with,
-        NULL AS is_last_touch_conversion
-    FROM composer_events e
-    LEFT JOIN {{ ref('stg_piano__composer_events') }} i
-        ON i.event_name = 'experience.interaction'
-        AND e.experience_execution_id = i.experience_execution_id
-    GROUP BY ALL
 
 )
 
 SELECT
     {{dbt_utils.generate_surrogate_key(['experience_execution_id', 'exposure_time'])}} AS exposure_id,
     *
-FROM interactions
+FROM composer_events

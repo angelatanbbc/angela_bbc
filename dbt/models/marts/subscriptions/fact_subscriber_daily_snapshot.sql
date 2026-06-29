@@ -36,10 +36,10 @@ subscription_state_periods AS (
     SELECT
         user_id,
         subscription_id,
-        conversion_device_type,
-        conversion_app_type,
-        conversion_os_group,
-        event_type AS last_subscription_action,
+        conversion_app_type_id,
+        conversion_device_type_id,
+        conversion_os_group_id,
+        subscription_action AS last_subscription_action,
         term_id AS event_term_id,
         term_name AS event_term_name,
         billing_period AS event_billing_period,
@@ -69,9 +69,9 @@ subscription_days AS (
         d.date_day,
         s.subscription_id,
         sp.user_id,
-        sp.conversion_device_type,
-        sp.conversion_app_type,
-        sp.conversion_os_group,
+        sp.conversion_app_type_id,
+        sp.conversion_device_type_id,
+        sp.conversion_os_group_id,
         sp.last_subscription_action,
         COALESCE(ds.term_id, sp.event_term_id, 'N/A') AS term_id,
         COALESCE(ds.term_name, sp.event_term_name, 'N/A') AS term_name,
@@ -106,7 +106,7 @@ conversion_dates AS (
         subscription_id,
         MIN(event_time::DATE) AS conversion_date
     FROM subscription_events
-    WHERE event_type = 'New Subscription'
+    WHERE subscription_action = 'New subscription'
     GROUP BY subscription_id
 
 ),
@@ -117,9 +117,9 @@ final AS (
         sd.date_day,
         sd.user_id,
         sd.subscription_id,
-        sd.conversion_device_type,
-        sd.conversion_app_type,
-        sd.conversion_os_group,
+        sd.conversion_app_type_id,
+        sd.conversion_device_type_id,
+        sd.conversion_os_group_id,
         sd.last_subscription_action,
         sd.term_id,
         sd.term_name,

@@ -32,7 +32,7 @@ subscription_lifecycle AS (
 
         MIN(event_time) AS subscription_started_at,
         MAX(event_time) AS latest_subscription_event_at,
-        MAX_BY(event_type, event_time) AS latest_subscription_action,
+        MAX_BY(subscription_action, event_time) AS latest_subscription_action,
 
         MIN_BY(term_id, event_time) AS term_id,
         MIN_BY(term_name, event_time) AS term_name,
@@ -77,7 +77,6 @@ sequenced AS (
 classified AS (
 
     SELECT
-        {{ dbt_utils.generate_surrogate_key(['subscription_id']) }} AS subscription_key,
         subscription_id,
         user_id,
         user_first_party_id,
@@ -85,9 +84,9 @@ classified AS (
         subscription_sequence_number,
 
         CASE
-            WHEN created_via_upgrade THEN 'upgrade'
-            WHEN subscription_sequence_number = 1 THEN 'brand_new'
-            ELSE 're_subscription'
+            WHEN created_via_upgrade THEN 'Upgrade'
+            WHEN subscription_sequence_number = 1 THEN 'Brand New'
+            ELSE 'Re-subscription'
         END AS subscription_start_type,
 
         COALESCE(next_created_via_upgrade, FALSE) AS is_ended_by_upgrade,
@@ -95,12 +94,10 @@ classified AS (
         IFF(COALESCE(next_created_via_upgrade, FALSE), next_conversion_id, NULL) AS ended_by_upgrade_conversion_id,
 
         CASE
-            WHEN COALESCE(next_created_via_upgrade, FALSE) THEN 'upgraded'
+            WHEN COALESCE(next_created_via_upgrade, FALSE) THEN 'Upgraded'
             WHEN COALESCE(final_running_mrr_amount, 0) > 0 THEN NULL
-            WHEN latest_subscription_action = 'Canceled' THEN 'cancelled'
-            WHEN latest_subscription_action = 'Renewal failed, will not retry' THEN 'payment_failed'
-            WHEN latest_subscription_action = 'Expired' THEN 'expired'
-            ELSE 'unknown'
+            WHEN latest_subscription_action IN ('Canceled', 'Renewal failed, will not retry', 'Expired') THEN latest_subscription_action
+            ELSE 'Unknown'
         END AS subscription_end_type,
 
         NOT COALESCE(next_created_via_upgrade, FALSE)

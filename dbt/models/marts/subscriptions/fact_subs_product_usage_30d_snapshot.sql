@@ -5,7 +5,7 @@
 
 WITH active_subscribers AS (
         SELECT user_id, subscription_started_at, subscription_ended_at
-        FROM dim_subscription
+        FROM {{ ref('dim_subscription') }}
     ),
 
     page_views AS (
@@ -13,7 +13,7 @@ WITH active_subscribers AS (
             s.user_id, s.subscription_started_at, s.subscription_ended_at,
             e.* EXCLUDE (user_id)
         FROM active_subscribers s
-        JOIN sdp_silver.studios_piano.studios_piano_events e
+        JOIN {{ source('studios_piano', 'studios_piano_events') }} e
             ON s.user_id = e.user_id
             AND e.event_time >= s.subscription_started_at
             AND (e.event_time < s.subscription_ended_at OR s.subscription_ended_at IS NULL)

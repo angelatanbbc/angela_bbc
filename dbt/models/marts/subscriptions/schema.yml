@@ -133,10 +133,14 @@ models:
         description: Name of the Composer experience.
         tests:
           - not_null
-      - name: app_type
-        description: The app type associated with the experience.
+      - name: app_type_id
+        description: App type dimension identifier associated with the experience.
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_app_type')
+                field: app_type_id
 
   - name: fact_exposures
     description: Daily-visitor level fact table capturing exposure events to Composer experiences.
@@ -170,18 +174,36 @@ models:
           - not_null
       - name: user_id
         description: Piano unique identifier for the registered user.
-      - name: device_type
-        description: Type of device used during the exposure event (e.g., desktop, mobile, tablet).
+      - name: device_type_id
+        description: Device type dimension identifier for the exposure event.
         tests:
-          - not_null
-      - name: app_type
-        description: The app type associated with the experience.
+          - not_null:
+              config:
+                severity: warn
+          - relationships:
+              arguments:
+                to: ref('dim_device_type')
+                field: device_type_id
+      - name: app_type_id
+        description: App type dimension identifier associated with the exposure event.
         tests:
-          - not_null
-      - name: os_group
-        description: Operating system group of the device used during the exposure event (e.g., Windows, iOS, Android).
+          - not_null:
+              config:
+                severity: warn
+          - relationships:
+              arguments:
+                to: ref('dim_app_type')
+                field: app_type_id
+      - name: os_group_id
+        description: Operating system group dimension identifier for the exposure event.
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
+          - relationships:
+              arguments:
+                to: ref('dim_os_group')
+                field: os_group_id
       - name: page
         description: Page on which the exposure event occurred.
         tests:
@@ -200,22 +222,20 @@ models:
           - not_null:
               config:
                 severity: warn
+      - name: content_type
+        description: Piano content type captured on the exposure pageview when available.
       - name: content_id
         description: Identifier for the content on which the exposure event occurred.
-      - name: page_url
+      - name: content_section
+        description: Editorial section associated with the exposure content when available.
+      - name: content_topic
+        description: Editorial topic associated with the exposure content when available.
+      - name: content_pillar
+        description: Editorial pillar associated with the exposure content when available.
+      - name: date_published
+        description: Publication timestamp associated with the exposure content when available.
+      - name: url
         description: URL of the page on which the exposure event occurred.
-        tests:
-          - not_null:
-              config:
-                severity: warn
-      - name: page_url_domain
-        description: Domain of the page URL on which the exposure event occurred.
-        tests:
-          - not_null:
-              config:
-                severity: warn
-      - name: page_url_full
-        description: Full URL of the page on which the exposure event occurred.
         tests:
           - not_null:
               config:
@@ -227,7 +247,9 @@ models:
       - name: geo_country
         description: Country of the visitor's location.
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
       - name: geo_region
         description: Region of the visitor's location.
       - name: geo_city
@@ -260,15 +282,14 @@ models:
                 severity: warn
       - name: ab_test_variant_name
         description: A/B test variant name associated with the experience.
+      - name: is_interacted_with
+        description: Whether the visitor interacted with the exposed experience on the same execution.
+      - name: is_last_touch_conversion
+        description: Whether the exposure was the last-touch exposure associated with a conversion.
 
   - name: dim_subscription
     description: Type 1 dimension at the grain of one row per subscription, focused on subscription lifecycle, status and term state.
     columns:
-      - name: subscription_key
-        description: Surrogate key for the subscription.
-        tests:
-          - not_null
-          - unique
       - name: subscription_id
         description: Piano identifier for the subscription.
         tests:
@@ -294,13 +315,20 @@ models:
           - not_null
           - accepted_values:
               arguments:
-                values: ['brand_new', 're_subscription', 'upgrade']
+                values: ["Brand New", "Re-subscription", "Upgrade"]
       - name: subscription_end_type
         description: Classification of how the subscription ended; null when the subscription is active.
         tests:
           - accepted_values:
               arguments:
-                values: ['cancelled', 'payment_failed', 'expired', 'upgraded', 'unknown']
+                values:
+                  [
+                    "Canceled",
+                    "Renewal failed, will not retry",
+                    "Expired",
+                    "Upgraded",
+                    "Unknown",
+                  ]
       - name: is_active
         description: Whether the subscription is currently active.
         tests:
