@@ -9,7 +9,7 @@ WITH mapping AS (
 
 surrogate_key AS (
     SELECT
-        {{ dbt_utils.generate_surrogate_key(['geo_country', 'geo_region']) }} AS geo_id,
+        {{ generate_geo_id('geo_country', 'geo_region') }} AS geo_id,
         geo_country,
         geo_region
     FROM mapping
