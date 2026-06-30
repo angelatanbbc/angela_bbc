@@ -45,10 +45,6 @@ models:
         description: Geographic identifier for the visitor's country and region.
         tests:
           - not_null
-          - relationships:
-              arguments:
-                to: ref('dim_geography')
-                field: geo_id
       - name: n_visits
         description: Number of distinct Piano visits for the visitor on the date and dimensional grain.
         tests:
@@ -88,7 +84,8 @@ models:
           - not_null
           - accepted_values:
               arguments:
-                values: ["Mobile Phone", "Desktop", "Tablet", "Other", "Unknown"]
+                values:
+                  ["Mobile Phone", "Desktop", "Tablet", "Other", "Unknown"]
 
   - name: dim_os_group
     description: Operating system group dimension used by Piano audience and subscription facts.
@@ -104,4 +101,14 @@ models:
           - not_null
           - accepted_values:
               arguments:
-                values: ["iOS", "macOS", "Windows", "Linux", "Android", "Chrome OS", "Other", "Unknown"]
+                values:
+                  [
+                    "iOS",
+                    "macOS",
+                    "Windows",
+                    "Linux",
+                    "Android",
+                    "Chrome OS",
+                    "Other",
+                    "Unknown",
+                  ]

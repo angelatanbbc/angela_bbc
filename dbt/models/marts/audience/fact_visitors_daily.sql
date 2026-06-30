@@ -11,15 +11,15 @@
 -- Pre-computes unique visitor-day combinations from page.display events
 -- This table is used by all daily/weekly/monthly aggregation models to avoid
 -- redundant expensive DISTINCT operations on the event-level table
-WITH visitors AS (
+WITH multiple_geos AS (
 
     SELECT
         event_time::DATE AS date_key,
         app_type_id,
         device_type_id,
         os_group_id,
-        geo_id,
         visitor_id,
+        geo_id,
         COUNT(DISTINCT visit_id) AS n_visits,
         COUNT(*) AS n_pageviews
     FROM {{ ref('stg_piano__analytics_events') }}
@@ -30,9 +30,32 @@ WITH visitors AS (
     {% endif %}
     GROUP BY ALL
 
+),
+
+modal_geo AS (
+
+    SELECT
+        date_key,
+        app_type_id,
+        device_type_id,
+        os_group_id,
+        visitor_id,
+        MAX_BY(geo_id, n_pageviews) AS geo_id,
+        SUM(n_visits) AS n_visits,
+        SUM(n_pageviews) AS n_pageviews
+    FROM multiple_geos
+    GROUP BY ALL
+
 )
 
 SELECT
     {{ dbt_utils.generate_surrogate_key(['geo_id', 'device_type_id', 'app_type_id', 'os_group_id', 'date_key', 'visitor_id']) }} AS visitor_date_key,
-    *
-FROM visitors
+    date_key,
+    app_type_id,
+    device_type_id,
+    os_group_id,
+    geo_id,
+    visitor_id,
+    n_visits,
+    n_pageviews
+FROM modal_geo
