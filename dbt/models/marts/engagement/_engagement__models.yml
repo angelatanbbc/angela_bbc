@@ -1,0 +1,114 @@
+version: 2
+
+models:
+  - name: fact_visitors_daily
+    description: Daily visitor fact table at the grain of one row per visitor, date, geography, app type, device type and operating system group.
+    columns:
+      - name: visitor_date_key
+        description: Surrogate key for the visitor-date and dimensional grain.
+        tests:
+          - not_null
+          - unique
+      - name: date_key
+        description: Date of the visitor activity.
+        tests:
+          - not_null
+      - name: visitor_id
+        description: Piano unique identifier for the visitor.
+        tests:
+          - not_null
+      - name: app_type_id
+        description: App type dimension identifier for the visitor activity.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_app_type')
+                field: app_type_id
+      - name: device_type_id
+        description: Device type dimension identifier for the visitor activity.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_device_type')
+                field: device_type_id
+      - name: os_group_id
+        description: Operating system group dimension identifier for the visitor activity.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_os_group')
+                field: os_group_id
+      - name: geo_id
+        description: Geographic identifier for the visitor's country and region.
+        tests:
+          - not_null
+      - name: n_visits
+        description: Number of distinct Piano visits for the visitor on the date and dimensional grain.
+        tests:
+          - not_null
+      - name: n_pageviews
+        description: Number of Piano page display events for the visitor on the date and dimensional grain.
+        tests:
+          - not_null
+
+  - name: dim_app_type
+    description: App type dimension used by Piano audience and subscription facts.
+    columns:
+      - name: app_type_id
+        description: Stable hash identifier for the app type.
+        tests:
+          - not_null
+          - unique
+      - name: app_type
+        description: Normalised app type label.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["Web", "Mobile App", "Other", "Unknown"]
+
+  - name: dim_device_type
+    description: Device type dimension used by Piano audience and subscription facts.
+    columns:
+      - name: device_type_id
+        description: Stable hash identifier for the device type.
+        tests:
+          - not_null
+          - unique
+      - name: device_type
+        description: Normalised device type label.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  ["Mobile Phone", "Desktop", "Tablet", "Other", "Unknown"]
+
+  - name: dim_os_group
+    description: Operating system group dimension used by Piano audience and subscription facts.
+    columns:
+      - name: os_group_id
+        description: Stable hash identifier for the operating system group.
+        tests:
+          - not_null
+          - unique
+      - name: os_group
+        description: Normalised operating system group label.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  [
+                    "iOS",
+                    "macOS",
+                    "Windows",
+                    "Linux",
+                    "Android",
+                    "Chrome OS",
+                    "Other",
+                    "Unknown",
+                  ]
