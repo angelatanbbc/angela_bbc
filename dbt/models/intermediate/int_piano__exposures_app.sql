@@ -72,6 +72,6 @@ WITH composer_events AS (
 )
 
 SELECT
-    {{dbt_utils.generate_surrogate_key(['experience_execution_id', 'exposure_time'])}} AS exposure_id,
+    {{ dbt_utils.generate_surrogate_key(['experience_execution_id', 'experience_id', 'card_id', 'template_id', 'exposure_time']) }} AS exposure_id,
     *
 FROM composer_events
