@@ -1,0 +1,88 @@
+version: 2
+
+models:
+  - name: agg_subscriber_bans
+    description: Tableau-ready BAN metrics for the subscriber activity dashboard, with one row per metric and comparison period as of the latest subscriber snapshot date.
+    columns:
+      - name: subscriber_ban_key
+        description: Surrogate key for the dashboard, metric, period type and as-of date.
+        tests:
+          - not_null
+          - unique
+      - name: as_of_date
+        description: Latest completed subscriber snapshot date used as the reporting date for the BAN values.
+        tests:
+          - not_null
+      - name: dashboard_name
+        description: Tableau dashboard or dashboard family that consumes the BAN metric.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['subscriber_activity']
+      - name: metric_name
+        description: Stable machine-readable metric identifier.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['active_subscribers', 'engaged_subscribers', 'engaged_subscribers_pct', 'mrr_change', 'avg_subscriber_pageviews_per_visit', 'avg_subscriber_visits_per_period']
+      - name: metric_label
+        description: Human-readable metric label for Tableau display.
+        tests:
+          - not_null
+      - name: period_type
+        description: Reporting period represented by the metric row.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['LATEST', 'WTD', 'MTD', 'L7D', 'L30D']
+      - name: current_start_date
+        description: Inclusive start date for the current value calculation.
+        tests:
+          - not_null
+      - name: current_end_date
+        description: Inclusive end date for the current value calculation.
+        tests:
+          - not_null
+      - name: prior_start_date
+        description: Inclusive start date for the prior comparison calculation.
+        tests:
+          - not_null
+      - name: prior_end_date
+        description: Inclusive end date for the prior comparison calculation.
+        tests:
+          - not_null
+      - name: comparison_type
+        description: Label describing the prior period used for the comparison.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['MoM', 'Prior WTD', 'Prior MTD', 'Prior L7D', 'Prior L30D']
+      - name: current_value
+        description: Current BAN value for the metric and period.
+        tests:
+          - not_null
+      - name: prior_value
+        description: Prior comparison value for the metric and period.
+        tests:
+          - not_null
+      - name: absolute_change
+        description: Difference between current_value and prior_value.
+        tests:
+          - not_null
+      - name: pct_change
+        description: Percentage change between current_value and prior_value, null when prior_value is zero.
+      - name: metric_format
+        description: Display format hint for Tableau.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['number', 'currency', 'percentage']
+      - name: is_higher_better
+        description: Whether a positive movement is considered favorable for display.
+        tests:
+          - not_null

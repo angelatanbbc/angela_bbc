@@ -1,6 +1,43 @@
 version: 2
 
 models:
+  - name: fact_subscriber_activity_daily
+    description: Daily subscriber activity fact table at the grain of one row per active subscriber user and date, with visit and pageview measures for subscriber interaction with the site.
+    columns:
+      - name: subscriber_activity_daily_key
+        description: Surrogate key for the subscriber-date grain.
+        tests:
+          - not_null
+          - unique
+      - name: date_day
+        description: Date of subscriber activity and active subscriber status.
+        tests:
+          - not_null
+      - name: user_id
+        description: Piano unique identifier for the subscribed user.
+        tests:
+          - not_null
+      - name: n_active_subscriptions
+        description: Number of active subscriptions held by the user on the date.
+        tests:
+          - not_null
+      - name: mrr_amount
+        description: Total active MRR for the user on the date.
+        tests:
+          - not_null
+      - name: n_visits
+        description: Number of distinct Piano visits by the subscriber on the date.
+        tests:
+          - not_null
+      - name: n_pageviews
+        description: Number of Piano page display events by the subscriber on the date.
+        tests:
+          - not_null
+      - name: is_engaged
+        description: Whether the subscriber generated at least one pageview on the date.
+        tests:
+          - not_null
+
   - name: fact_conversions
     description: This table contains correctly attributed conversion events with relevant attributes, at the grain of one row per marketing touchpoint.
     columns:

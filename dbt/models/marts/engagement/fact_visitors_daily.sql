@@ -15,6 +15,7 @@ WITH multiple_geos AS (
 
     SELECT
         event_time::DATE AS date_key,
+        site_id,
         app_type_id,
         device_type_id,
         os_group_id,
@@ -36,6 +37,7 @@ modal_geo AS (
 
     SELECT
         date_key,
+        site_id,
         app_type_id,
         device_type_id,
         os_group_id,
@@ -51,6 +53,7 @@ modal_geo AS (
 SELECT
     {{ dbt_utils.generate_surrogate_key(['geo_id', 'device_type_id', 'app_type_id', 'os_group_id', 'date_key', 'visitor_id']) }} AS visitor_date_key,
     date_key,
+    site_id,
     app_type_id,
     device_type_id,
     os_group_id,

@@ -97,6 +97,8 @@ SELECT
 FROM {{ source('studios_piano', 'studios_piano_events') }}
 
 WHERE
-    site_id = 638824
+    site_id IN (638824,  -- Main BBC.com site
+                644938,  -- Sport
+                644937)  -- Live News
     AND event_time::DATE > '2025-06-25'
     AND event_name = 'page.display'
