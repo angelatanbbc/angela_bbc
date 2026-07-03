@@ -29,7 +29,7 @@ experience_actions AS (
     
     SELECT
         *,
-        {{ dbt_utils.generate_surrogate_key(['experience_execution_id', 'event_time']) }} AS exposure_id
+        {{ dbt_utils.generate_surrogate_key(['experience_execution_id', 'experience_id', 'card_id', 'template_id', 'event_time']) }} AS exposure_id
 
     FROM composer_events
     WHERE event_name = 'experience.action'
