@@ -1,0 +1,61 @@
+version: 2
+
+models:
+  - name: dim_app_type
+    description: App type dimension used by Piano audience and subscription facts.
+    columns:
+      - name: app_type_id
+        description: Stable hash identifier for the app type.
+        tests:
+          - not_null
+          - unique
+      - name: app_type
+        description: Normalised app type label.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["Web", "Mobile App", "Other", "Unknown"]
+
+  - name: dim_device_type
+    description: Device type dimension used by Piano audience and subscription facts.
+    columns:
+      - name: device_type_id
+        description: Stable hash identifier for the device type.
+        tests:
+          - not_null
+          - unique
+      - name: device_type
+        description: Normalised device type label.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  ["Mobile Phone", "Desktop", "Tablet", "Other", "Unknown"]
+
+  - name: dim_os_group
+    description: Operating system group dimension used by Piano audience and subscription facts.
+    columns:
+      - name: os_group_id
+        description: Stable hash identifier for the operating system group.
+        tests:
+          - not_null
+          - unique
+      - name: os_group
+        description: Normalised operating system group label.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  [
+                    "iOS",
+                    "macOS",
+                    "Windows",
+                    "Linux",
+                    "Android",
+                    "Chrome OS",
+                    "Other",
+                    "Unknown",
+                  ]
