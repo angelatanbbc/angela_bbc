@@ -5,6 +5,10 @@ WITH mapping AS (
     SELECT *
     FROM {{ ref('geo_mapping') }}
 
+    UNION ALL
+
+    SELECT 'Unknown' AS geo_country, 'Unknown' AS geo_region
+
 ),
 
 surrogate_key AS (

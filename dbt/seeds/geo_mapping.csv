@@ -7,7 +7,7 @@ United states,California
 United states,Colorado
 United states,Connecticut
 United states,Delaware
-United states,District of Columbia
+United states,District of columbia
 United states,Florida
 United states,Georgia
 United states,Hawaii
@@ -50,6 +50,7 @@ United states,Washington
 United states,West virginia
 United states,Wisconsin
 United states,Wyoming
+United states,Unknown
 Canada,Alberta
 Canada,British columbia
 Canada,Manitoba
@@ -62,3 +63,4 @@ Canada,Prince edward island
 Canada,Quebec
 Canada,Saskatchewan
 Canada,Yukon territory
+Canada,Unknown
