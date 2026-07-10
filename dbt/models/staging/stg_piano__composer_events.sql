@@ -77,7 +77,7 @@ SELECT
     {{ generate_os_group_id('os_group') }} AS os_group_id,
 
     -- Geography
-    {{ dbt_utils.generate_surrogate_key(['geo_country', 'geo_region']) }} AS geo_id,
+    {{ generate_geo_id('geo_country', 'geo_region') }} AS geo_id,
     geo_country,
     geo_region,
     geo_city,

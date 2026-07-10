@@ -34,6 +34,23 @@ models:
                 values:
                   ["Mobile Phone", "Desktop", "Tablet", "Other", "Unknown"]
 
+  - name: dim_geography
+    description: Geography dimension covering known US/Canada country-region combinations plus a dedicated Unknown row, used by Piano audience and subscription facts.
+    columns:
+      - name: geo_id
+        description: Stable hash identifier for the geo_country/geo_region combination.
+        tests:
+          - not_null
+          - unique
+      - name: geo_country
+        description: Normalised country label.
+        tests:
+          - not_null
+      - name: geo_region
+        description: Normalised region/state label. 'Unknown' when the source event had a known country but no region, or when the country itself was unknown.
+        tests:
+          - not_null
+
   - name: dim_os_group
     description: Operating system group dimension used by Piano audience and subscription facts.
     columns:
