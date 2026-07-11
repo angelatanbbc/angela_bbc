@@ -112,6 +112,58 @@ period_windows AS (
 
 ),
 
+acquisition_period_windows AS (
+
+    {{ ban_period_row(
+        metric_label='Organic Sign-ups',
+        metric_name='organic_signups',
+        period_type='MTD',
+        comparison_type='Prior MTD',
+        metric_format='number'
+    ) }}
+
+    UNION ALL
+
+    {{ ban_period_row(
+        metric_label='Paid Sign-ups',
+        metric_name='paid_signups',
+        period_type='MTD',
+        comparison_type='Prior MTD',
+        metric_format='number'
+    ) }}
+
+    UNION ALL
+
+    {{ ban_period_row(
+        metric_label='% Annual Plans',
+        metric_name='pct_annual',
+        period_type='MTD',
+        comparison_type='Prior MTD',
+        metric_format='percentage'
+    ) }}
+
+    UNION ALL
+
+    {{ ban_period_row(
+        metric_label='Funnel Conversion Rate',
+        metric_name='funnel_conv_rate',
+        period_type='MTD',
+        comparison_type='Prior MTD',
+        metric_format='percentage'
+    ) }}
+
+    UNION ALL
+
+    {{ ban_period_row(
+        metric_label='MRR Change',
+        metric_name='mrr_change',
+        period_type='MTD',
+        comparison_type='Prior MTD',
+        metric_format='currency'
+    ) }}
+
+),
+
 subscriber_activity AS (
 
     SELECT
@@ -130,6 +182,27 @@ subscription_events AS (
         event_time::DATE AS event_date,
         mrr_change_amount
     FROM {{ ref('fact_subscription_events') }}
+
+),
+
+conversions AS (
+
+    SELECT
+        conversion_date,
+        conversion_id,
+        attribution_source,
+        COALESCE(billing_period, 'Unknown') AS billing_period,
+        position_weight
+    FROM {{ ref('fact_conversions') }}
+
+),
+
+exposed_visitors AS (
+
+    SELECT
+        exposure_date,
+        visitor_id
+    FROM {{ ref('fact_exposures') }}
 
 ),
 
@@ -239,6 +312,96 @@ avg_subscriber_visits_per_period AS (
 
 ),
 
+-- Sign-up counts use fractional multi-touch attribution: position_weight sums to 1
+-- per conversion_id, so organic + paid equals the exact distinct conversion count.
+organic_signups AS (
+
+    SELECT
+        pw.metric_name,
+        pw.period_type,
+        COALESCE(SUM(IFF(c.conversion_date BETWEEN pw.current_start_date AND pw.current_end_date AND c.attribution_source = 'Organic', c.position_weight, 0)), 0) AS current_value,
+        COALESCE(SUM(IFF(c.conversion_date BETWEEN pw.prior_start_date AND pw.prior_end_date AND c.attribution_source = 'Organic', c.position_weight, 0)), 0) AS prior_value
+    FROM acquisition_period_windows pw
+    LEFT JOIN conversions c
+        ON c.conversion_date BETWEEN pw.prior_start_date AND pw.current_end_date
+    WHERE pw.metric_name = 'organic_signups'
+    GROUP BY pw.metric_name, pw.period_type
+
+),
+
+paid_signups AS (
+
+    SELECT
+        pw.metric_name,
+        pw.period_type,
+        COALESCE(SUM(IFF(c.conversion_date BETWEEN pw.current_start_date AND pw.current_end_date AND c.attribution_source = 'Paid', c.position_weight, 0)), 0) AS current_value,
+        COALESCE(SUM(IFF(c.conversion_date BETWEEN pw.prior_start_date AND pw.prior_end_date AND c.attribution_source = 'Paid', c.position_weight, 0)), 0) AS prior_value
+    FROM acquisition_period_windows pw
+    LEFT JOIN conversions c
+        ON c.conversion_date BETWEEN pw.prior_start_date AND pw.current_end_date
+    WHERE pw.metric_name = 'paid_signups'
+    GROUP BY pw.metric_name, pw.period_type
+
+),
+
+pct_annual AS (
+
+    SELECT
+        pw.metric_name,
+        pw.period_type,
+        COUNT(DISTINCT IFF(c.conversion_date BETWEEN pw.current_start_date AND pw.current_end_date AND c.billing_period = '1 year', c.conversion_id, NULL))
+            / NULLIF(COUNT(DISTINCT IFF(c.conversion_date BETWEEN pw.current_start_date AND pw.current_end_date, c.conversion_id, NULL)), 0) AS current_value,
+        COUNT(DISTINCT IFF(c.conversion_date BETWEEN pw.prior_start_date AND pw.prior_end_date AND c.billing_period = '1 year', c.conversion_id, NULL))
+            / NULLIF(COUNT(DISTINCT IFF(c.conversion_date BETWEEN pw.prior_start_date AND pw.prior_end_date, c.conversion_id, NULL)), 0) AS prior_value
+    FROM acquisition_period_windows pw
+    LEFT JOIN conversions c
+        ON c.conversion_date BETWEEN pw.prior_start_date AND pw.current_end_date
+    WHERE pw.metric_name = 'pct_annual'
+    GROUP BY pw.metric_name, pw.period_type
+
+),
+
+funnel_mtd_conversions AS (
+
+    SELECT
+        pw.period_type,
+        COUNT(DISTINCT IFF(c.conversion_date BETWEEN pw.current_start_date AND pw.current_end_date, c.conversion_id, NULL)) AS current_value,
+        COUNT(DISTINCT IFF(c.conversion_date BETWEEN pw.prior_start_date AND pw.prior_end_date, c.conversion_id, NULL)) AS prior_value
+    FROM acquisition_period_windows pw
+    LEFT JOIN conversions c
+        ON c.conversion_date BETWEEN pw.prior_start_date AND pw.current_end_date
+    WHERE pw.metric_name = 'funnel_conv_rate'
+    GROUP BY pw.period_type
+
+),
+
+funnel_mtd_exposed AS (
+
+    SELECT
+        pw.period_type,
+        COUNT(DISTINCT IFF(ev.exposure_date BETWEEN pw.current_start_date AND pw.current_end_date, ev.visitor_id, NULL)) AS current_value,
+        COUNT(DISTINCT IFF(ev.exposure_date BETWEEN pw.prior_start_date AND pw.prior_end_date, ev.visitor_id, NULL)) AS prior_value
+    FROM acquisition_period_windows pw
+    LEFT JOIN exposed_visitors ev
+        ON ev.exposure_date BETWEEN pw.prior_start_date AND pw.current_end_date
+    WHERE pw.metric_name = 'funnel_conv_rate'
+    GROUP BY pw.period_type
+
+),
+
+funnel_conv_rate AS (
+
+    SELECT
+        'funnel_conv_rate' AS metric_name,
+        fc.period_type,
+        fc.current_value / NULLIF(fe.current_value, 0) AS current_value,
+        fc.prior_value / NULLIF(fe.prior_value, 0) AS prior_value
+    FROM funnel_mtd_conversions fc
+    JOIN funnel_mtd_exposed fe
+        ON fc.period_type = fe.period_type
+
+),
+
 unioned AS (
 
     SELECT *
@@ -268,6 +431,35 @@ unioned AS (
 
     SELECT *
     FROM avg_subscriber_visits_per_period
+
+),
+
+acquisition_unioned AS (
+
+    SELECT *
+    FROM organic_signups
+
+    UNION ALL
+
+    SELECT *
+    FROM paid_signups
+
+    UNION ALL
+
+    SELECT *
+    FROM pct_annual
+
+    UNION ALL
+
+    SELECT *
+    FROM funnel_conv_rate
+
+    UNION ALL
+
+    -- The acquisition dashboard reuses the subscriber MRR movement metric; the MTD
+    -- window is identical because both dashboards share the same as_of date.
+    SELECT *
+    FROM mrr_change
 
 ),
 
@@ -304,7 +496,47 @@ final AS (
         ON pw.metric_name = u.metric_name
         AND pw.period_type = u.period_type
 
+),
+
+acquisition_final AS (
+
+    SELECT
+        {{ ban_surrogate_key(
+            dashboard_name="'acquisition'",
+            metric_name='pw.metric_name',
+            period_type='pw.period_type',
+            as_of_date='a.as_of_date'
+        ) }} AS subscriber_ban_key,
+        a.as_of_date,
+        'acquisition' AS dashboard_name,
+        pw.metric_name,
+        pw.metric_label,
+        pw.period_type,
+        pw.current_start_date,
+        pw.current_end_date,
+        pw.prior_start_date,
+        pw.prior_end_date,
+        pw.comparison_type,
+        u.current_value::NUMBER(38, 6) AS current_value,
+        u.prior_value::NUMBER(38, 6) AS prior_value,
+        {{ ban_change_columns(
+            current_value='u.current_value',
+            prior_value='u.prior_value'
+        ) }},
+        pw.metric_format,
+        TRUE AS is_higher_better
+    FROM acquisition_period_windows pw
+    CROSS JOIN as_of a
+    JOIN acquisition_unioned u
+        ON pw.metric_name = u.metric_name
+        AND pw.period_type = u.period_type
+
 )
 
 SELECT *
 FROM final
+
+UNION ALL
+
+SELECT *
+FROM acquisition_final
