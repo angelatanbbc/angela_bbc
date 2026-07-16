@@ -1,0 +1,332 @@
+version: 2
+
+models:
+  - name: int_facebook_ads__creative_history
+    description: Intermediate table that enriches Facebook ad creative history with parsed URL fields and UTM/Piano attribution tags for downstream campaign analysis.
+    columns:
+      - name: source_relation
+        description: Source relation identifier used to distinguish data from different upstream ad sources.
+        tests:
+          - not_null
+      - name: _fivetran_id
+        description: Fivetran row identifier for the source record.
+        tests:
+          - not_null
+      - name: creative_id
+        description: Unique identifier for the Facebook ad creative.
+        tests:
+          - not_null
+      - name: account_id
+        description: Facebook ad account identifier associated with the creative.
+      - name: creative_name
+        description: Human-readable name of the ad creative.
+      - name: url
+        description: Full destination URL attached to the creative.
+      - name: base_url
+        description: Destination URL without query parameters.
+      - name: url_host
+        description: Hostname extracted from the creative URL.
+      - name: at_parameter
+        description: Piano attribution parameter captured from the ad URL.
+      - name: at_bbc_team
+        description: BBC team identifier extracted from the ad attribution tags.
+      - name: utm_campaign
+        description: UTM campaign value used to trace traffic back to a campaign.
+
+  - name: int_piano__conversion_attribution_app
+    description: Intermediate app conversion table that joins offsite app conversions to the latest relevant app experience events and carries forward experience, card, and template metadata.
+    columns:
+      - name: conversion_id
+        description: Unique identifier for the conversion event.
+        tests:
+          - not_null
+          - unique
+      - name: subscription_id
+        description: Subscription identifier associated with the conversion.
+      - name: visitor_id
+        description: Piano visitor identifier for the conversion journey.
+        tests:
+          - not_null
+      - name: user_first_party_id
+        description: First-party user identifier captured in app events.
+      - name: conversion_time
+        description: Timestamp of the conversion event.
+        tests:
+          - not_null
+      - name: experience_id
+        description: Attributed Piano experience identifier for the conversion.
+        tests:
+          - not_null
+      - name: card_id
+        description: Attributed Piano card identifier for the conversion.
+      - name: template_id
+        description: Attributed Piano template identifier for the conversion.
+        tests:
+          - not_null
+      - name: cart_turnovertaxfree
+        description: Net revenue for the conversion after adjusting for app store fees.
+      - name: src
+        description: Traffic source associated with the conversion.
+      - name: src_detail
+        description: More specific traffic source detail for the conversion.
+
+  - name: int_piano__conversion_attribution_web
+    description: Intermediate web conversion table that links each conversion to the most relevant experience action, interaction, and subscribe-click behaviour from the prior day.
+    columns:
+      - name: conversion_id
+        description: Unique identifier for the web conversion event.
+        tests:
+          - not_null
+          - unique
+      - name: subscription_id
+        description: Subscription identifier associated with the conversion.
+      - name: visitor_id
+        description: Piano visitor identifier for the conversion journey.
+      - name: conversion_time
+        description: Timestamp of the conversion event.
+        tests:
+          - not_null
+      - name: experience_id
+        description: Final attributed experience identifier chosen for the conversion.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_experience')
+                field: experience_id
+      - name: card_id
+        description: Final attributed card identifier chosen for the conversion.
+      - name: template_id
+        description: Final attributed template identifier chosen for the conversion.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_template')
+                field: template_id
+      - name: clicked_subscribe
+        description: Flag indicating whether the visitor clicked the subscribe button in the lead-up events.
+      - name: c1x_lts
+        description: C1X lifetime value score carried through from the attributed interaction or action.
+      - name: c1x_likelihood_to_register
+        description: C1X likelihood-to-register score carried through from the attributed event.
+
+  - name: int_piano__exposures_app
+    description: Intermediate mobile-app exposure table that captures app-side Composer exposures and joins them to experience metadata for downstream exposure analysis.
+    columns:
+      - name: exposure_id
+        description: Surrogate key uniquely identifying the exposure event.
+        tests:
+          - not_null
+          - unique
+      - name: exposure_time
+        description: Timestamp of the exposure event.
+        tests:
+          - not_null
+      - name: experience_execution_id
+        description: Identifier for the specific Composer experience execution.
+      - name: experience_id
+        description: Piano experience identifier associated with the exposure.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_experience')
+                field: experience_id
+      - name: card_id
+        description: Piano card identifier associated with the exposure.
+      - name: template_id
+        description: Piano template identifier associated with the exposure.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_template')
+                field: template_id
+      - name: app_type_id
+        description: Surrogate key identifying the app type as Mobile App.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_app_type')
+                field: app_type_id
+      - name: device_type_id
+        description: Surrogate key for the device type used in the exposure event.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_device_type')
+                field: device_type_id
+      - name: os_group_id
+        description: Surrogate key for the operating system group used in the exposure event.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_os_group')
+                field: os_group_id
+
+  - name: int_piano__exposures_web
+    description: Intermediate web exposure table that builds a deduplicated set of web Composer exposure events with page, geography, and experience attributes.
+    columns:
+      - name: exposure_id
+        description: Surrogate key uniquely identifying the exposure event.
+        tests:
+          - not_null
+          - unique
+      - name: exposure_time
+        description: Timestamp of the exposure event.
+        tests:
+          - not_null
+      - name: pageview_id
+        description: Page view identifier associated with the exposure event.
+        tests:
+          - not_null
+      - name: visitor_id
+        description: Piano visitor identifier linked to the exposure.
+      - name: experience_id
+        description: Piano experience identifier associated with the exposure.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_experience')
+                field: experience_id
+      - name: card_id
+        description: Piano card identifier associated with the exposure.
+      - name: template_id
+        description: Piano template identifier associated with the exposure.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_template')
+                field: template_id
+      - name: page
+        description: Page path associated with the exposure event.
+      - name: geo_country
+        description: Country derived from the visitor's geography.
+      - name: ab_test_variant_name
+        description: A/B test variant associated with the exposure.
+
+  - name: int_piano__offsite_conversion_event_consolidation
+    description: Intermediate table that consolidates offsite app-store conversion events with the closest onsite mobile-app conversion record for attribution.
+    columns:
+      - name: conversion_id
+        description: Unique identifier for the offsite conversion event.
+        tests:
+          - not_null
+          - unique
+      - name: subscription_id
+        description: Subscription identifier associated with the conversion.
+      - name: visitor_id
+        description: Piano visitor identifier for the matched conversion journey.
+        tests:
+          - not_null
+      - name: user_first_party_id
+        description: First-party user identifier captured for the conversion.
+      - name: conversion_time
+        description: Timestamp of the consolidated conv ersion event.
+        tests:
+          - not_null
+      - name: term_offer_id
+        description: Offer identifier associated with the subscription term.
+      - name: billing_period
+        description: Billing period for the subscription term.
+      - name: created_via_upgrade
+        description: Flag indicating whether the subscription was created through an upgrade flow.
+      - name: src
+        description: Traffic source associated with the conversion.
+      - name: src_detail
+        description: More specific traffic source detail for the conversion.
+
+  - name: int_subscriber_survival
+    description: Intermediate subscriber survival table that captures each subscriber's start date, churn date, churn flag, and observed duration for retention analysis.
+    columns:
+      - name: subscription_id
+        description: Subscription identifier used as the primary key for the survival record.
+        tests:
+          - not_null
+      - name: experience_type
+        description: Classification of the subscriber experience as LFV or Non-LFV based on the attributed experience name.
+      - name: term_id
+        description: Subscription term identifier for the subscriber's initial subscription.
+      - name: billing_period
+        description: Billing period associated with the subscriber's initial term.
+      - name: start_date
+        description: Date of the subscriber's first observed subscription event.
+        tests:
+          - not_null
+      - name: churn_date
+        description: Date of the subscriber's churn event, if one exists.
+      - name: churn_event
+        description: Binary indicator showing whether the subscriber churned before the censoring date.
+        tests:
+          - not_null
+      - name: duration_days
+        description: Number of days observed between the start date and the churn or censoring date.
+        tests:
+          - not_null
+
+  - name: int_subscription_attribution
+    description: Intermediate attribution table that builds an event-level view of marketing touchpoints, flags paid interactions, and assigns position-based weights to support conversion attribution.
+    columns:
+      - name: event_date
+        description: Date of the attribution touchpoint event.
+        tests:
+          - not_null
+      - name: visitor_id
+        description: Piano visitor identifier for the attribution journey.
+        tests:
+          - not_null
+      - name: pageview_id
+        description: Page view identifier associated with the touchpoint event.
+      - name: subscription_id
+        description: Subscription identifier tied to the associated conversion journey.
+      - name: subscription_action
+        description: Subscription lifecycle action associated with the event.
+      - name: attribution_source
+        description: Final attributed source for the touchpoint after applying promotion and paid-channel logic.
+      - name: attribution_source_detail
+        description: More granular attribution detail for the source.
+      - name: vx_promo_code
+        description: Promo code captured on the conversion event, if present.
+      - name: is_paid_event
+        description: Flag indicating whether the touchpoint was classified as paid traffic.
+      - name: position_weight
+        description: Position-based attribution weight assigned to the touchpoint.
+        tests:
+          - not_null
+      - name: first_touch
+        description: Flag indicating whether the touchpoint is the first event in the attribution journey.
+      - name: last_touch
+        description: Flag indicating whether the touchpoint is the last event in the attribution journey.
+      - name: signup_touch
+        description: Flag indicating whether the touchpoint corresponds to the signup event.
+
+  - name: int_subscription_attribution_src_corrected
+    description: Intermediate attribution table that corrects missing source values through deterministic redistribution and further splits generic Search engines attribution into specific search engines.
+    columns:
+      - name: event_date
+        description: Date of the attribution touchpoint event.
+        tests:
+          - not_null
+      - name: visitor_id
+        description: Piano visitor identifier for the attribution journey.
+        tests:
+          - not_null
+      - name: pageview_id
+        description: Page view identifier associated with the touchpoint event.
+      - name: attribution_source
+        description: Corrected attribution source after redistribution of null or generic values.
+        tests:
+          - not_null
+      - name: attribution_source_detail
+        description: More specific attribution source detail after search-engine redistribution.
+      - name: subscription_id
+        description: Subscription identifier tied to the associated conversion journey.
+      - name: subscription_action
+        description: Subscription lifecycle action associated with the event.
+      - name: position_weight
+        description: Position-based attribution weight carried through from the source attribution model.
+        tests:
+          - not_null
+      - name: first_touch
+        description: Flag indicating whether the touchpoint is the first event in the attribution journey.
+      - name: last_touch
+        description: Flag indicating whether the touchpoint is the last event in the attribution journey.
+      - name: signup_touch
+        description: Flag indicating whether the touchpoint corresponds to the signup event.
