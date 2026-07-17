@@ -13,6 +13,10 @@ models:
         description: Date of the visitor activity.
         tests:
           - not_null
+      - name: site_id
+        description: Surrogate key for the site associated with the visitor activity.
+        tests:
+          - not_null
       - name: visitor_id
         description: Piano unique identifier for the visitor.
         tests:

@@ -45,36 +45,99 @@ models:
         description: Subscription identifier associated with the conversion.
       - name: visitor_id
         description: Piano visitor identifier for the conversion journey.
-        tests:
-          - not_null
+      - name: user_id 
+        description: Piano user identifier
       - name: user_first_party_id
-        description: First-party user identifier captured in app events.
+        description: First-party user identifier aka FED_ID.
+      - name: visit_id
+        description: Piano visit identifier
+      - name: visit_time
+        description: Timestamp of the piano visit.
+      - name: app_type_id
+        description: Surrogate key identifying the app type as Mobile App.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_app_type')
+                field: app_type_id
+      - name: device_type_id
+        description: Surrogate key for the device type used in the conversion event.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_device_type')
+                field: device_type_id
+      - name: os_group_id
+        description: Surrogate key for the operating system group used in the conversion event.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_os_group')
+                field: os_group_id
       - name: conversion_time
         description: Timestamp of the conversion event.
         tests:
           - not_null
+      - name: conversion_date
+        description: Date of the conversion event.
+        tests:
+          - not_null
+      - name: term_id
+        description: Term identifier for the conversion.
+      - name: term_name
+        description: Term name for the conversion.
+      - name: term_offer_id
+        description: Term offer identifier for the conversion.
+      - name: term_offer_name
+        description: Term offer name for the conversion.
+      - name: billing_period
+        description: Billing period for the conversion.
+      - name: cart_turnovertaxfree
+        description: Net revenue for the conversion after adjusting for app store fees.
+      - name: subscription_period_number
+        description: Number of the subscription period associated with the conversion.
+      - name: created_via_upgrade
+        description: Flag indicating whether the subscription was created through an upgrade flow.
+      - name: src
+        description: Traffic source associated with the conversion.
+      - name: src_detail
+        description: More specific traffic source detail for the conversion.
+      - name: geo_country
+        description: Country derived from the visitor's geography.
+      - name: geo_region
+        description: Region derived from the visitor's geography.
+      - name: geo_city
+        description: City derived from the visitor's geography.
+      - name: cohort_month
+        description: Cohort month derived from the conversion time.
       - name: experience_id
         description: Attributed Piano experience identifier for the conversion.
         tests:
           - not_null
       - name: card_id
         description: Attributed Piano card identifier for the conversion.
+      - name: card_action
+        description: Attributed Piano card action for the conversion.
       - name: template_id
         description: Attributed Piano template identifier for the conversion.
         tests:
           - not_null
-      - name: cart_turnovertaxfree
-        description: Net revenue for the conversion after adjusting for app store fees.
-      - name: src
-        description: Traffic source associated with the conversion.
-      - name: src_detail
-        description: More specific traffic source detail for the conversion.
+      - name: ab_test_variant_name
+        description: A/B test variant associated with the conversion.
+      - name: c1x_lts
+        description: C1X lifetime value score carried through from the attributed interaction or action.
+      - name: c1x_likelihood_to_register
+        description: C1X likelihood-to-register score carried through from the attributed event.
+      - name: c1x_lilelihood_to_return
+        description: C1X likelihood-to-return score carried through from the attributed event.
+      - name: c1x_revenue_auto_optimization
+        description: C1X revenue auto-optimization score carried through from the attributed event.
 
   - name: int_piano__conversion_attribution_web
     description: Intermediate web conversion table that links each conversion to the most relevant experience action, interaction, and subscribe-click behaviour from the prior day.
     columns:
       - name: conversion_id
-        description: Unique identifier for the web conversion event.
+        description: Unique identifier for the conversion event.
         tests:
           - not_null
           - unique
@@ -82,36 +145,99 @@ models:
         description: Subscription identifier associated with the conversion.
       - name: visitor_id
         description: Piano visitor identifier for the conversion journey.
+      - name: user_id 
+        description: Piano user identifier
+      - name: user_first_party_id
+        description: First-party user identifier aka FED_ID.
+      - name: visit_id
+        description: Piano visit identifier
+      - name: visit_time
+        description: Timestamp of the piano visit.
+      - name: app_type_id
+        description: Surrogate key identifying the app type as Mobile App.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_app_type')
+                field: app_type_id
+      - name: device_type_id
+        description: Surrogate key for the device type used in the conversion event.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_device_type')
+                field: device_type_id
+      - name: os_group_id
+        description: Surrogate key for the operating system group used in the conversion event.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_os_group')
+                field: os_group_id
       - name: conversion_time
         description: Timestamp of the conversion event.
         tests:
           - not_null
+      - name: conversion_date
+        description: Date of the conversion event.
+        tests:
+          - not_null
+      - name: term_id
+        description: Term identifier for the conversion.
+      - name: term_name
+        description: Term name for the conversion.
+      - name: term_offer_id
+        description: Term offer identifier for the conversion.
+      - name: term_offer_name
+        description: Term offer name for the conversion.
+      - name: billing_period
+        description: Billing period for the conversion.
+      - name: cart_turnovertaxfree
+        description: Net revenue for the conversion after adjusting for app store fees.
+      - name: subscription_period_number
+        description: Number of the subscription period associated with the conversion.
+      - name: created_via_upgrade
+        description: Flag indicating whether the subscription was created through an upgrade flow.
+      - name: src
+        description: Traffic source associated with the conversion.
+      - name: src_detail
+        description: More specific traffic source detail for the conversion.
+      - name: geo_country
+        description: Country derived from the visitor's geography.
+      - name: geo_region
+        description: Region derived from the visitor's geography.
+      - name: geo_city
+        description: City derived from the visitor's geography.
+      - name: cohort_month
+        description: Cohort month derived from the conversion time.
       - name: experience_id
-        description: Final attributed experience identifier chosen for the conversion.
+        description: Attributed Piano experience identifier for the conversion.
         tests:
-          - relationships:
-              arguments:
-                to: ref('dim_experience')
-                field: experience_id
+          - not_null
       - name: card_id
-        description: Final attributed card identifier chosen for the conversion.
+        description: Attributed Piano card identifier for the conversion.
+      - name: card_action
+        description: Attributed Piano card action for the conversion.
       - name: template_id
-        description: Final attributed template identifier chosen for the conversion.
+        description: Attributed Piano template identifier for the conversion.
         tests:
-          - relationships:
-              arguments:
-                to: ref('dim_template')
-                field: template_id
-      - name: clicked_subscribe
-        description: Flag indicating whether the visitor clicked the subscribe button in the lead-up events.
+          - not_null
+      - name: ab_test_variant_name
+        description: A/B test variant associated with the conversion.
       - name: c1x_lts
         description: C1X lifetime value score carried through from the attributed interaction or action.
       - name: c1x_likelihood_to_register
         description: C1X likelihood-to-register score carried through from the attributed event.
+      - name: c1x_lilelihood_to_return
+        description: C1X likelihood-to-return score carried through from the attributed event.
+      - name: c1x_revenue_auto_optimization
+        description: C1X revenue auto-optimization score carried through from the attributed event.
 
   - name: int_piano__exposures_app
     description: Intermediate mobile-app exposure table that captures app-side Composer exposures and joins them to experience metadata for downstream exposure analysis.
     columns:
+      - name: experience_execution_id
+        description: Identifier for the specific Composer experience execution.
       - name: exposure_id
         description: Surrogate key uniquely identifying the exposure event.
         tests:
@@ -164,6 +290,8 @@ models:
   - name: int_piano__exposures_web
     description: Intermediate web exposure table that builds a deduplicated set of web Composer exposure events with page, geography, and experience attributes.
     columns:
+      - name: experience_execution_id
+        description: Identifier for the specific Composer experience execution.
       - name: exposure_id
         description: Surrogate key uniquely identifying the exposure event.
         tests:
@@ -217,21 +345,67 @@ models:
         tests:
           - not_null
       - name: user_first_party_id
-        description: First-party user identifier captured for the conversion.
+        description: First-party user identifier AKA FED_ID
+      - name: visit_id
+        description: Piano visit identifier for the matched conversion journey.
+      - name: visit_time
+        description: Timestamp of the piano visit for the matched conversion journey.
+      - name: app_type_id
+        description: Surrogate key identifying the app type as Mobile App.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_app_type')
+                field: app_type_id
+      - name: device_type_id
+        description: Surrogate key for the device type used in the conversion event.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_device_type')
+                field: device_type_id
+      - name: os_group_id
+        description: Surrogate key for the operating system group used in the conversion event.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_os_group')
+                field: os_group_id
       - name: conversion_time
         description: Timestamp of the consolidated conv ersion event.
         tests:
           - not_null
+      - name: term_id
+        description: Term identifier for the conversion.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_term')
+                field: term_id
+      - name: term_name
+        description: Term name for the conversion.
+      - name: term_offer_name
+        description: Term offer name for the conversion.
       - name: term_offer_id
         description: Offer identifier associated with the subscription term.
       - name: billing_period
         description: Billing period for the subscription term.
+      - name: subscription_period_number
+        description: Number of the subscription period associated with the conversion.
       - name: created_via_upgrade
         description: Flag indicating whether the subscription was created through an upgrade flow.
       - name: src
         description: Traffic source associated with the conversion.
       - name: src_detail
         description: More specific traffic source detail for the conversion.
+      - name: geo_id
+        description: Geographic identifier for the conversion.
+      - name: geo_country
+        description: Country identifier for the conversion.
+      - name: geo_region
+        description: Region identifier for the conversion.
+      - name: geo_city
+        description: City identifier for the conversion.
 
   - name: int_subscriber_survival
     description: Intermediate subscriber survival table that captures each subscriber's start date, churn date, churn flag, and observed duration for retention analysis.
@@ -246,6 +420,12 @@ models:
         description: Subscription term identifier for the subscriber's initial subscription.
       - name: billing_period
         description: Billing period associated with the subscriber's initial term.
+      - name: conversion_app_type_id
+        description: Surrogate key identifying the app type for the subscriber's initial conversion event.
+      - name: conversion_device_type_id
+        description: Surrogate key for the device type used in the subscriber's initial conversion event.
+      - name: conversion_os_group_id
+        description: Surrogate key for the operating system group used in the subscriber's initial conversion event
       - name: start_date
         description: Date of the subscriber's first observed subscription event.
         tests:
