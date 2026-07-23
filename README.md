@@ -446,3 +446,43 @@ dbt build        # Run models and tests together
 dbt run -s staging.*          # Run only staging models
 dbt run -s marts.subscriptions.*  # Run only subscription marts
 ```
+## Targets
+
+Target defaults to dev (not prod), unless specified with `--target` and writes only to SDP test environment. This logic also applies to the Github Actions workflow in `./github/workflow/run-dbt-pipeline.yml`, so the workflow wil run on the `dev` environment unless a production target is explicitly specified.
+
+| | dev | prod |
+|---|---|---|
+| Account | `bbcstudios.eu-west-1` | `bbcstudios.eu-west-1` |
+| Database | `SDP_PROJECT_SANDBOX` | `SDP_PROJECT_SANDBOX` |
+| Schema | `DNS_DS` | `DNS_TRANSFORMATIONS` |
+| Role | `DNS_DS_PROJECT_ANALYST` | `DNS_TRANSFORMATIONS_PROJECT_TRANSFORMATIONS` |
+| Warehouse | `DNS_DS_PROJECT_GENERAL_MD_WH` | `DNS_TRANSFORMATIONS_PROJECT_TRANSFORMATIONS_GENERAL_MD_WH` |
+
+## Setup
+
+1. Create or modify local `profiles.yml` file in `~/.dbt/profiles.yml`. This file lives outside the repo and should not be checked into version control.
+2. Ensure `profiles.yml` contains the same alias used in `profile:` section of `dbt_project.yml`
+3. Test the dev and prod target connection with exmaples below. Successful connection will be indicated by output like: "All checks passed!" in green text.
+
+```bash
+dbt debug --target dev #test dev target connnection
+
+dbt debug --target prod #test prod target connnection
+```
+
+## Usage
+1. Use dev target to confirm models work and that tests run
+```bash
+dbt run ## will default to dev sandbox
+
+dbt build --target dev
+```
+
+2. Review changes and validate logic
+3. Create Pull Request and Merge changes after approval
+4. Dev to Prod Promotion:
+
+```bash
+dbt build --target prod # deploy to production
+```
+5. Verify updated tables and monitor for issues post-run.

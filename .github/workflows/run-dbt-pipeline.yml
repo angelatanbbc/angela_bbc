@@ -43,7 +43,7 @@ jobs:
           snowflake_database: ${{ vars.SNOWFLAKE_DATABASE }}
           snowflake_schema: ${{ vars.SNOWFLAKE_SCHEMA }}
           snowflake_warehouse: ${{ vars.SNOWFLAKE_WAREHOUSE }}
-          dbt_args: ${{ (inputs.full_refresh == true) && 'run --full-refresh' || 'run' }}
+          dbt_args: ${{ (inputs.full_refresh == true) && 'run --full-refresh --target prod' || 'run' }}
 
       - name: Run DBT Tests
         id: dbt_tests
@@ -57,7 +57,7 @@ jobs:
           snowflake_database: ${{ vars.SNOWFLAKE_DATABASE }}
           snowflake_schema: ${{ vars.SNOWFLAKE_SCHEMA }}
           snowflake_warehouse: ${{ vars.SNOWFLAKE_WAREHOUSE }}
-          dbt_args: test
+          dbt_args: test --target prod
 
       - name: Trigger Test Failure Notification
         uses: bbc/sdp-deployment-scripts/actions/trigger-notification@main
