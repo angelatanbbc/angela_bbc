@@ -10,9 +10,12 @@
 -- Two row families share the table, discriminated by record_source:
 --   'exposures'     - one row per date/template/app/device/os/country with the
 --                     exposed-visitor sketch and exact conversion counts
---   'page_displays' - one row per date/app/device/os/country (template_type =
---                     'All Pages') with the page-display visitor sketch; this is
---                     the exposure-rate denominator and covers US/Canada only
+--   'page_displays' - the page-display visitor sketch per date/app/device/os/
+--                     country, replicated under every template_type so the
+--                     exposure-rate denominator survives template cuts in
+--                     Tableau; merging identical HLL sketches is exact
+--                     (register-wise max), so un-cut totals are unaffected.
+--                     Covers US/Canada only.
 -- The two sketch columns are kept separate so HLL_COMBINE can never merge the
 -- exposed and page-display visitor populations.
 
@@ -85,20 +88,28 @@ exposure_rows AS (
 
 ),
 
-page_display_rows AS (
+-- Every template_type the exposure rows can produce; the page-display sketch is
+-- replicated under each one so any template filter still finds its denominator.
+template_types AS (
+
+    SELECT DISTINCT COALESCE(template_type, 'Other') AS template_type
+    FROM templates
+
+    UNION
+
+    SELECT 'Other'
+
+),
+
+page_display_sketches AS (
 
     SELECT
-        'page_displays' AS record_source,
         v.date_key AS date_day,
-        'All Pages' AS template_type,
         v.app_type_id,
         v.device_type_id,
         v.os_group_id,
         COALESCE(g.geo_country, 'Unknown') AS geo_country,
-        NULL::BINARY AS exposed_visitors_hll,
-        NULL::NUMBER AS n_exposed_visitors,
-        HLL_ACCUMULATE(v.visitor_id) AS page_visitors_hll,
-        NULL::NUMBER AS n_conversions
+        HLL_ACCUMULATE(v.visitor_id) AS page_visitors_hll
     FROM {{ ref('fact_visitors_daily') }} v
     LEFT JOIN {{ ref('dim_geography') }} g
         ON v.geo_id = g.geo_id
@@ -108,6 +119,25 @@ page_display_rows AS (
         v.device_type_id,
         v.os_group_id,
         COALESCE(g.geo_country, 'Unknown')
+
+),
+
+page_display_rows AS (
+
+    SELECT
+        'page_displays' AS record_source,
+        p.date_day,
+        tt.template_type,
+        p.app_type_id,
+        p.device_type_id,
+        p.os_group_id,
+        p.geo_country,
+        NULL::BINARY AS exposed_visitors_hll,
+        NULL::NUMBER AS n_exposed_visitors,
+        p.page_visitors_hll,
+        NULL::NUMBER AS n_conversions
+    FROM page_display_sketches p
+    CROSS JOIN template_types tt
 
 ),
 

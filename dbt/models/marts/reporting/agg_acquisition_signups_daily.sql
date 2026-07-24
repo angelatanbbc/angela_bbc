@@ -10,6 +10,8 @@ WITH conversions AS (
         conversion_id,
         attribution_source,
         COALESCE(billing_period, 'Unknown') AS billing_period,
+        experience_id,
+        template_id,
         geo_id,
         geo_country,
         geo_region,
@@ -29,6 +31,8 @@ aggregated AS (
         conversion_date,
         attribution_source,
         billing_period,
+        experience_id,
+        template_id,
         geo_id,
         geo_country,
         geo_region,
@@ -47,6 +51,8 @@ SELECT
         'a.attribution_source',
         'a.billing_period',
         'a.geo_id',
+        'a.experience_id',
+        'a.template_id',
         'a.app_type_id',
         'a.device_type_id',
         'a.os_group_id'
@@ -54,6 +60,11 @@ SELECT
     a.conversion_date,
     a.attribution_source,
     a.billing_period,
+    a.experience_id,
+    e.experience_name,
+    a.template_id,
+    t.template_name,
+    t.template_type,
     a.geo_id,
     a.geo_country,
     a.geo_region,
@@ -65,6 +76,10 @@ SELECT
     og.os_group,
     a.n_signups
 FROM aggregated a
+LEFT JOIN {{ ref('dim_experience') }} e
+    ON a.experience_id = e.experience_id
+LEFT JOIN {{ ref('dim_template') }} t
+    ON a.template_id = t.template_id
 LEFT JOIN {{ ref('dim_app_type') }} at
     ON a.app_type_id = at.app_type_id
 LEFT JOIN {{ ref('dim_device_type') }} dt
