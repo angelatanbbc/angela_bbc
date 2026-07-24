@@ -17,10 +17,6 @@ models:
         description: Surrogate key for the site associated with the visitor activity.
         tests:
           - not_null
-      - name: visitor_id
-        description: Piano unique identifier for the visitor.
-        tests:
-          - not_null
       - name: app_type_id
         description: App type dimension identifier for the visitor activity.
         tests:
@@ -47,6 +43,10 @@ models:
                 field: os_group_id
       - name: geo_id
         description: Geographic identifier for the visitor's country and region.
+        tests:
+          - not_null
+      - name: visitor_id
+        description: Piano unique identifier for the visitor.
         tests:
           - not_null
       - name: n_visits

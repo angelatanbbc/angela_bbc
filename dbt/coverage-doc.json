@@ -1,0 +1,88 @@
+{
+  "cov_type": "test",
+  "hits": 14,
+  "covered": 10,
+  "total": 10,
+  "coverage": 1.0,
+  "tables": [
+    {
+      "name": "dns_ds.fact_visitors_daily",
+      "hits": 14,
+      "covered": 10,
+      "total": 10,
+      "coverage": 1.0,
+      "columns": [
+        {
+          "name": "visitor_date_key",
+          "hits": 2,
+          "covered": 1,
+          "total": 1,
+          "coverage": 1.0
+        },
+        {
+          "name": "date_key",
+          "hits": 1,
+          "covered": 1,
+          "total": 1,
+          "coverage": 1.0
+        },
+        {
+          "name": "site_id",
+          "hits": 1,
+          "covered": 1,
+          "total": 1,
+          "coverage": 1.0
+        },
+        {
+          "name": "app_type_id",
+          "hits": 2,
+          "covered": 1,
+          "total": 1,
+          "coverage": 1.0
+        },
+        {
+          "name": "device_type_id",
+          "hits": 2,
+          "covered": 1,
+          "total": 1,
+          "coverage": 1.0
+        },
+        {
+          "name": "os_group_id",
+          "hits": 2,
+          "covered": 1,
+          "total": 1,
+          "coverage": 1.0
+        },
+        {
+          "name": "geo_id",
+          "hits": 1,
+          "covered": 1,
+          "total": 1,
+          "coverage": 1.0
+        },
+        {
+          "name": "visitor_id",
+          "hits": 1,
+          "covered": 1,
+          "total": 1,
+          "coverage": 1.0
+        },
+        {
+          "name": "n_visits",
+          "hits": 1,
+          "covered": 1,
+          "total": 1,
+          "coverage": 1.0
+        },
+        {
+          "name": "n_pageviews",
+          "hits": 1,
+          "covered": 1,
+          "total": 1,
+          "coverage": 1.0
+        }
+      ]
+    }
+  ]
+}

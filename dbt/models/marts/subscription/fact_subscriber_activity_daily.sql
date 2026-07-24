@@ -1,4 +1,8 @@
-{{ config(materialized="table") }}
+{{ config(
+    materialized="table",
+    tags=['fct', 'subscriptions']
+    )
+}}
 
 WITH active_subscriber_days AS (
 

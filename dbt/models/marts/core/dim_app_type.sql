@@ -1,4 +1,9 @@
-{{ config(materialized="table") }}
+{{ 
+    config(
+        materialized="table",
+        tags=['mart','core','dim']
+        )
+}}
 
 WITH app_types AS (
 

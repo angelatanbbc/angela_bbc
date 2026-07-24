@@ -1,6 +1,6 @@
 {{ config(
     materialized='table',
-    tags=['subscriptions', 'piano'],
+    tags=['subscriptions', 'piano', 'mart', 'reporting']
 ) }}
 
 WITH subscriber_activity AS (

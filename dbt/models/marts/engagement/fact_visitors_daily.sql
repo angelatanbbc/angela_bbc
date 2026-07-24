@@ -3,7 +3,8 @@
         materialized="incremental",
         unique_key='visitor_date_key',
         incremental_strategy='merge',
-        on_schema_change='sync_all_columns'
+        on_schema_change='sync_all_columns',
+        tags=['mart','fct']
     )
 }}
 

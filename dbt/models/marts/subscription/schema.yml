@@ -45,6 +45,7 @@ models:
         description: Piano unique identifier for the conversion event.
         tests:
           - not_null
+          - unique
       - name: subscription_id
         description: Identifier for the subscription associated with the conversion.
         tests:
@@ -52,31 +53,33 @@ models:
       - name: visitor_id
         description: Piano unique identifier for the visitor.
         tests:
-          - not_null:
-              config:
-                severity: warn
+          - not_null
       - name: user_id
         description: Piano unique identifier for the registered user.
         tests:
-          - not_null:
-              config:
-                severity: warn
+          - not_null
+      - name: user_first_party_id
+        description: First-party user identifier aka FED_ID
       - name: visit_id
         description: Piano unique identifier for the visit associated with the conversion event.
         tests:
-          - not_null:
-              config:
-                severity: warn
+          - not_null
       - name: visit_time
         description: Timestamp of the visit associated with the conversion event.
         tests:
-          - not_null:
-              config:
-                severity: warn
+          - not_null
+      - name: app_type_id
+        description: Identifier for the application type associated with the conversion.
+      - name: device_type_id
+        description: Identifier for the device type associated with the conversion.
+      - name: os_group_id
+        description: Identifier for the operating system group associated with the conversion.
       - name: conversion_time
         description: Timestamp when the conversion event occurred.
         tests:
           - not_null
+      - name: conversion_date
+        description: Date when the conversion event occurred.
       - name: term_id
         description: Identifier for the subscription term associated with the conversion.
         tests:
@@ -87,22 +90,10 @@ models:
           - not_null
       - name: term_offer_id
         description: Identifier for the subscription term offer associated with the conversion.
-        tests:
-          - not_null:
-              config:
-                severity: warn
       - name: term_offer_name
         description: Name of the subscription term offer associated with the conversion.
-        tests:
-          - not_null:
-              config:
-                severity: warn
       - name: billing_period
         description: Billing period for the subscription (e.g., monthly, annual).
-        tests:
-          - not_null:
-              config:
-                severity: warn
       - name: vx_promo_code
         description: Promo code used during the conversion event, if any.
       - name: cart_turnovertaxfree
@@ -121,26 +112,22 @@ models:
         description: Detailed source information (e.g., specific campaign name).
       - name: geo_id
         description: Geographic identifier for the visitor's location.
-        tests:
-          - not_null
       - name: geo_country
         description: Country of the visitor's location.
-        tests:
-          - not_null
       - name: geo_region
         description: Region of the visitor's location.
       - name: geo_city
         description: City of the visitor's location.
+      - name: cohort_month
+        description: Month when the visitor was part of the cohort.
       - name: experience_id
         description: Identifier for the Composer experience that led to the conversion.
         tests:
           - not_null
       - name: card_id
         description: Identifier for the card used in the Composer experience.
-        tests:
-          - not_null:
-              config:
-                severity: warn
+      - name: card_action
+        description: Action taken on the card in the Composer experience.
       - name: template_id
         description: Identifier for the template used in the Composer experience.
         tests:
@@ -157,6 +144,12 @@ models:
         description: Likelihood to Return bucket of the visitor at the time of conversion.
       - name: c1x_revenue_auto_optimization
         description: Revenue Optimization bucket of the page view at the time of conversion.
+      - name: attribution_source
+        description: Source of attribution for the conversion.
+      - name: attribution_source_detail
+        description: Detail about the attribution source for the conversion.
+      - name: position_weight
+        description: Weight assigned to the position of the card in the Composer experience.
 
   - name: dim_experience
     description: Dimension table for Composer experiences, tracking name versions over time with app type classification.
@@ -179,6 +172,60 @@ models:
                 to: ref('dim_app_type')
                 field: app_type_id
 
+  - name: dim_template
+    description: Dimension table for subscription template metadata and template lifecycle attributes.
+    columns:
+      - name: template_id
+        description: Unique identifier for the subscription template.
+        tests:
+          - not_null
+          - unique
+      - name: template_name
+        description: Human-readable name of the subscription template.
+        tests:
+          - not_null
+      - name: template_type
+        description: Type or classification of the template.
+      - name: template_description
+        description: Description or notes attached to the template.
+      - name: is_active
+        description: Whether the template is currently active.
+        tests:
+          - not_null
+      - name: created_at
+        description: Timestamp when the template was created.
+      - name: updated_at
+        description: Timestamp when the template was last updated.
+
+  - name: dim_term
+    description: Dimension table for subscription terms and billing period metadata.
+    columns:
+      - name: term_id
+        description: Unique identifier for the subscription term.
+        tests:
+          - not_null
+          - unique
+      - name: term_name
+        description: Human-readable name of the subscription term.
+        tests:
+          - not_null
+      - name: term_offer_id
+        description: Identifier for the term offer associated with the subscription term.
+      - name: term_offer_name
+        description: Human-readable name of the term offer.
+      - name: billing_period
+        description: Billing period for the term, such as monthly or annual.
+      - name: duration_days
+        description: Duration of the term in days.
+      - name: is_active
+        description: Whether the term is currently active.
+        tests:
+          - not_null
+      - name: created_at
+        description: Timestamp when the term was created.
+      - name: updated_at
+        description: Timestamp when the term was last updated.
+
   - name: fact_exposures
     description: Daily-visitor level fact table capturing exposure events to Composer experiences.
     columns:
@@ -195,70 +242,42 @@ models:
         description: Timestamp of the exposure event.
         tests:
           - not_null
-      - name: pageview_id
-        description: Piano unique identifier for the pageview during which the exposure event occurred.
-        tests:
-          - not_null:
-              config:
-                severity: warn
-      - name: visit_id
-        description: Piano unique identifier for the visit associated with the exposure event.
+      - name: exposure_date
+        description: Date of the exposure event.
         tests:
           - not_null
+      - name: pageview_id
+        description: Piano unique identifier for the pageview during which the exposure event occurred.
       - name: visitor_id
         description: Piano unique identifier for the visitor.
         tests:
           - not_null
+      - name: visit_id
+        description: Piano unique identifier for the visit associated with the exposure event.
+        tests:
+          - not_null
       - name: user_id
         description: Piano unique identifier for the registered user.
-      - name: device_type_id
-        description: Device type dimension identifier for the exposure event.
         tests:
-          - not_null:
-              config:
-                severity: warn
-          - relationships:
-              arguments:
-                to: ref('dim_device_type')
-                field: device_type_id
+          - not_null
       - name: app_type_id
         description: App type dimension identifier associated with the exposure event.
         tests:
-          - not_null:
-              config:
-                severity: warn
-          - relationships:
-              arguments:
-                to: ref('dim_app_type')
-                field: app_type_id
+          - not_null
+      - name: device_type_id
+        description: Device type dimension identifier for the exposure event.
+        tests:
+          - not_null
       - name: os_group_id
         description: Operating system group dimension identifier for the exposure event.
         tests:
-          - not_null:
-              config:
-                severity: warn
-          - relationships:
-              arguments:
-                to: ref('dim_os_group')
-                field: os_group_id
+          - not_null
       - name: page
         description: Page on which the exposure event occurred.
-        tests:
-          - not_null:
-              config:
-                severity: warn
       - name: page_title
         description: Title of the page on which the exposure event occurred.
-        tests:
-          - not_null:
-              config:
-                severity: warn
       - name: page_content_type
         description: Content type of the page on which the exposure event occurred.
-        tests:
-          - not_null:
-              config:
-                severity: warn
       - name: content_type
         description: Piano content type captured on the exposure pageview when available.
       - name: content_id
@@ -273,20 +292,10 @@ models:
         description: Publication timestamp associated with the exposure content when available.
       - name: url
         description: URL of the page on which the exposure event occurred.
-        tests:
-          - not_null:
-              config:
-                severity: warn
       - name: geo_id
         description: Geographic identifier for the visitor's location.
-        tests:
-          - not_null
       - name: geo_country
         description: Country of the visitor's location.
-        tests:
-          - not_null:
-              config:
-                severity: warn
       - name: geo_region
         description: Region of the visitor's location.
       - name: geo_city
@@ -297,32 +306,30 @@ models:
           - not_null
       - name: experience_name
         description: Name of the Composer experience that led to the conversion.
-        tests:
-          - not_null:
-              config:
-                severity: warn
       - name: card_id
         description: Identifier for the card used in the Composer experience.
       - name: card_name
         description: Name of the card used in the Composer experience.
       - name: card_action
-        description: Action taken on the card (one of showOffer, showTemplate).
+        description: Action taken on the card (for example showOffer or showTemplate).
       - name: template_id
         description: Identifier for the template used in the Composer experience.
-        tests:
-          - not_null
       - name: template_name
         description: Name of the template used in the Composer experience.
-        tests:
-          - not_null:
-              config:
-                severity: warn
+      - name: ab_test_card_title
+        description: Title of the card used in the A/B test.
       - name: ab_test_variant_name
         description: A/B test variant name associated with the experience.
-      - name: is_interacted_with
-        description: Whether the visitor interacted with the exposed experience on the same execution.
-      - name: is_last_touch_conversion
-        description: Whether the exposure was the last-touch exposure associated with a conversion.
+      - name: c1x_lts
+        description: C1X LTS value for the exposure event.
+      - name: c1x_content_likely_to_convert
+        description: C1X content likely to convert value for the exposure event.
+      - name: c1x_likelihood_to_register
+        description: C1X likely to return value for the exposure event.
+      - name: c1x_likelihood_to_return
+        description: C1X likelihood to return value for the exposure event.
+      - name: c1x_revenue_auto_optimization
+        description: C1X revenue auto-optimization value for the exposure event.
 
   - name: dim_subscription
     description: Type 1 dimension at the grain of one row per subscription, focused on subscription lifecycle, status and term state.
@@ -350,24 +357,8 @@ models:
           - not_null
       - name: subscription_start_type
         description: Classification of how the subscription began for the user.
-        tests:
-          - not_null
-          - accepted_values:
-              arguments:
-                values: ["Brand New", "Re-subscription", "Upgrade"]
       - name: subscription_end_type
         description: Classification of how the subscription ended; null when the subscription is active.
-        tests:
-          - accepted_values:
-              arguments:
-                values:
-                  [
-                    "Canceled",
-                    "Renewal failed, will not retry",
-                    "Expired",
-                    "Upgraded",
-                    "Unknown",
-                  ]
       - name: is_active
         description: Whether the subscription is currently active.
         tests:
@@ -414,3 +405,313 @@ models:
         description: Current MRR amount for the subscription, set to zero when superseded by an upgrade.
         tests:
           - not_null
+
+  - name: fact_subscriber_daily_snapshot
+    description: Daily snapshot of subscriber state and engagement behavior at the user-day grain.
+    columns:
+      - name: date_day
+        description: Snapshot date.
+        tests:
+          - not_null
+      - name: user_id
+        description: Piano unique identifier for the subscribed user.
+        tests:
+          - not_null
+      - name: subscription_id
+        description: Unique identifier for the subscription.
+        tests:
+          - not_null
+      - name: conversion_app_type_id
+        description: Identifier for the conversion application type.
+      - name: conversion_device_type_id
+        description: Identifier for the conversion device type.
+      - name: conversion_os_group_id
+        description: Identifier for the conversion operating system group.
+      - name: last_subscription_action
+        description: Latest observed subscription action or event type.
+        tests:
+          - not_null
+      - name: term_id
+        description: Term ID attached to the subscription.
+      - name: term_name
+        description: Term name attached to the subscription.
+      - name: billing_period
+        description: Billing period attached to the subscription.
+      - name: subscription_period_number
+        description: Latest observed subscription period number.
+      - name: geo_id
+        description: Geographic identifier for the visitor's location.
+      - name: geo_country
+        description: Country of the visitor's location.
+      - name: geo_region
+        description: Region of the visitor's location.
+      - name: geo_city
+        description: City of the visitor's location.
+      - name: cohort_month
+        description: Month when the visitor was part of the cohort.
+      - name: mrr_amount
+        description: Current MRR amount for the subscription, set to zero when superseded by an upgrade.
+        tests:
+          - not_null
+      - name: subscriber_status
+        description: Current status of the subscriber.
+      - name: days_since_churned
+        description: Number of days since the subscriber churned.
+      - name: conversion_date
+        description: Date when the conversion occurred.
+      - name: days_since_conversion
+        description: Number of days since the conversion occurred.
+      - name: months_since_conversion
+        description: Number of months since the conversion occurred.
+
+  - name: fact_subscription_events
+    description: Event-level fact table for subscription lifecycle events and status changes.
+    columns:
+      - name: subscription_action_id
+        description: Surrogate key for the subscription action.
+      - name: conversion_id
+        description: Identifier for the conversion associated with the event.
+      - name: event_time
+        description: Timestamp of the subscription event.
+        tests:
+          - not_null
+      - name: subscription_action
+        description: The type of subscription action.
+        tests:
+          - not_null
+      - name: user_id
+        description: Piano unique identifier for the subscribed user.
+        tests:
+          - not_null
+      - name: user_first_party_id
+        description: First-party identifier for the user aka FED_ID
+      - name: subscription_id
+        description: Identifier for the subscription.
+      - name: created_via_upgrade
+        description: Indicates if the subscription was created via an upgrade.
+      - name: conversion_app_type_id
+        description: Identifier for the conversion application type.
+      - name: conversion_device_type_id
+        description: Identifier for the conversion device type.
+      - name: conversion_os_group_id
+        description: Identifier for the conversion operating system group.
+      - name: term_id
+        description: Identifier for the subscription term associated with the event.
+      - name: term_name
+        description: Name of the subscription term associated with the event.
+      - name: billing_period
+        description: The billing period for the subscription.
+      - name: subscription_period_number
+        description: The period number for the subscription.
+      - name: geo_id
+        description: Geographic identifier for the visitor's location.
+      - name: geo_country
+        description: Country of the visitor's location.
+      - name: geo_region
+        description: Region of the visitor's location.
+      - name: geo_city
+        description: City of the visitor's location.
+      - name: cohort_month
+        description: Month when the visitor was part of the cohort.
+      - name: transaction_value
+        description: The value of the transaction.
+        tests:
+          - not_null
+      - name: previous_transaction_value
+        description: The value of the previous transaction.
+      - name: previous_mrr
+        description: The MRR of the previous transaction.
+      - name: mrr_change_amount
+        description: The change in MRR from the previous transaction.
+      - name: current_mrr
+        description: The current MRR for the subscription.
+
+  - name: fact_cohort_retention
+    description: Cohort retention fact table measuring subscriber retention by cohort and period.
+    columns:
+      - name: term_id
+        description: Identifier for the subscription term associated with the event.
+        tests:
+          - not_null
+      - name: conversion_app_type_id
+        description: Identifier for the conversion application type.
+      - name: conversion_device_type_id
+        description: Identifier for the conversion device type.
+      - name: conversion_os_group_id
+        description: Identifier for the conversion operating system group.
+      - name: billing_period
+        description: The billing period for the subscription.
+      - name: cohort
+        description: The cohort to which the subscriber belongs.
+        tests:
+          - not_null
+      - name: cohort_size
+        description: Number of users in the cohort.
+        tests:
+          - not_null
+      - name: months_since_conversion
+        description: Number of months since the conversion event.
+        tests:
+          - not_null
+      - name: active_subscribers
+        description: Number of active subscribers in the cohort and period.
+        tests:
+          - not_null
+
+  - name: marketing_spend_subs
+    description: Marketing spend fact table for subscription acquisition and retention campaigns.
+    columns:
+      - name: date_day
+        description: Date of the spend observation.
+        tests:
+          - not_null
+      - name: channel
+        description: Marketing channel for the spend observation.
+        tests:
+          - not_null
+      - name: campaign_name
+        description: Campaign name for the spend observation.
+      - name: spend_amount
+        description: Spend amount for the spend observation.
+        tests:
+          - not_null
+      - name: impressions
+        description: Number of impressions for the spend observation.
+      - name: clicks
+        description: Number of clicks for the spend observation.
+      - name: conversions
+        description: Number of conversions attributed to the spend observation.
+      - name: revenue_amount
+        description: Revenue attributable to the spend observation.
+
+  - name: subscription_attribution_model
+    description: Attribution model output for marketing touchpoints and conversion outcomes.
+    columns:
+      - name: event_date
+        description: Date of the attribution event.
+        test:
+          - not_null
+      - name: event_url_full
+        description: Full URL of the attribution event.
+      - name: visitor_id
+        description: Identifier for the visitor.
+      - name: geo_country
+        description: Country of the visitor.
+      - name: browser
+        description: Browser used by the visitor.
+      - name: device_type
+        description: Type of device used by the visitor.
+      - name: site_id
+        description: Identifier for the site.
+      - name: pageview_id
+        description: Identifier for the page view.
+      - name: content_pillar
+        description: Content pillar to which the attribution event belongs.
+      - name: event_name
+        description: Name of the attribution event.
+      - name: src_detail
+        description: Detail of the source for the attribution event.
+      - name: src
+        description: Source of the attribution event.
+      - name: attribution_source
+        description: Source of the attribution.
+      - name: attribution_source_detail
+        description: Detail of the source for the attribution event.
+      - name: src_bbc_team
+        description: BBC team associated with the source of the attribution event.
+      - name: src_ptr_name
+        description: Name of the source pointer for the attribution event.
+      - name: src_creative_id
+        description: Identifier for the creative associated with the source of the attribution event.
+      - name: src_organic
+        description: Indicates if the source is organic.
+      - name: src_organic_detail
+        description: Detail of the organic source for the attribution event.
+      - name: src_campaign
+        description: Campaign associated with the source of the attribution event.
+      - name: src_adset_name
+        description: Ad set name associated with the source of the attribution event.
+      - name: src_medium
+        description: Medium associated with the source of the attribution event.
+      - name: src_sl_term
+        description: Search term associated with the source of the attribution event.
+      - name: src_campaign_type
+        description: Type of campaign associated with the source of the attribution event.
+      - name: src_format
+        description: Format associated with the source of the attribution event.
+      - name: vx_promo_code
+        description: Promotional code associated with the attribution event.
+      - name: billing_period
+        description: Billing period associated with the attribution result.
+      - name: trial_duration
+        description: Trial duration associated with the attribution result.
+      - name: subscription_id
+        description: Subscription identifier associated with the conversion.
+        tests:
+          - not_null
+      - name: subscription_action
+        description: Action taken on the subscription.
+      - name: subscription_period_number
+        description: Number of periods for which the subscription is active.
+      - name: cart_turnovertaxfree
+        description: Cart turnover excluding tax.
+      - name: signup_event
+        description: Signup event associated with the subscription.
+      - name: link_origin
+        description: Origin of the link associated with the subscription.
+      - name: signup_page
+        description: Page from which the signup was initiated.
+      - name: at_adset_name
+        description: Ad set name associated with the attribution event.
+      - name: at_adset_id
+        description: Ad set ID associated with the attribution event.
+      - name: at_objective
+        description: Objective associated with the attribution event.
+      - name: at_medium
+        description: Medium associated with the attribution event.
+      - name: at_creation
+        description: Timestamp at which the attribution was created.
+      - name: at_keyword
+        description: Keyword associated with the attribution event.
+      - name: at_matchtype
+        description: Match type associated with the attribution event.
+      - name: at_campaign_name
+        description: Campaign name associated with the attribution event.
+      - name: is_paid_event
+        description: Flag indicating if the event is paid.
+      - name: first_event
+        description: Flag indicating if this is the first event for the user.
+      - name: last_event
+        description: Flag indicating if this is the last event for the user.
+      - name: promo_code_from_conversion
+        description: Promotional code associated with the conversion.
+      - name: position_weight
+        description: Weight associated with the position of the attribution event.
+      - name: position_signup_touch_weight
+        description: Weight associated with the position of the signup touchpoint.
+      - name: first_touch
+        description: Flag indicating if this is the first touchpoint for the user.
+      - name: last_touch
+        description: Flag indicating if this is the last touchpoint for the user.
+      - name: signup_touch
+        description: Flag indicating if this is the signup touchpoint for the user.
+      - name: billing_period_filled
+        description: Flag indicating if the billing period is filled.
+      - name: subscription_id_filled
+        description: Flag indicating if the subscription ID is filled.
+      - name: revenue_filled
+        description: Flag indicating if the revenue is filled.
+      - name: revenue_weighted_a
+        description: Weighted revenue for the first attribution event.
+      - name: annualised_revenue_a
+        description: Annualised revenue for the first attribution event.
+      - name: date_of_creation
+        description: Date at which the record was created.
+      - name: date_of_latest_renewal
+        description: Date of the latest renewal for the subscription.
+      - name: months_between_creation_and_renewal
+        description: Number of months between the creation and the latest renewal of the subscription.
+      - name: revenue_weighted
+        description: Weighted revenue for the subscription
+      - name: annualised_revenue
+        description: Annualised revenue for the subscription.

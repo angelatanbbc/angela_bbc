@@ -1,4 +1,7 @@
-{{ config(materialized="table") }}
+{{ config(
+    materialized="table",
+    tags=['subscriptions', 'piano', 'mart', 'dim']
+) }}
 
 WITH composer_events AS (
 

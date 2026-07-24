@@ -1,4 +1,8 @@
-{{ config(materialized="table") }}
+{{ config(
+    materialized="table",
+    tags=['fct', 'subscriptions']
+    )
+}}
 
 WITH web_exposures AS (
 
