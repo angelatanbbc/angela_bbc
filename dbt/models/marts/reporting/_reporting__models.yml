@@ -9,6 +9,10 @@ models:
       (dashboard_name = 'acquisition'). Acquisition sign-up metrics use fractional
       multi-touch attribution (position_weight), so organic + paid equals total sign-ups;
       pct_annual is treated as higher-is-better on lifetime-value grounds.
+      subscription_arpu is MTD subscription transaction value (cart turnover ex-tax)
+      per 1,000 distinct site visitors - stored pre-scaled by 1,000 because the
+      per-visitor ratio is fractions of a penny; its visitor denominator covers
+      US/Canada only (fact_visitors_daily).
     columns:
       - name: subscriber_ban_key
         description: Surrogate key for the dashboard, metric, period type and as-of date.
@@ -32,7 +36,7 @@ models:
           - not_null
           - accepted_values:
               arguments:
-                values: ['active_subscribers', 'engaged_subscribers', 'engaged_subscribers_pct', 'mrr_change', 'avg_subscriber_pageviews_per_visit', 'avg_subscriber_visits_per_period', 'organic_signups', 'paid_signups', 'pct_annual', 'funnel_conv_rate']
+                values: ['active_subscribers', 'engaged_subscribers', 'engaged_subscribers_pct', 'mrr_change', 'avg_subscriber_pageviews_per_visit', 'avg_subscriber_visits_per_period', 'organic_signups', 'paid_signups', 'pct_annual', 'funnel_conv_rate', 'subscription_arpu']
       - name: metric_label
         description: Human-readable metric label for Tableau display.
         tests:
@@ -66,7 +70,7 @@ models:
           - not_null
           - accepted_values:
               arguments:
-                values: ['MoM', 'Prior WTD', 'Prior MTD', 'Prior L7D', 'Prior L30D']
+                values: ['MoM', 'Prior WTD', 'Prior MTD', 'Prior Month', 'Prior L7D', 'Prior L30D']
       - name: current_value
         description: Current BAN value for the metric and period.
         tests:
@@ -81,6 +85,12 @@ models:
           - not_null
       - name: pct_change
         description: Percentage change between current_value and prior_value, null when prior_value is zero.
+      - name: lifetime_value
+        description: >
+          All-time total for BANs whose big number is the full history while the change
+          columns compare MTD vs prior MTD (acquisition organic_signups, paid_signups
+          and pct_annual). Null for all other rows; in Tableau use
+          COALESCE(lifetime_value, current_value) for the headline number.
       - name: metric_format
         description: Display format hint for Tableau.
         tests:
@@ -170,8 +180,10 @@ models:
       counts can be re-aggregated across any date range or dimension filter without
       revisiting the event-level tables. Two row families share the table: 'exposures'
       rows (per template type) carry the exposed-visitor sketch and exact conversion
-      counts; 'page_displays' rows (template_type = 'All Pages') carry the page-display
-      visitor sketch that serves as the exposure-rate denominator. Tableau must use a
+      counts; 'page_displays' rows carry the page-display visitor sketch that serves as
+      the exposure-rate denominator, replicated under every template_type so the
+      denominator survives template cuts (merging identical HLL sketches is exact, so
+      un-cut totals are unaffected). Tableau must use a
       live connection and pass-through aggregates, e.g.
       RAWSQLAGG_INT("HLL_ESTIMATE(HLL_COMBINE(%1))", [exposed_visitors_hll]);
       estimates carry roughly 1.6% relative error. Note that page-display rows cover
@@ -196,12 +208,14 @@ models:
         tests:
           - not_null
       - name: template_type
-        description: Composer template family shown to the visitor; All Pages for page-display denominator rows.
+        description: >
+          Composer template family shown to the visitor. Page-display denominator rows
+          are replicated under every template type so template filters keep their denominator.
         tests:
           - not_null
           - accepted_values:
               arguments:
-                values: ['Paywall', 'Ribbon', 'Subscription Landing Page', 'Other', 'All Pages']
+                values: ['Paywall', 'Ribbon', 'Subscription Landing Page', 'Other']
       - name: app_type_id
         description: Surrogate key for the app type.
         tests:
@@ -238,7 +252,10 @@ models:
       - name: n_exposed_visitors
         description: Exact distinct exposed visitors for this row only; non-additive, for validation - never SUM in Tableau.
       - name: page_visitors_hll
-        description: HyperLogLog state of distinct page-display visitors (exposure-rate denominator, US/Canada only). Null on exposure rows.
+        description: >
+          HyperLogLog state of distinct page-display visitors (exposure-rate denominator,
+          US/Canada only). Null on exposure rows; identical copy on each template_type
+          replica of a cell, so HLL_COMBINE across templates is exact.
         tests:
           - not_null:
               config:

@@ -17,6 +17,11 @@
         DATE_TRUNC('month', as_of_date)::DATE AS current_start_date,
         as_of_date AS current_end_date,
         DATEADD(MONTH, -1, DATE_TRUNC('month', as_of_date)::DATE) AS prior_start_date,
+        {% if comparison_type == 'Prior Month' %}
+        {# Full previous calendar month, for metrics compared against last month's
+           final value rather than a day-count-matched partial window. #}
+        LAST_DAY(DATEADD(MONTH, -1, DATE_TRUNC('month', as_of_date)::DATE)) AS prior_end_date,
+        {% else %}
         LEAST(
             DATEADD(
                 DAY,
@@ -25,6 +30,7 @@
             ),
             LAST_DAY(DATEADD(MONTH, -1, DATE_TRUNC('month', as_of_date)::DATE))
         ) AS prior_end_date,
+        {% endif %}
         {% elif period_type == 'L7D' %}
         DATEADD(DAY, -6, as_of_date) AS current_start_date,
         as_of_date AS current_end_date,

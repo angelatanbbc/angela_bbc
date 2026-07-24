@@ -138,7 +138,7 @@ acquisition_period_windows AS (
         metric_label='% Annual Plans',
         metric_name='pct_annual',
         period_type='MTD',
-        comparison_type='Prior MTD',
+        comparison_type='Prior Month',
         metric_format='percentage'
     ) }}
 
@@ -162,6 +162,16 @@ acquisition_period_windows AS (
         metric_format='currency'
     ) }}
 
+    UNION ALL
+
+    {{ ban_period_row(
+        metric_label='Subscription ARPU',
+        metric_name='subscription_arpu',
+        period_type='MTD',
+        comparison_type='Prior MTD',
+        metric_format='currency'
+    ) }}
+
 ),
 
 subscriber_activity AS (
@@ -180,8 +190,18 @@ subscription_events AS (
 
     SELECT
         event_time::DATE AS event_date,
-        mrr_change_amount
+        mrr_change_amount,
+        transaction_value
     FROM {{ ref('fact_subscription_events') }}
+
+),
+
+site_visitors AS (
+
+    SELECT
+        date_key AS activity_date,
+        visitor_id
+    FROM {{ ref('fact_visitors_daily') }}
 
 ),
 
@@ -361,6 +381,19 @@ pct_annual AS (
 
 ),
 
+-- All-time totals for the acquisition BANs whose big number is the full history
+-- (the MTD current/prior values only drive the period-over-period change).
+conversion_lifetime_totals AS (
+
+    SELECT
+        SUM(IFF(attribution_source = 'Organic', position_weight, 0)) AS organic_signups_lifetime,
+        SUM(IFF(attribution_source = 'Paid', position_weight, 0)) AS paid_signups_lifetime,
+        COUNT(DISTINCT IFF(billing_period = '1 year', conversion_id, NULL))
+            / NULLIF(COUNT(DISTINCT conversion_id), 0) AS pct_annual_lifetime
+    FROM conversions
+
+),
+
 funnel_mtd_conversions AS (
 
     SELECT
@@ -399,6 +432,49 @@ funnel_conv_rate AS (
     FROM funnel_mtd_conversions fc
     JOIN funnel_mtd_exposed fe
         ON fc.period_type = fe.period_type
+
+),
+
+arpu_transaction_value AS (
+
+    SELECT
+        pw.period_type,
+        COALESCE(SUM(IFF(se.event_date BETWEEN pw.current_start_date AND pw.current_end_date, se.transaction_value, 0)), 0) AS current_value,
+        COALESCE(SUM(IFF(se.event_date BETWEEN pw.prior_start_date AND pw.prior_end_date, se.transaction_value, 0)), 0) AS prior_value
+    FROM acquisition_period_windows pw
+    LEFT JOIN subscription_events se
+        ON se.event_date BETWEEN pw.prior_start_date AND pw.current_end_date
+    WHERE pw.metric_name = 'subscription_arpu'
+    GROUP BY pw.period_type
+
+),
+
+arpu_site_visitors AS (
+
+    SELECT
+        pw.period_type,
+        COUNT(DISTINCT IFF(sv.activity_date BETWEEN pw.current_start_date AND pw.current_end_date, sv.visitor_id, NULL)) AS current_value,
+        COUNT(DISTINCT IFF(sv.activity_date BETWEEN pw.prior_start_date AND pw.prior_end_date, sv.visitor_id, NULL)) AS prior_value
+    FROM acquisition_period_windows pw
+    LEFT JOIN site_visitors sv
+        ON sv.activity_date BETWEEN pw.prior_start_date AND pw.current_end_date
+    WHERE pw.metric_name = 'subscription_arpu'
+    GROUP BY pw.period_type
+
+),
+
+-- Stored as revenue per 1,000 distinct site visitors (the raw per-visitor ratio is
+-- fractions of a penny); pct_change is unaffected by the scaling.
+subscription_arpu AS (
+
+    SELECT
+        'subscription_arpu' AS metric_name,
+        tv.period_type,
+        1000 * tv.current_value / NULLIF(sv.current_value, 0) AS current_value,
+        1000 * tv.prior_value / NULLIF(sv.prior_value, 0) AS prior_value
+    FROM arpu_transaction_value tv
+    JOIN arpu_site_visitors sv
+        ON tv.period_type = sv.period_type
 
 ),
 
@@ -461,6 +537,11 @@ acquisition_unioned AS (
     SELECT *
     FROM mrr_change
 
+    UNION ALL
+
+    SELECT *
+    FROM subscription_arpu
+
 ),
 
 final AS (
@@ -488,6 +569,7 @@ final AS (
             current_value='u.current_value',
             prior_value='u.prior_value'
         ) }},
+        NULL::NUMBER(38, 6) AS lifetime_value,
         pw.metric_format,
         TRUE AS is_higher_better
     FROM period_windows pw
@@ -523,10 +605,16 @@ acquisition_final AS (
             current_value='u.current_value',
             prior_value='u.prior_value'
         ) }},
+        CASE pw.metric_name
+            WHEN 'organic_signups' THEN lt.organic_signups_lifetime
+            WHEN 'paid_signups' THEN lt.paid_signups_lifetime
+            WHEN 'pct_annual' THEN lt.pct_annual_lifetime
+        END::NUMBER(38, 6) AS lifetime_value,
         pw.metric_format,
         TRUE AS is_higher_better
     FROM acquisition_period_windows pw
     CROSS JOIN as_of a
+    CROSS JOIN conversion_lifetime_totals lt
     JOIN acquisition_unioned u
         ON pw.metric_name = u.metric_name
         AND pw.period_type = u.period_type
