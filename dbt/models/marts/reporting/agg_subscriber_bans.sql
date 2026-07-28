@@ -190,6 +190,7 @@ subscription_events AS (
 
     SELECT
         event_time::DATE AS event_date,
+        subscription_action,
         mrr_change_amount,
         transaction_value
     FROM {{ ref('fact_subscription_events') }}
@@ -444,7 +445,9 @@ arpu_transaction_value AS (
     FROM acquisition_period_windows pw
     LEFT JOIN subscription_events se
         ON se.event_date BETWEEN pw.prior_start_date AND pw.current_end_date
-    WHERE pw.metric_name = 'subscription_arpu'
+    WHERE
+        pw.metric_name = 'subscription_arpu'
+        AND se.subscription_action = 'New subscription'
     GROUP BY pw.period_type
 
 ),
