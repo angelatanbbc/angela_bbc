@@ -9,6 +9,23 @@ WITH date_spine AS (
     }}
 ),
 
+-- UK financial year runs 1 April to 31 March, labelled by its starting calendar year
+date_base AS (
+    SELECT
+        date_day,
+        CASE
+            WHEN EXTRACT(MONTH FROM date_day) >= 4
+            THEN EXTRACT(YEAR FROM date_day)
+            ELSE EXTRACT(YEAR FROM date_day) - 1
+        END AS fiscal_year,
+        CASE
+            WHEN EXTRACT(MONTH FROM CURRENT_DATE) >= 4
+            THEN EXTRACT(YEAR FROM CURRENT_DATE)
+            ELSE EXTRACT(YEAR FROM CURRENT_DATE) - 1
+        END AS current_fiscal_year
+    FROM date_spine
+),
+
 date_dimension AS (
     SELECT
         -- Primary Key
@@ -52,12 +69,9 @@ date_dimension AS (
         -- Year-Month combination
         TO_CHAR(date_day, 'YYYY-MM') AS year_month,
 
-        -- Fiscal attributes (assuming fiscal year starts in April)
-        CASE
-            WHEN EXTRACT(MONTH FROM date_day) >= 4
-            THEN EXTRACT(YEAR FROM date_day)
-            ELSE EXTRACT(YEAR FROM date_day) - 1
-        END AS fiscal_year,
+        -- Fiscal attributes (UK financial year, 1 April to 31 March)
+        fiscal_year,
+        TO_CHAR(fiscal_year) || '/' || RIGHT(TO_CHAR(fiscal_year + 1), 2) AS fiscal_year_label,
 
         CASE
             WHEN EXTRACT(MONTH FROM date_day) BETWEEN 4 AND 6 THEN 1
@@ -81,11 +95,16 @@ date_dimension AS (
         CASE WHEN date_day BETWEEN DATE_TRUNC('month', CURRENT_DATE) AND CURRENT_DATE THEN TRUE ELSE FALSE END AS is_current_month,
         CASE WHEN date_day BETWEEN DATE_TRUNC('quarter', CURRENT_DATE) AND CURRENT_DATE THEN TRUE ELSE FALSE END AS is_current_quarter,
         CASE WHEN date_day BETWEEN DATE_TRUNC('year', CURRENT_DATE) AND CURRENT_DATE THEN TRUE ELSE FALSE END AS is_current_year,
+        CASE WHEN fiscal_year = current_fiscal_year THEN TRUE ELSE FALSE END AS is_current_fiscal_year,
+
+        -- Cumulative cut-off for like-for-like comparisons: every date up to and including the
+        -- same day of the previous month (DATEADD clamps to month end, so 31 Mar -> 28/29 Feb)
+        CASE WHEN date_day <= DATEADD('month', -1, CURRENT_DATE) THEN TRUE ELSE FALSE END AS is_on_or_before_prior_month_to_date,
 
         -- Days from today
         DATEDIFF(DAY, date_day, CURRENT_DATE) AS days_from_today
 
-    FROM date_spine
+    FROM date_base
 )
 
 SELECT *
