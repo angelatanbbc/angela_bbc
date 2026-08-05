@@ -251,7 +251,7 @@ active_subscribers_by_period AS (
     FROM period_windows pw
     LEFT JOIN subscriber_activity sa
         ON sa.date_day BETWEEN pw.prior_start_date AND pw.current_end_date
-    WHERE pw.metric_name = 'active_subscribers_by_period'
+    WHERE pw.metric_name = 'engaged_subscribers_pct'
     GROUP BY pw.period_type
 
 ),
