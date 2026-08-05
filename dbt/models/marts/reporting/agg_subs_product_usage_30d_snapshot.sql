@@ -4,17 +4,17 @@
 ) }}
 
 WITH active_subscribers AS (
-        SELECT user_id, subscription_started_at, subscription_ended_at
+        SELECT user_first_party_id, subscription_started_at, subscription_ended_at
         FROM {{ ref('dim_subscription') }}
     ),
 
     page_views AS (
         SELECT
-            s.user_id, s.subscription_started_at, s.subscription_ended_at,
-            e.* EXCLUDE (user_id)
+            s.user_first_party_id, s.subscription_started_at, s.subscription_ended_at,
+            e.* EXCLUDE (user_first_party_id)
         FROM active_subscribers s
         JOIN {{ source('studios_piano', 'studios_piano_events') }} e
-            ON s.user_id = e.user_id
+            ON s.user_first_party_id = e.user_first_party_id
             AND e.event_time >= s.subscription_started_at
             AND (e.event_time < s.subscription_ended_at OR s.subscription_ended_at IS NULL)
         WHERE site_id IN (638824, 644938, 644937)
@@ -30,17 +30,17 @@ WITH active_subscribers AS (
     product_usage AS (
         SELECT
             IFF(event_time::DATE >= DATEADD(DAYS, -30, CURRENT_DATE()), 0, -1) AS period,
-            COUNT(DISTINCT IFF(app_type = 'mobile-app', user_id, NULL)) AS mobile_app_users,
-            COUNT(DISTINCT IFF(site_id = '644937' AND content_type = 'live-coverage', user_id, NULL)) AS live_news_users,
-            COUNT(DISTINCT IFF(site_id = '638824' AND content_pillar = 'Watch-live-news', user_id, NULL)) AS live_news_stream_users,
-            COUNT(DISTINCT IFF(STARTSWITH(page, 'sport') OR STARTSWITH(page, 'football'), user_id, NULL)) AS sport_users,
-            COUNT(DISTINCT IFF(STARTSWITH(page, 'audio'), user_id, NULL)) AS audio_users,
-            COUNT(DISTINCT IFF(site_id = '638824' AND content_type IN ('docs-series', 'docs-episode'), user_id, NULL)) AS docs_users,
+            COUNT(DISTINCT IFF(app_type = 'mobile-app', user_first_party_id, NULL)) AS mobile_app_users,
+            COUNT(DISTINCT IFF(site_id = '644937' AND content_type = 'live-coverage', user_first_party_id, NULL)) AS live_news_users,
+            COUNT(DISTINCT IFF(site_id = '638824' AND content_pillar = 'Watch-live-news', user_first_party_id, NULL)) AS live_news_stream_users,
+            COUNT(DISTINCT IFF(STARTSWITH(page, 'sport') OR STARTSWITH(page, 'football'), user_first_party_id, NULL)) AS sport_users,
+            COUNT(DISTINCT IFF(STARTSWITH(page, 'audio'), user_first_party_id, NULL)) AS audio_users,
+            COUNT(DISTINCT IFF(site_id = '638824' AND content_type IN ('docs-series', 'docs-episode'), user_first_party_id, NULL)) AS docs_users,
             COUNT(DISTINCT IFF(site_id = '638824' AND content_type IN ('article', 'video')
                                AND content_pillar IN ('Business','Innovation','Culture','Future',
-                                                      'Future Planet','Travel','Worklife'), user_id, NULL)) AS features_users,
-            COUNT(DISTINCT IFF(site_id = '638824' AND content_type IN ('article', 'video') AND content_pillar = 'News', user_id, NULL)) AS news_users,
-            COUNT(DISTINCT user_id) AS total_users
+                                                      'Future Planet','Travel','Worklife'), user_first_party_id, NULL)) AS features_users,
+            COUNT(DISTINCT IFF(site_id = '638824' AND content_type IN ('article', 'video') AND content_pillar = 'News', user_first_party_id, NULL)) AS news_users,
+            COUNT(DISTINCT user_first_party_id) AS total_users
         FROM page_views
         GROUP BY 1
     ),

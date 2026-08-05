@@ -7,7 +7,7 @@ WITH subscriber_activity AS (
 
     SELECT
         date_day,
-        user_id,
+        user_first_party_id,
         is_engaged
     FROM {{ ref('fact_subscriber_activity_daily') }}
 
@@ -27,7 +27,7 @@ active_subscribers AS (
 
     SELECT
         m.month_start_date,
-        COUNT(DISTINCT sa.user_id) AS active_subscribers
+        COUNT(DISTINCT sa.user_first_party_id) AS active_subscribers
     FROM months m
     JOIN subscriber_activity sa
         ON sa.date_day BETWEEN m.month_start_date AND m.month_end_date
@@ -39,7 +39,7 @@ engaged_subscribers AS (
 
     SELECT
         m.month_start_date,
-        COUNT(DISTINCT IFF(sa.is_engaged, sa.user_id, NULL)) AS engaged_subscribers
+        COUNT(DISTINCT IFF(sa.is_engaged, sa.user_first_party_id, NULL)) AS engaged_subscribers
     FROM months m
     JOIN subscriber_activity sa
         ON sa.date_day BETWEEN m.month_start_date AND m.month_end_date

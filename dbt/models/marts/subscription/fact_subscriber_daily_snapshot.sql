@@ -11,9 +11,10 @@ dim_subscription AS (
 
     SELECT
         subscription_id,
+        user_first_party_id,
         term_id,
         term_name,
-        billing_period,
+        billing_plan,
         subscription_period_number
     FROM {{ ref('dim_subscription') }}
 
@@ -34,7 +35,6 @@ date_spine AS (
 subscription_state_periods AS (
 
     SELECT
-        user_id,
         subscription_id,
         conversion_app_type_id,
         conversion_device_type_id,
@@ -68,15 +68,16 @@ subscription_days AS (
     SELECT
         d.date_day,
         s.subscription_id,
-        sp.user_id,
+        NULL as user_id,
+        ds.user_first_party_id,
         sp.conversion_app_type_id,
         sp.conversion_device_type_id,
         sp.conversion_os_group_id,
         sp.last_subscription_action,
-        COALESCE(ds.term_id, sp.event_term_id, 'N/A') AS term_id,
-        COALESCE(ds.term_name, sp.event_term_name, 'N/A') AS term_name,
-        COALESCE(ds.billing_period, sp.event_billing_period, 'N/A') AS billing_period,
-        COALESCE(ds.subscription_period_number, sp.event_subscription_period_number, 0) AS subscription_period_number,
+        COALESCE(ds.term_id, 'N/A') AS term_id,
+        COALESCE(ds.term_name, 'N/A') AS term_name,
+        COALESCE(ds.billing_plan, 'N/A') AS billing_plan,
+        COALESCE(sp.event_subscription_period_number, 1) AS subscription_period_number,
         {{ generate_geo_id('sp.geo_country', 'sp.geo_region') }} AS geo_id,
         COALESCE(sp.geo_country, 'Unknown') AS geo_country,
         COALESCE(sp.geo_region, 'Unknown') AS geo_region,
@@ -116,6 +117,7 @@ final AS (
     SELECT
         sd.date_day,
         sd.user_id,
+        sd.user_first_party_id,
         sd.subscription_id,
         sd.conversion_app_type_id,
         sd.conversion_device_type_id,
@@ -123,7 +125,7 @@ final AS (
         sd.last_subscription_action,
         sd.term_id,
         sd.term_name,
-        sd.billing_period,
+        sd.billing_plan,
         sd.subscription_period_number,
         sd.geo_id,
         sd.geo_country,

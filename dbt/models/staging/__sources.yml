@@ -19,25 +19,25 @@ sources:
     schema: salesforce_brands_licencing_crm
     description: SFMC meta data
     tables:
-      - name: sent 
+      - name: sent
         description: SFMC sent email data
-      - name: opens 
+      - name: opens
         description: SFMC open email data
-      - name: clicks 
+      - name: clicks
         description: SFMC click email data
-      - name: bounces 
+      - name: bounces
         description: SFMC bounce email data
-      - name: unsubs 
+      - name: unsubs
         description: SFMC unsub email data
-      - name: send_jobs 
+      - name: send_jobs
         description: SFMC job data
-      - name: journey 
+      - name: journey
         description: SFMC journey email data
-      - name: journey_activity 
+      - name: journey_activity
         description: SFMC journey activity
-      - name: list_subscribers 
+      - name: list_subscribers
         description: SFMC subscriber table
-      - name: not_sent 
+      - name: not_sent
         description: SFMC reasons emails didn't send
   - name: FACEBOOK_ADS
     database: sdp_bronze
@@ -53,4 +53,9 @@ sources:
     tables:
       - name: STG_GOOGLE_ADS
         description: Google ad data.
-
+  - name: dns_transformations
+    database: sdp_project_sandbox
+    description: Piano subscription snapshots — uploaded manually from Piano API each day.
+    tables:
+      - name: piano_subscription_snapshots
+        description: Piano subscription snapshots.
