@@ -178,7 +178,7 @@ subscriber_activity AS (
 
     SELECT
         date_day,
-        user_id,
+        user_first_party_id,
         is_engaged,
         n_visits,
         n_pageviews
@@ -232,8 +232,8 @@ active_subscribers AS (
     SELECT
         pw.metric_name,
         pw.period_type,
-        COUNT(DISTINCT IFF(sa.date_day = pw.current_end_date, sa.user_id, NULL)) AS current_value,
-        COUNT(DISTINCT IFF(sa.date_day = pw.prior_end_date, sa.user_id, NULL)) AS prior_value
+        COUNT(DISTINCT IFF(sa.date_day = pw.current_end_date, sa.user_first_party_id, NULL)) AS current_value,
+        COUNT(DISTINCT IFF(sa.date_day = pw.prior_end_date, sa.user_first_party_id, NULL)) AS prior_value
     FROM period_windows pw
     LEFT JOIN subscriber_activity sa
         ON sa.date_day IN (pw.current_end_date, pw.prior_end_date)
@@ -246,12 +246,12 @@ active_subscribers_by_period AS (
 
     SELECT
         pw.period_type,
-        COUNT(DISTINCT IFF(sa.date_day BETWEEN pw.current_start_date AND pw.current_end_date, sa.user_id, NULL)) AS current_value,
-        COUNT(DISTINCT IFF(sa.date_day BETWEEN pw.prior_start_date AND pw.prior_end_date, sa.user_id, NULL)) AS prior_value
+        COUNT(DISTINCT IFF(sa.date_day BETWEEN pw.current_start_date AND pw.current_end_date, sa.user_first_party_id, NULL)) AS current_value,
+        COUNT(DISTINCT IFF(sa.date_day BETWEEN pw.prior_start_date AND pw.prior_end_date, sa.user_first_party_id, NULL)) AS prior_value
     FROM period_windows pw
     LEFT JOIN subscriber_activity sa
         ON sa.date_day BETWEEN pw.prior_start_date AND pw.current_end_date
-    WHERE pw.metric_name = 'engaged_subscribers_pct'
+    WHERE pw.metric_name = 'active_subscribers_by_period'
     GROUP BY pw.period_type
 
 ),
@@ -261,8 +261,8 @@ engaged_subscribers AS (
     SELECT
         pw.metric_name,
         pw.period_type,
-        COUNT(DISTINCT IFF(sa.date_day BETWEEN pw.current_start_date AND pw.current_end_date AND sa.is_engaged, sa.user_id, NULL)) AS current_value,
-        COUNT(DISTINCT IFF(sa.date_day BETWEEN pw.prior_start_date AND pw.prior_end_date AND sa.is_engaged, sa.user_id, NULL)) AS prior_value
+        COUNT(DISTINCT IFF(sa.date_day BETWEEN pw.current_start_date AND pw.current_end_date AND sa.is_engaged, sa.user_first_party_id, NULL)) AS current_value,
+        COUNT(DISTINCT IFF(sa.date_day BETWEEN pw.prior_start_date AND pw.prior_end_date AND sa.is_engaged, sa.user_first_party_id, NULL)) AS prior_value
     FROM period_windows pw
     LEFT JOIN subscriber_activity sa
         ON sa.date_day BETWEEN pw.prior_start_date AND pw.current_end_date
@@ -322,9 +322,9 @@ avg_subscriber_visits_per_period AS (
         pw.metric_name,
         pw.period_type,
         SUM(IFF(sa.date_day BETWEEN pw.current_start_date AND pw.current_end_date, sa.n_visits, 0))
-            / NULLIF(COUNT(DISTINCT IFF(sa.date_day BETWEEN pw.current_start_date AND pw.current_end_date, sa.user_id, NULL)), 0) AS current_value,
+            / NULLIF(COUNT(DISTINCT IFF(sa.date_day BETWEEN pw.current_start_date AND pw.current_end_date, sa.user_first_party_id, NULL)), 0) AS current_value,
         SUM(IFF(sa.date_day BETWEEN pw.prior_start_date AND pw.prior_end_date, sa.n_visits, 0))
-            / NULLIF(COUNT(DISTINCT IFF(sa.date_day BETWEEN pw.prior_start_date AND pw.prior_end_date, sa.user_id, NULL)), 0) AS prior_value
+            / NULLIF(COUNT(DISTINCT IFF(sa.date_day BETWEEN pw.prior_start_date AND pw.prior_end_date, sa.user_first_party_id, NULL)), 0) AS prior_value
     FROM period_windows pw
     LEFT JOIN subscriber_activity sa
         ON sa.date_day BETWEEN pw.prior_start_date AND pw.current_end_date

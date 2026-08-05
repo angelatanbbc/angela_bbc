@@ -4,14 +4,14 @@ WITH active_subscriber_days AS (
 
     SELECT
         date_day,
-        user_id,
+        user_first_party_id,
         COUNT(DISTINCT subscription_id) AS n_active_subscriptions,
         SUM(mrr_amount) AS mrr_amount
     FROM {{ ref('fact_subscriber_daily_snapshot') }}
     WHERE
         subscriber_status = 'Active'
-        AND user_id IS NOT NULL
-    GROUP BY date_day, user_id
+        AND user_first_party_id IS NOT NULL
+    GROUP BY date_day, user_first_party_id
 
 ),
 
@@ -19,21 +19,21 @@ subscriber_pageviews AS (
 
     SELECT
         event_time::DATE AS date_day,
-        user_id,
+        user_first_party_id,
         COUNT(DISTINCT visit_id) AS n_visits,
         COUNT(*) AS n_pageviews
     FROM {{ ref('stg_piano__analytics_events') }}
-    WHERE user_id IS NOT NULL
-    GROUP BY event_time::DATE, user_id
+    WHERE user_first_party_id IS NOT NULL
+    GROUP BY event_time::DATE, user_first_party_id
 
 ),
 
 final AS (
 
     SELECT
-        {{ dbt_utils.generate_surrogate_key(['asd.date_day', 'asd.user_id']) }} AS subscriber_activity_daily_key,
+        {{ dbt_utils.generate_surrogate_key(['asd.date_day', 'asd.user_first_party_id']) }} AS subscriber_activity_daily_key,
         asd.date_day,
-        asd.user_id,
+        asd.user_first_party_id,
         asd.n_active_subscriptions,
         asd.mrr_amount,
         COALESCE(sp.n_visits, 0) AS n_visits,
@@ -42,10 +42,10 @@ final AS (
     FROM active_subscriber_days asd
     LEFT JOIN subscriber_pageviews sp
         ON asd.date_day = sp.date_day
-        AND asd.user_id = sp.user_id
+        AND asd.user_first_party_id = sp.user_first_party_id
 
 )
 
 SELECT *
 FROM final
-ORDER BY user_id, date_day
+ORDER BY user_first_party_id, date_day

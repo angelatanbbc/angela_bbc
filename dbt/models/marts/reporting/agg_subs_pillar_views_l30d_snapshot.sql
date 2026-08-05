@@ -5,7 +5,7 @@
 
 WITH active_subscribers AS (
     
-        SELECT user_id, subscription_started_at, subscription_ended_at
+        SELECT user_first_party_id, subscription_started_at, subscription_ended_at
         FROM {{ ref('dim_subscription') }}
     
     ),
@@ -13,11 +13,11 @@ WITH active_subscribers AS (
     subscriber_events AS (
     
         SELECT
-            s.user_id,
-            e.* EXCLUDE (user_id)
+            s.user_first_party_id,
+            e.* EXCLUDE (user_first_party_id)
         FROM active_subscribers s
         JOIN {{ source('studios_piano', 'studios_piano_events') }} e
-            ON s.user_id = e.user_id
+            ON s.user_first_party_id = e.user_first_party_id
             AND e.event_time >= s.subscription_started_at
             AND e.event_time <  COALESCE(s.subscription_ended_at, '9999-12-31'::TIMESTAMP)
         WHERE
@@ -40,7 +40,7 @@ WITH active_subscribers AS (
             to_date(event_time) AS event_date,
             date_trunc('month', to_date(event_time)) AS month,
             page,
-            user_id,
+            user_first_party_id,
             visitor_id,
             visit_id,
             geo_country,
