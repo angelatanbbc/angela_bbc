@@ -1,0 +1,36 @@
+{{ config(
+    materialized='table',
+    tags=['piano', 'subscription', 'snapshots', 'staging', 'joseph.iles@bbc.com'],
+) }}
+
+select
+    SUBSCRIPTION_ID as subscription_id,
+    USER_UID as user_uid,
+    STATUS as status,
+    STATUS_NAME as status_name,
+    STATUS_NAME_IN_REPORTS as status_name_in_reports,
+    AUTO_RENEW as auto_renew,
+    CANCELABLE as cancellable,
+    CANCELABLE_AND_REFUNDADLE as cancellable_and_refundable,
+    BILLING_PLAN as billing_plan,
+    TERM_TERM_ID as term_id,
+    TERM_NAME as term_name,
+    RESOURCE_RID as resource_rid,
+    RESOURCE_NAME as resource_name,
+    START_DATE as start_date,
+    END_DATE as end_date,
+    NEXT_BILL_DATE as next_bill_date,
+    NEXT_VERIFICAITION_DATE as next_verification_date,
+    IS_IN_TRIAL as is_in_trial,
+    TRIAL_PERIOD_END_DATE as trial_period_end_date,
+    TRIAL_AMOUNT as trial_amount,
+    TRIAL_CURRENCY as trial_currency,
+    CHARGE_COUNT as charge_count,
+    CONVERSION_RESULT as conversion_result,
+    ACQUISITION_TYPE as acquisition_type,
+    EXTERNAL_API_NAME as external_api_name,
+    USER_CREATE_DATE as user_create_date,
+    USER_LAST_VISIT as user_last_visit,
+    SNAPSHOT_AT as snapshot_at,
+    SNAPSHOT_DATE as snapshot_date
+from {{ source('dns_transformations', 'piano_subscription_snapshots') }}

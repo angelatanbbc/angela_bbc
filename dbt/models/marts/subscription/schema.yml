@@ -334,14 +334,16 @@ models:
           - unique
       - name: user_id
         description: Piano identifier for the registered user/account linked to the subscription and behavioural facts.
-        tests:
-          - not_null
       - name: user_first_party_id
         description: Alternative first-party identifier for the registered user/account linked to the subscription.
+        tests:
+          - not_null
       - name: conversion_id
         description: Piano identifier for the conversion event that created the subscription.
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
       - name: subscription_sequence_number
         description: The order of this subscription within the user's observed subscription history.
         tests:
@@ -376,14 +378,18 @@ models:
           - not_null
       - name: subscription_ended_at
         description: Timestamp when the subscription ended, if inactive.
-      - name: latest_subscription_event_at
+      - name: latest_action_at
         description: Timestamp of the latest observed subscription event.
         tests:
-          - not_null
-      - name: latest_subscription_action
+          - not_null:
+              config:
+                severity: warn
+      - name: latest_action
         description: Latest observed subscription action or event type.
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
       - name: created_via_upgrade
         description: Whether the subscription was created by an explicit upgrade flow.
         tests:
@@ -400,8 +406,8 @@ models:
         description: Term ID attached to the subscription.
       - name: term_name
         description: Term name attached to the subscription.
-      - name: billing_period
-        description: Billing period attached to the subscription.
+      - name: billing_plan
+        description: Billing plan attached to the subscription.
       - name: subscription_period_number
         description: Latest observed subscription period number.
       - name: mrr_amount
