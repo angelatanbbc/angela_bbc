@@ -1,4 +1,7 @@
 packages:
+- package: Snowflake-Labs/dbt_semantic_view
+  name: dbt_semantic_view
+  version: 1.0.5
 - package: dbt-labs/dbt_utils
   name: dbt_utils
   version: 1.3.3
@@ -7,8 +10,8 @@ packages:
   version: 1.3.0
 - package: fivetran/fivetran_utils
   name: fivetran_utils
-  version: 0.4.11
+  version: 0.4.12
 - package: dbt-labs/spark_utils
   name: spark_utils
   version: 0.3.3
-sha1_hash: 1231f714ed2fd56758b22e30bf2634e61c89b44a
+sha1_hash: 0b392bfcec60dbf648afa25bf57cf8e754c86915
