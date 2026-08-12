@@ -8,7 +8,8 @@ WITH cohort_base AS (
         conversion_app_type_id,
         conversion_device_type_id,
         conversion_os_group_id,
-        billing_plan,
+        geo_country,
+        billing_period,
         DATE_TRUNC(MONTH, conversion_date) AS cohort_month,
         months_since_conversion
     FROM
@@ -26,7 +27,8 @@ cohort_counts AS (
         conversion_app_type_id,
         conversion_device_type_id,
         conversion_os_group_id,
-        billing_plan,
+        geo_country,
+        billing_period,
         cohort_month,
         months_since_conversion,
         COUNT(DISTINCT subscription_id) AS active_subscribers
@@ -43,7 +45,8 @@ cohort_sizes AS (
         conversion_app_type_id,
         conversion_device_type_id,
         conversion_os_group_id,
-        billing_plan,
+        geo_country,
+        billing_period,
         cohort_month,
         active_subscribers as original_size
     FROM cohort_counts
@@ -56,12 +59,13 @@ SELECT
     conversion_app_type_id,
     conversion_device_type_id,
     conversion_os_group_id,
-    billing_plan,
+    geo_country,
+    billing_period,
     TO_CHAR(cohort_month, 'YYYY-MM') AS cohort,
     s.original_size AS cohort_size,
     c.months_since_conversion,
     c.active_subscribers
 FROM cohort_counts c
 JOIN cohort_sizes s
-    USING (term_id, conversion_app_type_id, conversion_device_type_id, conversion_os_group_id, billing_plan, cohort_month)
-ORDER BY 1 ASC, 2 ASC, 3 ASC, 4 ASC, 5 DESC
+    USING (term_id, conversion_app_type_id, conversion_device_type_id, conversion_os_group_id, geo_country, billing_period, cohort_month)
+ORDER BY 1 ASC, 2 ASC, 3 ASC, 4 ASC, 5 ASC, 6 DESC
