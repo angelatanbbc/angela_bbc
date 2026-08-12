@@ -1,7 +1,9 @@
-{{ config(
-    materialized='table',
-    tags=['subscriptions', 'piano', 'mart', 'reporting']
-) }}
+{{
+    config(
+        materialized='table',
+        tags=['subscriptions', 'piano', 'mart', 'reporting']
+    )
+}}
 
 WITH active_subscribers AS (
         SELECT user_first_party_id, subscription_started_at, subscription_ended_at

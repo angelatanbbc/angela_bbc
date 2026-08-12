@@ -1,6 +1,7 @@
-{{ config(
-    materialized="table",
-    tags=["mart","core",'dim']
+{{
+    config(
+        materialized="table",
+        tags=["mart","core",'dim']
     )
 }}
 

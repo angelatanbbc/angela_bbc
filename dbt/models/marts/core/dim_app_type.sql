@@ -1,8 +1,8 @@
 {{ 
     config(
         materialized="table",
-        tags=['mart','core','dim']
-        )
+        tags=["mart","core","dim"]
+    )
 }}
 
 WITH app_types AS (

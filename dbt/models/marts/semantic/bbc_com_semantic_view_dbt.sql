@@ -1,4 +1,8 @@
-{{ config(materialized='semantic_view') }}
+{{
+    config(
+        materialized='semantic_view'
+    )
+}}
 
 tables (
     conversion_touchpoints as {{ ref('fact_conversions') }} primary key (conversion_id),

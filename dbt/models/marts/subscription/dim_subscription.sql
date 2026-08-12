@@ -1,7 +1,9 @@
-{{ config(
-    materialized="table",
-    tags=['subscriptions', 'piano', 'mart', 'dim']
-) }}
+{{
+    config(
+        materialized="table",
+        tags=['subscriptions', 'piano', 'mart', 'dim']
+    )
+}}
 
 WITH subscription_latest_snapshot AS (
 

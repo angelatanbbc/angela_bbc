@@ -1,4 +1,5 @@
-{{ config(
+{{
+    config(
         materialized="table",
         tags=['salesforce', 'sfmc', 'mart']
     )

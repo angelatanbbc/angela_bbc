@@ -1,6 +1,7 @@
-{{ config(
-    materialized="table",
-    tags=['fct', 'subscriptions']
+{{
+    config(
+        materialized="table",
+        tags=['fct', 'subscriptions']
     )
 }}
 

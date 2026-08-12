@@ -1,7 +1,9 @@
-{{ config(
-    materialized='table',
-    tags=['subscriptions', 'piano', 'tableau','mart','reporting']
-) }}
+{{
+    config(
+        materialized='table',
+        tags=['subscriptions', 'piano', 'tableau','mart','reporting']
+    )
+}}
 
 WITH as_of AS (
 
