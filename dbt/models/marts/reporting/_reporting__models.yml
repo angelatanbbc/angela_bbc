@@ -86,15 +86,11 @@ models:
       - name: pct_change
         description: Percentage change between current_value and prior_value, null when prior_value is zero.
       - name: lifetime_value
-<<<<<<< HEAD
         description: >
           All-time total for BANs whose big number is the full history while the change
           columns compare MTD vs prior MTD (acquisition organic_signups, paid_signups
           and pct_annual). Null for all other rows; in Tableau use
           COALESCE(lifetime_value, current_value) for the headline number.
-=======
-        description: Lifetime value for the metric and period.
->>>>>>> fe61c8f (typos)
       - name: metric_format
         description: Display format hint for Tableau.
         tests:
