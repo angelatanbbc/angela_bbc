@@ -13,8 +13,8 @@ models:
         description: Date of subscriber activity and active subscriber status.
         tests:
           - not_null
-      - name: user_id
-        description: Piano unique identifier for the subscribed user.
+      - name: user_first_party_id
+        description: FedID unique identifier for the subscribed user.
         tests:
           - not_null
       - name: n_active_subscriptions
