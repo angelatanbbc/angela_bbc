@@ -19,7 +19,7 @@ dim_subscription AS (
         user_first_party_id,
         term_id,
         term_name,
-        billing_plan,
+        billing_period,
         subscription_period_number
     FROM {{ ref('dim_subscription') }}
 
@@ -81,7 +81,7 @@ subscription_days AS (
         sp.last_subscription_action,
         COALESCE(ds.term_id, 'N/A') AS term_id,
         COALESCE(ds.term_name, 'N/A') AS term_name,
-        COALESCE(ds.billing_plan, 'N/A') AS billing_plan,
+        COALESCE(ds.billing_period, 'N/A') AS billing_period,
         COALESCE(sp.event_subscription_period_number, 1) AS subscription_period_number,
         {{ generate_geo_id('sp.geo_country', 'sp.geo_region') }} AS geo_id,
         COALESCE(sp.geo_country, 'Unknown') AS geo_country,
@@ -130,7 +130,7 @@ final AS (
         sd.last_subscription_action,
         sd.term_id,
         sd.term_name,
-        sd.billing_plan,
+        sd.billing_period,
         sd.subscription_period_number,
         sd.geo_id,
         sd.geo_country,

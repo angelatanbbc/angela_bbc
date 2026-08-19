@@ -60,6 +60,7 @@ subscription_lifecycle AS (
 
     SELECT
         s.*,
+        MAX(e.billing_period) AS billing_period,
         MIN_BY(e.conversion_id, event_time) AS conversion_id,
         MIN_BY(e.conversion_app_type_id, e.event_time) AS conversion_app_type_id,
         BOOLOR_AGG(COALESCE(e.created_via_upgrade, FALSE)) AS created_via_upgrade,
@@ -156,6 +157,7 @@ classified AS (
         term_id,
         term_name,
         billing_plan,
+        billing_period,
         subscription_period_number,
         charge_count,
         IFF(
