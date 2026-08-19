@@ -1,4 +1,9 @@
-{{ config(materialized="table") }}
+{{
+    config(
+        materialized="table",
+        tags=['subscriptions', 'piano', 'mart', 'dim']
+    )
+}}
 
 SELECT
     term_id,

@@ -1,7 +1,9 @@
-{{ config(
-    materialized='table',
-    tags=['subscriptions', 'piano', 'tableau'],
-) }}
+{{
+    config(
+        materialized='table',
+        tags=['subscriptions', 'piano', 'tableau']
+    )
+}}
 
 -- Funnel metrics for the acquisition dashboard, stored as HyperLogLog sketches so
 -- distinct visitor counts can be re-aggregated across any date range or dimension

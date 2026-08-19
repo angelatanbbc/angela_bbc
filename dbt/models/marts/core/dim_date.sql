@@ -1,4 +1,9 @@
-{{ config(materialized="table") }}
+{{
+    config(
+        materialized="table",
+        tags=["mart","core",'dim']
+    )
+}}
 
 WITH date_spine AS (
     {{ dbt_utils.date_spine(

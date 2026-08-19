@@ -1,4 +1,9 @@
-{{ config(materialized='table') }}
+{{
+    config(
+        materialized='table',
+        tags=['fct', 'subscriptions']
+    )
+}}
 
 WITH cohort_base AS (
 

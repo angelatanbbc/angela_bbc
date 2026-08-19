@@ -1,5 +1,9 @@
-{{ config(materialized="table") }}
-
+{{
+    config(
+        materialized="table",
+        tags=["mart","core",'dim']
+    )
+}}
 
 WITH os_groups AS (
 

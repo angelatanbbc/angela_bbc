@@ -1,7 +1,9 @@
-{{ config(
-    materialized='table',
-    tags=['subscriptions', 'piano'],
-) }}
+{{
+    config(
+        materialized='table',
+        tags=['subscriptions', 'piano', 'mart', 'reporting']
+    )
+}}
 
 WITH active_subscribers AS (
     

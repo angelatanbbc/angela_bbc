@@ -3,7 +3,8 @@
         materialized="incremental",
         unique_key="exposure_id",
         incremental_strategy='merge',
-        on_schema_change='sync_all_columns'
+        on_schema_change='sync_all_columns',
+        tags=["piano", "intermediate"]
     )
 }}
 

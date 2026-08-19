@@ -1,7 +1,9 @@
-{{ config(
-    materialized='table',
-    tags=['subscriptions', 'piano', 'tableau'],
-) }}
+{{
+    config(
+        materialized='table',
+        tags=['subscriptions', 'piano', 'tableau']
+    )
+}}
 
 WITH conversions AS (
 

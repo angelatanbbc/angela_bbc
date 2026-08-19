@@ -1,4 +1,6 @@
-{{ config(enabled=var('ad_reporting__facebook_ads_enabled', True)) }}
+{{ config(
+    enabled=var('ad_reporting__facebook_ads_enabled', True),
+    tags=["intermediate"]) }}
 
 {% set url_field = "coalesce(page_link,template_page_link)" %}
 

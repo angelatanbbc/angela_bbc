@@ -1,4 +1,6 @@
-{{config(materialized="table")}}
+{{config(
+    materialized="table",
+    tags=["subscription","intermediate"])}}
 
 /* ============================================================
    PURPOSE

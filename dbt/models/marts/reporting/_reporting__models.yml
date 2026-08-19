@@ -266,3 +266,107 @@ models:
           - not_null:
               config:
                 where: "record_source = 'exposures'"
+
+  - name: agg_engaged_subscribers_monthly
+    description: Monthly aggregate of active and engaged subscribers.
+    columns:
+      - name: month_start_date
+        description: First day of the reporting month.
+        tests:
+          - not_null
+          - unique
+          - relationships:
+              to: ref('dim_date')
+              field: month_start_date
+      - name: active_subscribers
+        description: Count of distinct active subscribers in the month.
+        tests:
+          - not_null
+      - name: engaged_subscribers
+        description: Count of distinct engaged subscribers in the month.
+        tests:
+          - not_null
+      - name: engaged_subscriber_rate
+        description: Engaged subscribers as a percentage of active subscribers.
+        tests:
+          - not_null
+
+  - name: agg_engaged_subscribers_weekly
+    description: Weekly aggregate of active and engaged subscribers.
+    columns:
+      - name: week_start_date
+        description: First day of the reporting week.
+        tests:
+          - not_null
+          - unique
+          - relationships:
+              to: ref('dim_date')
+              field: week_start_date
+      - name: active_subscribers
+        description: Count of distinct active subscribers in the week.
+        tests:
+          - not_null
+      - name: engaged_subscribers
+        description: Count of distinct engaged subscribers in the week.
+        tests:
+          - not_null
+      - name: engaged_subscriber_rate
+        description: Engaged subscribers as a percentage of active subscribers.
+        tests:
+          - not_null
+
+  - name: agg_subs_content_1w_snapshot
+    description: One-week snapshot of subscriber content engagement.
+    columns:
+      - name: content_id
+        description: Identifier for the content being engaged with.
+        tests:
+          - not_null
+      - name: content_pillar
+        description: The pillar to which the content belongs.
+        tests:
+          - not_null
+      - name: page_title
+        description: The title of the page containing the content.
+        tests:
+          - not_null
+      - name: subscribers_viewed
+        description: Count of distinct subscribers who have viewed the content.
+        tests:
+          - not_null
+      - name: article_views
+        description: Count of distinct articles viewed by subscribers.
+        tests:
+          - not_null
+
+  - name: agg_subs_pillar_views_l30d_snapshot
+    description: 30-day snapshot of pillar-level subscriber views.
+    columns:
+      - name: category
+        description: The category of the content.
+        tests:
+          - not_null
+      - name: page_views
+        description: Count of pages viewed by subscribers.
+        tests:
+          - not_null
+
+  - name: agg_subs_product_usage_30d_snapshot
+    description: 30-day snapshot of product usage metrics for subscribers.
+    columns:
+      - name: product
+        description: The product for which usage metrics are being tracked.
+        tests:
+          - not_null
+      - name: current_pct
+        description: The current percentage of product usage.
+        tests:
+          - not_null
+      - name: prior_pct
+        description: The prior percentage of product usage.
+        tests:
+          - not_null
+      - name: mom
+        description: The month-over-month change in product usage.
+        tests:
+          - not_null

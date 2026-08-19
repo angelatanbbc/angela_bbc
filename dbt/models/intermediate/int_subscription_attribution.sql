@@ -1,4 +1,6 @@
-{{config(materialized="table")}}
+{{config(
+    materialized="table",
+    tags=["subscription","intermediate"])}}
   
 /* ============================================================
    STEP 1: Normalize source fields & flag paid interactions

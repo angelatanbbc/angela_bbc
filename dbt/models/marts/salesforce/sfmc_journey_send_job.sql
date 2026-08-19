@@ -1,4 +1,9 @@
-{{ config(materialized="table") }}
+{{
+    config(
+        materialized="table",
+        tags=['salesforce', 'sfmc', 'mart']
+    )
+}}
 
 WITH full_data AS (
     SELECT e.SendID,
