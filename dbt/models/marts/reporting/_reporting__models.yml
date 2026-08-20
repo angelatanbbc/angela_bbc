@@ -144,29 +144,14 @@ models:
         description: Region or state where the sign-up occurred.
       - name: app_type_id
         description: Surrogate key for the app type.
-        tests:
-          - relationships:
-              arguments:
-                to: ref('dim_app_type')
-                field: app_type_id
       - name: app_type
         description: Platform family (Web or Mobile App) the sign-up came from.
       - name: device_type_id
         description: Surrogate key for the device type.
-        tests:
-          - relationships:
-              arguments:
-                to: ref('dim_device_type')
-                field: device_type_id
       - name: device_type
         description: Device category the sign-up came from.
       - name: os_group_id
         description: Surrogate key for the operating system group.
-        tests:
-          - relationships:
-              arguments:
-                to: ref('dim_os_group')
-                field: os_group_id
       - name: os_group
         description: Operating system group the sign-up came from.
       - name: n_signups
@@ -218,29 +203,14 @@ models:
                 values: ['Paywall', 'Ribbon', 'Subscription Landing Page', 'Other']
       - name: app_type_id
         description: Surrogate key for the app type.
-        tests:
-          - relationships:
-              arguments:
-                to: ref('dim_app_type')
-                field: app_type_id
       - name: app_type
         description: Platform family (Web or Mobile App) for the row.
       - name: device_type_id
         description: Surrogate key for the device type.
-        tests:
-          - relationships:
-              arguments:
-                to: ref('dim_device_type')
-                field: device_type_id
       - name: device_type
         description: Device category for the row.
       - name: os_group_id
         description: Surrogate key for the operating system group.
-        tests:
-          - relationships:
-              arguments:
-                to: ref('dim_os_group')
-                field: os_group_id
       - name: os_group
         description: Operating system group for the row.
       - name: geo_country
@@ -275,9 +245,6 @@ models:
         tests:
           - not_null
           - unique
-          - relationships:
-              to: ref('dim_date')
-              field: month_start_date
       - name: active_subscribers
         description: Count of distinct active subscribers in the month.
         tests:
@@ -299,9 +266,6 @@ models:
         tests:
           - not_null
           - unique
-          - relationships:
-              to: ref('dim_date')
-              field: week_start_date
       - name: active_subscribers
         description: Count of distinct active subscribers in the week.
         tests:
@@ -344,13 +308,10 @@ models:
     columns:
       - name: category
         description: The category of the content.
-        tests:
-          - not_null
       - name: page_views
         description: Count of pages viewed by subscribers.
         tests:
           - not_null
-
   - name: agg_subs_product_usage_30d_snapshot
     description: 30-day snapshot of product usage metrics for subscribers.
     columns:

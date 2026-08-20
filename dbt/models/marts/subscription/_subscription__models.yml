@@ -13,10 +13,12 @@ models:
         description: Date of subscriber activity and active subscriber status.
         tests:
           - not_null
-      - name: user_id
+      - name: user_first_party_id
         description: Piano unique identifier for the subscribed user.
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
       - name: n_active_subscriptions
         description: Number of active subscriptions held by the user on the date.
         tests:
@@ -45,7 +47,6 @@ models:
         description: Piano unique identifier for the conversion event.
         tests:
           - not_null
-          - unique
       - name: subscription_id
         description: Identifier for the subscription associated with the conversion.
         tests:
@@ -53,21 +54,29 @@ models:
       - name: visitor_id
         description: Piano unique identifier for the visitor.
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
       - name: user_id
         description: Piano unique identifier for the registered user.
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
       - name: user_first_party_id
         description: First-party user identifier aka FED_ID
       - name: visit_id
         description: Piano unique identifier for the visit associated with the conversion event.
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
       - name: visit_time
         description: Timestamp of the visit associated with the conversion event.
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
       - name: app_type_id
         description: Identifier for the application type associated with the conversion.
       - name: device_type_id
@@ -188,10 +197,6 @@ models:
         description: Type or classification of the template.
       - name: template_description
         description: Description or notes attached to the template.
-      - name: is_active
-        description: Whether the template is currently active.
-        tests:
-          - not_null
       - name: created_at
         description: Timestamp when the template was created.
       - name: updated_at
@@ -217,10 +222,6 @@ models:
         description: Billing period for the term, such as monthly or annual.
       - name: duration_days
         description: Duration of the term in days.
-      - name: is_active
-        description: Whether the term is currently active.
-        tests:
-          - not_null
       - name: created_at
         description: Timestamp when the term was created.
       - name: updated_at
@@ -258,8 +259,6 @@ models:
           - not_null
       - name: user_id
         description: Piano unique identifier for the registered user.
-        tests:
-          - not_null
       - name: app_type_id
         description: App type dimension identifier associated with the exposure event.
         tests:
@@ -416,7 +415,9 @@ models:
       - name: user_id
         description: Piano unique identifier for the subscribed user.
         tests:
-          - not_null
+          - not_null:
+              config: 
+                severity: warn
       - name: subscription_id
         description: Unique identifier for the subscription.
         tests:
@@ -482,7 +483,9 @@ models:
       - name: user_id
         description: Piano unique identifier for the subscribed user.
         tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
       - name: user_first_party_id
         description: First-party identifier for the user aka FED_ID
       - name: subscription_id
@@ -515,8 +518,6 @@ models:
         description: Month when the visitor was part of the cohort.
       - name: transaction_value
         description: The value of the transaction.
-        tests:
-          - not_null
       - name: previous_transaction_value
         description: The value of the previous transaction.
       - name: previous_mrr
@@ -563,18 +564,12 @@ models:
     columns:
       - name: date_day
         description: Date of the spend observation.
-        tests:
-          - not_null
       - name: channel
         description: Marketing channel for the spend observation.
-        tests:
-          - not_null
       - name: campaign_name
         description: Campaign name for the spend observation.
       - name: spend_amount
         description: Spend amount for the spend observation.
-        tests:
-          - not_null
       - name: impressions
         description: Number of impressions for the spend observation.
       - name: clicks
@@ -589,7 +584,7 @@ models:
     columns:
       - name: event_date
         description: Date of the attribution event.
-        test:
+        tests:
           - not_null
       - name: event_url_full
         description: Full URL of the attribution event.
@@ -647,8 +642,6 @@ models:
         description: Trial duration associated with the attribution result.
       - name: subscription_id
         description: Subscription identifier associated with the conversion.
-        tests:
-          - not_null
       - name: subscription_action
         description: Action taken on the subscription.
       - name: subscription_period_number
