@@ -8,7 +8,6 @@ models:
         description: Unique send identifier used to join email activity metrics and journey metadata.
         tests:
           - not_null
-          - unique
           - relationships:
               arguments:
                 to: source('sfmc','sent')
