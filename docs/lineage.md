@@ -1,10 +1,6 @@
 # DNS Transformations Lineage
 
-This is the dependency reference for the `dns_transformations` dbt project. Arrows point from upstream to downstream, left to right. Names in the diagrams are the dbt model or source table names as they exist in the project. The README covers project and domain orientation; the runbook covers local execution, deployment, debugging, and ownership.
-
-## Complete model lineage
-
-The complete lineage reads up-to-down, and left-to-right.
+This is the dependency reference for the `dns_transformations` dbt project. Arrows point from upstream to downstream, left to right. Names in the diagrams are the dbt model or source table names as they exist in the project. This README covers project and domain orientation; the runbook covers local execution, deployment, debugging, and ownership.
 
 ### Color legend
 
