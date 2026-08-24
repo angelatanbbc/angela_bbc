@@ -12,6 +12,7 @@ on:
         type: choice
         description: Environment
         options:
+          - dev
           - live
         default: live
         required: true
