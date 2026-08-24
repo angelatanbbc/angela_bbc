@@ -10,7 +10,6 @@ on:
         description: Environment
         options:
           - dev
-          - dev
           - live
         default: live
         required: true
@@ -26,8 +25,6 @@ jobs:
     runs-on:
       - codebuild-dns-transformations-project-${{ github.run_id }}-${{ github.run_attempt }}
     environment: ${{ inputs.environment }}
-    env:
-      FULL_REFRESH_FLAG: ${{ inputs.full_refresh && '--full-refresh' || '' }}
     env:
       FULL_REFRESH_FLAG: ${{ inputs.full_refresh && '--full-refresh' || '' }}
     defaults:
