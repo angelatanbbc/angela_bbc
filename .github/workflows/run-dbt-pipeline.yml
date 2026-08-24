@@ -9,6 +9,7 @@ on:
         type: choice
         description: Environment
         options:
+          - dev
           - live
         default: live
         required: true
@@ -23,7 +24,9 @@ jobs:
     name: Run DBT Pipeline
     runs-on:
       - codebuild-dns-transformations-project-${{ github.run_id }}-${{ github.run_attempt }}
-    environment: ${{ inputs.environment || 'live' }}
+    environment: ${{ inputs.environment }}
+    env:
+      FULL_REFRESH_FLAG: ${{ inputs.full_refresh && '--full-refresh' || '' }}
     defaults:
       run:
         working-directory: ./dbt
@@ -43,7 +46,7 @@ jobs:
           snowflake_database: ${{ vars.SNOWFLAKE_DATABASE }}
           snowflake_schema: ${{ vars.SNOWFLAKE_SCHEMA }}
           snowflake_warehouse: ${{ vars.SNOWFLAKE_WAREHOUSE }}
-          dbt_args: ${{ (inputs.full_refresh == true) && 'run --full-refresh --target prod' || 'run' }}
+          dbt_args: run $FULL_REFRESH_FLAG
 
       - name: Run DBT Tests
         id: dbt_tests
@@ -57,14 +60,14 @@ jobs:
           snowflake_database: ${{ vars.SNOWFLAKE_DATABASE }}
           snowflake_schema: ${{ vars.SNOWFLAKE_SCHEMA }}
           snowflake_warehouse: ${{ vars.SNOWFLAKE_WAREHOUSE }}
-          dbt_args: test --target prod
+          dbt_args: test
 
       - name: Trigger Test Failure Notification
         uses: bbc/sdp-deployment-scripts/actions/trigger-notification@main
         if: failure() && steps.dbt_tests.conclusion == 'failure'
         with:
           TYPE: "transformation-executed"
-          ENVIRONMENT: ${{ inputs.environment || 'live' }}
+          ENVIRONMENT: ${{ inputs.environment }}
           SERVICE_NAME: "dns-transformations-project-transformations"
           TRANSFORMATION_NAME: "${{ (inputs.full_refresh == true) && 'full DAG tests (full-refresh)' || 'full DAG tests' }}"
           TRIGGERED_BY_USERNAME: ${{ github.actor }}
@@ -76,7 +79,7 @@ jobs:
         if: always()
         with:
           TYPE: "transformation-executed"
-          ENVIRONMENT: ${{ inputs.environment || 'live' }}
+          ENVIRONMENT: ${{ inputs.environment }}
           SERVICE_NAME: "dns-transformations-project-transformations"
           TRANSFORMATION_NAME: ${{ (inputs.full_refresh == true) && 'full DAG (full-refresh)' || 'full DAG' }}
           TRIGGERED_BY_USERNAME: ${{ github.actor }}
