@@ -9,6 +9,7 @@ on:
         type: choice
         description: Environment
         options:
+          - dev
           - live
         default: live
         required: true
@@ -24,6 +25,8 @@ jobs:
     runs-on:
       - codebuild-dns-transformations-project-${{ github.run_id }}-${{ github.run_attempt }}
     environment: ${{ inputs.environment || 'live' }}
+    env:
+      FULL_REFRESH_FLAG: ${{ inputs.full_refresh && '--full-refresh' || '' }}
     defaults:
       run:
         working-directory: ./dbt
@@ -43,7 +46,7 @@ jobs:
           snowflake_database: ${{ vars.SNOWFLAKE_DATABASE }}
           snowflake_schema: ${{ vars.SNOWFLAKE_SCHEMA }}
           snowflake_warehouse: ${{ vars.SNOWFLAKE_WAREHOUSE }}
-          dbt_args: ${{ (inputs.full_refresh == true) && 'run --full-refresh --target prod' || 'run' }}
+          dbt_args: run $FULL_REFRESH_FLAG
 
       - name: Run DBT Tests
         id: dbt_tests
@@ -57,7 +60,7 @@ jobs:
           snowflake_database: ${{ vars.SNOWFLAKE_DATABASE }}
           snowflake_schema: ${{ vars.SNOWFLAKE_SCHEMA }}
           snowflake_warehouse: ${{ vars.SNOWFLAKE_WAREHOUSE }}
-          dbt_args: test --target prod
+          dbt_args: test
 
       - name: Trigger Test Failure Notification
         uses: bbc/sdp-deployment-scripts/actions/trigger-notification@main
