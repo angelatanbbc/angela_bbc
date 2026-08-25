@@ -24,7 +24,7 @@ jobs:
     name: Run DBT Pipeline
     runs-on:
       - codebuild-dns-transformations-project-${{ github.run_id }}-${{ github.run_attempt }}
-    environment: ${{ inputs.environment }}
+    environment: ${{ inputs.environment || 'live' }}
     env:
       FULL_REFRESH_FLAG: ${{ inputs.full_refresh && '--full-refresh' || '' }}
     defaults:
@@ -67,7 +67,7 @@ jobs:
         if: failure() && steps.dbt_tests.conclusion == 'failure'
         with:
           TYPE: "transformation-executed"
-          ENVIRONMENT: ${{ inputs.environment }}
+          ENVIRONMENT: ${{ inputs.environment || 'live' }}
           SERVICE_NAME: "dns-transformations-project-transformations"
           TRANSFORMATION_NAME: "${{ (inputs.full_refresh == true) && 'full DAG tests (full-refresh)' || 'full DAG tests' }}"
           TRIGGERED_BY_USERNAME: ${{ github.actor }}
@@ -79,7 +79,7 @@ jobs:
         if: always()
         with:
           TYPE: "transformation-executed"
-          ENVIRONMENT: ${{ inputs.environment }}
+          ENVIRONMENT: ${{ inputs.environment || 'live' }}
           SERVICE_NAME: "dns-transformations-project-transformations"
           TRANSFORMATION_NAME: ${{ (inputs.full_refresh == true) && 'full DAG (full-refresh)' || 'full DAG' }}
           TRIGGERED_BY_USERNAME: ${{ github.actor }}
