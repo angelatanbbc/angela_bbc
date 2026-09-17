@@ -10,6 +10,7 @@ WITH conversions AS (
     SELECT
         conversion_id,
         conversion_time AS event_time,
+        conversion_time::DATE AS event_date,
         IFF(created_via_upgrade, 'Upgraded subscription', 'New subscription') AS subscription_action,
         user_id,
         user_first_party_id,
@@ -39,6 +40,7 @@ subs_actions_onsite AS (
     SELECT
         c.conversion_id,
         a.event_time,
+        a.event_time::DATE AS event_date,
         a.subscription_action,
         a.user_id,
         a.user_first_party_id,
@@ -73,6 +75,7 @@ subs_actions_offsite AS (
     SELECT
         c.conversion_id,
         a.event_time,
+        a.event_time::DATE AS event_date,
         a.subscription_action,
         a.user_id,
         a.user_first_party_id,
