@@ -16,6 +16,9 @@ models:
     +schema:
 
 vars:
+  # Piano sites a web subscription is counted on (stg_subscription_attribution): BBCS BBC, Legacy News,
+  # Legacy Other, Legacy Sport. Leaves out www.test.bbc.com (643246).
+  subscription_site_ids: [638824, 644937, 638823, 644938]
   facebook_ads_database: sdp_bronze
   facebook_ads_schema: facebook_ads
   facebook_ads__url_tags_pivoted:
