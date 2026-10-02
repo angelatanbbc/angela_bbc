@@ -121,11 +121,8 @@ graph LR
     fb_basic --> url["facebook_ads__url_report"]:::mart
     fb_conversions --> url
     creative --> url
-    fb_source --> fb_ads["facebook_ads.stg_facebook_ads__ad_history"]:::package
-    fb_ads --> attr_stg
-    creative --> attr_stg
-    linkStyle 3,4,5,6,11,20,23,26 stroke:#4169e1,stroke-width:1.5px
-    linkStyle 12,13,14,15,16,17,18,19,21,22,24,25 stroke:#9333ea,stroke-width:2.5px
+    linkStyle 3,4,5,6,11,20,23 stroke:#4169e1,stroke-width:1.5px
+    linkStyle 12,13,14,15,16,17,18,19,21,22 stroke:#9333ea,stroke-width:2.5px
     linkStyle 0,1,2,7,8,9,10 stroke:#eab308,stroke-width:2.5px
 ```
 
@@ -193,7 +190,7 @@ The following inventory records every project-owned model in the dbt manifest an
 | `stg_piano__composer_events` | `source:studios_piano.studios_piano_events` |
 | `stg_piano__offsite_events` | `source:studios_piano.studios_piano_events` |
 | `stg_piano__subscription_snapshots` | `source:dns_transformations.piano_subscription_snapshots` |
-| `stg_subscription_attribution` | `source:studios_piano.studios_piano_events`, `facebook_ads.stg_facebook_ads__ad_history`, `int_facebook_ads__creative_history` |
+| `stg_subscription_attribution` | `source:studios_piano.studios_piano_events` |
 
 ### Intermediate
 
