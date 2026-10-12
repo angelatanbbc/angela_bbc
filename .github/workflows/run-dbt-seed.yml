@@ -32,7 +32,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run DBT Seed
-        uses: bbc/sdp-deployment-scripts/actions/run-dbt-task@main
+        uses: ./.github/actions/run-dbt-task
         with:
           snowflake_account: ${{ vars.SNOWFLAKE_ACCOUNT }}
           snowflake_machine_user: ${{ vars.SNOWFLAKE_MACHINE_USER }}
