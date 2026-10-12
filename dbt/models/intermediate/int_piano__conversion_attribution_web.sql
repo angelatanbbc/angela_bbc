@@ -25,10 +25,11 @@ WITH web_conversion_events AS (
 lead_up_events AS (
 
     SELECT
-        e.*,
+        e.* EXCLUDE (conversion_id),
+        c.conversion_id,
         c.event_time AS conversion_time,
         ROW_NUMBER() OVER (
-            PARTITION BY e.visitor_id, e.event_name, c.event_time
+            PARTITION BY c.conversion_id, e.event_name
             ORDER BY e.event_time DESC
         ) AS rn
     FROM {{ ref('stg_piano__studios_events') }} e
@@ -124,20 +125,18 @@ joined AS (
     LEFT JOIN (SELECT *
                FROM lead_up_events
                WHERE event_name = 'experience.action' AND rn=1) a
-        ON a.visitor_id = c.visitor_id
-        AND a.conversion_time = c.event_time
+        ON a.conversion_id = c.conversion_id
 
     LEFT JOIN (SELECT *
                FROM lead_up_events
                WHERE event_name = 'experience.interaction' AND rn=1) i
-        ON i.visitor_id = c.visitor_id
-        AND i.conversion_time = c.event_time
+        ON i.conversion_id = c.conversion_id
 
     -- See if there was a subscription.select in build up to conversion
     LEFT JOIN (SELECT *
                FROM lead_up_events
                WHERE event_name = 'subscription.select' AND rn=1) s
-        ON s.visitor_id = c.visitor_id
+        ON s.conversion_id = c.conversion_id
         AND s.event_time BETWEEN DATEADD(HOUR, -1, c.event_time) AND c.event_time
 
 ),
