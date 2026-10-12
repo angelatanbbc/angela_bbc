@@ -11,9 +11,11 @@ WITH composer_events AS (
         experience_id,
         experience_name,
         event_time
-    FROM {{ ref('stg_piano__composer_events') }}
+    FROM {{ ref('stg_piano__studios_events') }}
     WHERE
-        event_name IN (
+        site_id = 638824
+        AND event_time::DATE > '2025-06-25'
+        AND event_name IN (
             'experience.action',
             'experience.interaction',
             'vx.conversion',

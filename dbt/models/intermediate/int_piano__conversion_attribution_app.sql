@@ -32,8 +32,10 @@ lead_up_ctas AS (
         e.template_id,
         e.ab_test_variant_name
     FROM consolidated_conversions c
-    LEFT JOIN {{ ref('stg_piano__composer_events') }} e
+    LEFT JOIN {{ ref('stg_piano__studios_events') }} e
         ON e.visit_id = c.visit_id
+        AND e.site_id = 638824
+        AND e.event_time::DATE > '2025-06-25'
         AND e.event_time <= c.conversion_time
         AND e.event_name IN ('experience.action', 'experience.interaction', 'subscription.select')
         -- AND e.page != 'subscription.app.native.gate.page'  -- Just use Piano gate for experience properties.

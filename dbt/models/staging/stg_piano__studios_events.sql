@@ -19,6 +19,7 @@ SELECT
     event_url,
     event_url_domain,
     event_url_full,
+    event_collection_platform,
 
     -- Visit Info
     visit_time,
@@ -71,7 +72,6 @@ SELECT
     url,
 
     -- Device / App
-    event_collection_platform,
     {{ generate_app_type_id('app_type') }} AS app_type_id,
     {{ generate_device_type_id('device_type') }} AS device_type_id,
     {{ generate_os_group_id('os_group') }} AS os_group_id,
@@ -81,6 +81,33 @@ SELECT
     geo_country,
     geo_region,
     geo_city,
+
+    -- Experience / Template
+    conversion_id,
+    experience_id,
+    experience_name,
+    experience_execution_id,
+    card_id,
+    card_name,
+    card_action,
+    template_id,
+    template_name,
+    ab_test_card_title,
+    ab_test_variant_name,
+
+    -- Subscription / Commercial
+    subscription_id,
+    term[0]['term_id2']::STRING AS term_id,
+    term[0]['term_name']::STRING AS term_name,
+    term_offer_id,
+    term_offer_name,
+    billing_period,
+    trial_duration,
+    vx_promo_code,
+    cart_turnovertaxfree,
+    subscription_action,
+    subscription_period_number,
+    created_via_upgrade,
 
     -- C1X Fields
     c1x_lts,
@@ -95,10 +122,3 @@ SELECT
     c1x_expiring_subscribers
 
 FROM {{ source('studios_piano', 'studios_piano_events') }}
-
-WHERE
-    site_id IN (638824,  -- Main BBC.com site
-                644938,  -- Sport
-                644937)  -- Live News
-    AND event_time::DATE > '2025-06-25'
-    AND event_name = 'page.display'
