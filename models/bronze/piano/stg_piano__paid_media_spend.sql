@@ -1,43 +1,57 @@
-{{config(materialized="view")}}
+{{ config(materialized="view") }}
 
 ------------------------------------------------ SECTION 1 --------------------------------------------
 -- This section gathers all the essential data from the ps_piano_events, basic_ad, and country_spend tables
 WITH setup AS (
-  SELECT 
-    to_date(event_time) AS event_date,
-    site_id,
-    visitor_id,
-    user_id,
-    event_name,
-    event_id,
-    page,
-    src_bbc_team,
-    geo_country,
-    src_ptr_name,
-    src_campaign,
-    src_adset_name,
-    src_creative_id,
-    -- src_campaign_id_1,
-    av_session_id,
-    av_playback_duration,
-    device_type,
-    app_type,
-    SUBSTRING(
-           event_url_full, 
-           POSITION('at_bbc_team=' IN event_url_full) + LENGTH('at_bbc_team=') , 
-           POSITION('&at' IN SUBSTRING(event_url_full, POSITION('at_bbc_team=' IN event_url_full) + LENGTH('at_bbc_team=') + 1)) 
-       ) AS at_bbc_team
-  FROM {{ source('studios_piano', 'studios_piano_events') }}
-  WHERE 1=1
-    AND TO_DATE(event_time) > '2025-10-01'
-    -- AND event_time BETWEEN DATEADD(month, -2, CURRENT_DATE) AND CURRENT_DATE
-    -- AND src_bbc_team = '8ms'
-    AND page NOT IN ('keepalive', 'page.view.page', 'onboarding.page', 'error.page', 'notification.page')
-    AND (event_name = 'page.display' OR av_playback_duration > 0)
+    SELECT
+        TO_DATE(event_time) AS event_date,
+        site_id,
+        visitor_id,
+        user_id,
+        event_name,
+        event_id,
+        page,
+        src_bbc_team,
+        geo_country,
+        src_ptr_name,
+        src_campaign,
+        src_adset_name,
+        src_creative_id,
+        -- src_campaign_id_1,
+        av_session_id,
+        av_playback_duration,
+        device_type,
+        app_type,
+        SUBSTRING(
+            event_url_full,
+            POSITION('at_bbc_team=' IN event_url_full) + LENGTH('at_bbc_team='),
+            POSITION(
+                '&at' IN SUBSTRING(
+                    event_url_full,
+                    POSITION('at_bbc_team=' IN event_url_full)
+                    + LENGTH('at_bbc_team=')
+                    + 1
+                )
+            )
+        ) AS at_bbc_team
+    FROM {{ source('studios_piano', 'studios_piano_events') }}
+    WHERE
+        1 = 1
+        AND TO_DATE(event_time) > '2025-10-01'
+        -- AND event_time BETWEEN DATEADD(month, -2, CURRENT_DATE) AND CURRENT_DATE
+        -- AND src_bbc_team = '8ms'
+        AND page NOT IN (
+            'keepalive',
+            'page.view.page',
+            'onboarding.page',
+            'error.page',
+            'notification.page'
+        )
+        AND (event_name = 'page.display' OR av_playback_duration > 0)
 ),
 
-ad_data_facebook as (
-    SELECT 
+ad_data_facebook AS (
+    SELECT
         date,
         ad_id,
         account_id,
@@ -46,27 +60,31 @@ ad_data_facebook as (
         impressions,
         reach,
         inline_link_clicks,
-        spend as spend
+        spend AS spend
     FROM {{ source('FACEBOOK_ADS', 'basic_ad') }}
-    where 1=1
-    and (date) > '2025-10-01'
-    -- and date BETWEEN DATEADD(month, -2, CURRENT_DATE) AND CURRENT_DATE
-    and account_id=1608552529481933
-    and ad_name not like '%POD%'
+    WHERE
+        1 = 1
+        AND (date) > '2025-10-01'
+        -- and date BETWEEN DATEADD(month, -2, CURRENT_DATE) AND CURRENT_DATE
+        AND account_id = 1608552529481933
+        AND ad_name NOT LIKE '%POD%'
 ),
 
 -- Joins the setup and ad_data tables
-staging_facebook as (
-    SELECT 
+staging_facebook AS (
+    SELECT
         e.*,
         a.event_date,
         a.site_id,
-        case when a.visitor_id is null then null else cast(a.visitor_id as varchar) end as visitor_id, 
+        CASE
+            WHEN a.visitor_id IS NULL THEN NULL ELSE
+                cast(a.visitor_id as VARCHAR)
+        END AS visitor_id,
         a.user_id,
         a.event_name,
         a.event_id,
         a.page,
-        coalesce(a.src_bbc_team,a.at_bbc_team) as src_bbc_team,
+        COALESCE(a.src_bbc_team, a.at_bbc_team) AS src_bbc_team,
         a.geo_country,
         a.src_ptr_name,
         a.src_campaign,
@@ -78,56 +96,77 @@ staging_facebook as (
         a.device_type,
         a.app_type
     FROM ad_data_facebook e
-    left JOIN setup a 
-        ON e.date=a.event_date
-        AND e.ad_id=a.src_creative_id
+    LEFT JOIN setup a
+        ON
+            e.date = a.event_date
+            AND e.ad_id = a.src_creative_id
 ),
 
-final_facebook as (
-select *,
-COUNT(DISTINCT visitor_id) OVER (PARTITION BY ad_id, date) AS total_visitors,
-case when visitor_id is null then spend else 
-spend / COUNT(DISTINCT visitor_id) OVER (PARTITION BY ad_id, date) end AS spend_per_visitor,
-case when visitor_id is null then impressions else 
-impressions / COUNT(DISTINCT visitor_id) OVER (PARTITION BY ad_id, date) end AS impressions_per_visitor,
-case when visitor_id is null then reach else 
-reach / COUNT(DISTINCT visitor_id) OVER (PARTITION BY ad_id, date) end AS reach_per_visitor,
-case when visitor_id is null then inline_link_clicks else 
-inline_link_clicks / COUNT(DISTINCT visitor_id) OVER (PARTITION BY ad_id, date) end AS inline_link_clicks_per_visitor
-from staging_facebook
-where 1=1
+final_facebook AS (
+    SELECT
+        *,
+        COUNT(DISTINCT visitor_id)
+            OVER (PARTITION BY ad_id, date)
+            AS total_visitors,
+        CASE
+            WHEN visitor_id IS NULL THEN spend ELSE
+                spend
+                / COUNT(DISTINCT visitor_id) OVER (PARTITION BY ad_id, date)
+        END AS spend_per_visitor,
+        CASE
+            WHEN visitor_id IS NULL THEN impressions ELSE
+                impressions
+                / COUNT(DISTINCT visitor_id) OVER (PARTITION BY ad_id, date)
+        END AS impressions_per_visitor,
+        CASE
+            WHEN visitor_id IS NULL THEN reach ELSE
+                reach
+                / COUNT(DISTINCT visitor_id) OVER (PARTITION BY ad_id, date)
+        END AS reach_per_visitor,
+        CASE
+            WHEN visitor_id IS NULL THEN inline_link_clicks ELSE
+                inline_link_clicks
+                / COUNT(DISTINCT visitor_id) OVER (PARTITION BY ad_id, date)
+        END AS inline_link_clicks_per_visitor
+    FROM staging_facebook
+    WHERE 1 = 1
 -- and ad_id=120231784754050423
 -- and visitor_id is null
 -- order by event_Date ASC , visitor_id asc
 ),
 
-ad_data_google as (
-    SELECT 
-        TO_DATE(date, 'DD/MM/YYYY')::DATE AS date,
+ad_data_google AS (
+    SELECT
+        cast(TO_DATE(date, 'DD/MM/YYYY') as DATE) AS date,
         ad_id,
         account_id,
         ad_name,
         adset_name,
         REGEXP_SUBSTR(ad_name, '(DBS|8MS)') AS src_bbc_team_v2,
-        spend as spend
+        spend AS spend
     FROM {{ source('GOOGLE_ADS', 'STG_GOOGLE_ADS') }}
-    where 1=1
-    and (TO_DATE(date, 'DD/MM/YYYY')::DATE > '2025-10-01')
-    AND TRY_TO_DATE(date, 'DD/MM/YYYY') IS NOT NULL
+    WHERE
+        1 = 1
+        AND (cast(TO_DATE(date, 'DD/MM/YYYY') as DATE) > '2025-10-01')
+        AND TRY_TO_DATE(date, 'DD/MM/YYYY') IS NOT NULL
 ),
 
 -- Joins the setup and ad_data tables
-staging_google as (
-    SELECT 
+staging_google AS (
+    SELECT
         e.*,
         a.event_date,
         a.site_id,
-        case when a.visitor_id is null then null else cast(a.visitor_id as varchar) end as visitor_id, 
+        CASE
+            WHEN a.visitor_id IS NULL THEN NULL ELSE
+                cast(a.visitor_id as VARCHAR)
+        END AS visitor_id,
         a.user_id,
         a.event_name,
         a.event_id,
         a.page,
-        coalesce(a.src_bbc_team,a.at_bbc_team,e.src_bbc_team_v2) as src_bbc_team,
+        COALESCE(a.src_bbc_team, a.at_bbc_team, e.src_bbc_team_v2)
+            AS src_bbc_team,
         a.geo_country,
         a.src_ptr_name,
         a.src_campaign,
@@ -139,70 +178,77 @@ staging_google as (
         a.device_type,
         a.app_type
     FROM ad_data_google e
-    LEFT JOIN setup a 
-        ON e.date=a.event_date
-        AND CAST(e.ad_id AS VARCHAR) = a.src_creative_id
-        -- AND e.ad_id=a.src_creative_id
+    LEFT JOIN setup a
+        ON
+            e.date = a.event_date
+            AND CAST(e.ad_id AS VARCHAR) = a.src_creative_id
+-- AND e.ad_id=a.src_creative_id
 ),
 
-final_google as (
-select *,
-COUNT(DISTINCT visitor_id) OVER (PARTITION BY ad_id, date) AS total_visitors,
-case when visitor_id is null then spend else 
-spend / COUNT(DISTINCT visitor_id) OVER (PARTITION BY ad_id, date) end AS spend_per_visitor
-from staging_google
-where 1=1
+final_google AS (
+    SELECT
+        *,
+        COUNT(DISTINCT visitor_id)
+            OVER (PARTITION BY ad_id, date)
+            AS total_visitors,
+        CASE
+            WHEN visitor_id IS NULL THEN spend ELSE
+                spend
+                / COUNT(DISTINCT visitor_id) OVER (PARTITION BY ad_id, date)
+        END AS spend_per_visitor
+    FROM staging_google
+    WHERE 1 = 1
 -- and ad_id=120231784754050423
 -- and visitor_id is null
 -- order by event_Date ASC , visitor_id asc
 )
 
-select distinct 
-coalesce(event_date,date) as event_date,
-src_adset_name,
-src_bbc_team as src_bbc_team_o,
-src_campaign,
-src_creative_id,
-src_ptr_name,
-account_id,
-visitor_id,
-spend_per_visitor,
-impressions_per_visitor,
-reach_per_visitor,
-inline_link_clicks_per_visitor,
-cast (ad_id as string) as ad_id,
-ad_name,
-COALESCE(
+SELECT DISTINCT
+    COALESCE(event_date, date) AS event_date,
+    src_adset_name,
+    src_bbc_team AS src_bbc_team_o,
+    src_campaign,
+    src_creative_id,
+    src_ptr_name,
+    account_id,
+    visitor_id,
+    spend_per_visitor,
+    impressions_per_visitor,
+    reach_per_visitor,
+    inline_link_clicks_per_visitor,
+    cast(ad_id as STRING) AS ad_id,
+    ad_name,
+    COALESCE(
         NULLIF(src_bbc_team, ''),
-        MAX(NULLIF(src_bbc_team, '')) 
+        MAX(NULLIF(src_bbc_team, ''))
             OVER (PARTITION BY ad_name)
     ) AS src_bbc_team,
-adset_name,
-'facebook' as source
-from final_facebook
+    adset_name,
+    'facebook' AS source
+FROM final_facebook
 
-union all
+UNION ALL
 
-select distinct 
-coalesce(event_date,date) as event_date,
-src_adset_name,
-src_bbc_team as src_bbc_team_o,
-src_campaign,
-src_creative_id,
-src_ptr_name,
-account_id,
-visitor_id,
-spend_per_visitor,
-null as impressions_per_visitor,
-null as reach_per_visitor,
-null as inline_link_clicks_per_visitor,
-cast (ad_id as string) as ad_id,
-ad_name,
-COALESCE(
+SELECT DISTINCT
+    COALESCE(event_date, date) AS event_date,
+    src_adset_name,
+    src_bbc_team AS src_bbc_team_o,
+    src_campaign,
+    src_creative_id,
+    src_ptr_name,
+    account_id,
+    visitor_id,
+    spend_per_visitor,
+    NULL AS impressions_per_visitor,
+    NULL AS reach_per_visitor,
+    NULL AS inline_link_clicks_per_visitor,
+    cast(ad_id as STRING) AS ad_id,
+    ad_name,
+    COALESCE(
         NULLIF(src_bbc_team, ''),
-        MAX(NULLIF(src_bbc_team, '')) 
+        MAX(NULLIF(src_bbc_team, ''))
             OVER (PARTITION BY ad_name)
     ) AS src_bbc_team,
-adset_name,
-case when length(ad_id) =14 then 'microsoft' else 'google' end as source,
-from final_google
+    adset_name,
+    CASE WHEN LENGTH(ad_id) = 14 THEN 'microsoft' ELSE 'google' END AS source
+FROM final_google

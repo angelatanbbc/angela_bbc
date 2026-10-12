@@ -1,0 +1,20 @@
+version: 2
+
+models:
+  - name: int_piano__events_cleaned
+    description: >
+      Single cleaning pass over the raw Piano events table. Filters to the page view and
+      subscription event families, prunes to the curated column set and normalizes dirty
+      dimension values. All downstream Piano event models read from here instead of staging.
+    columns:
+      - name: event_id
+        description: Piano event identifier.
+      - name: user_id
+        description: >
+          Piano user identifier (43 characters). Taken from whichever of the raw user_id /
+          user_first_party_id columns holds a 43-character value; NULL otherwise (including
+          the 'unidentified_user' placeholder).
+      - name: user_first_party_id
+        description: >
+          First-party user identifier aka FED_ID (24, 44 or 64 characters). Taken from whichever
+          of the raw user_first_party_id / user_id columns holds a value of that length; NULL otherwise.

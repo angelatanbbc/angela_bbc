@@ -27,7 +27,7 @@ subscriber_pageviews AS (
         user_first_party_id,
         COUNT(DISTINCT visit_id) AS n_visits,
         COUNT(*) AS n_pageviews
-    FROM {{ ref('stg_piano__studios_events') }}
+    FROM {{ ref('int_piano__events_cleaned') }}
     WHERE
         site_id IN (638824, 644938, 644937)
         AND event_time::DATE > '2025-06-25'

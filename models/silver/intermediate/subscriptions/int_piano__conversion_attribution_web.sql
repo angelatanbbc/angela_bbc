@@ -6,7 +6,7 @@
 WITH web_conversion_events AS (
 
     SELECT *
-    FROM {{ ref('stg_piano__studios_events') }}
+    FROM {{ ref('int_piano__events_cleaned') }}
     WHERE
         site_id = 638824
         AND event_time::DATE > '2025-06-25'
@@ -32,7 +32,7 @@ lead_up_events AS (
             PARTITION BY c.conversion_id, e.event_name
             ORDER BY e.event_time DESC
         ) AS rn
-    FROM {{ ref('stg_piano__studios_events') }} e
+    FROM {{ ref('int_piano__events_cleaned') }} e
     INNER JOIN web_conversion_events c
         ON c.visitor_id = e.visitor_id
         AND e.event_time < c.event_time  -- Strictly before conversion

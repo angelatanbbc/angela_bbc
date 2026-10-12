@@ -11,7 +11,7 @@ WITH base AS (
         template_id,
         template_name,
         event_time
-    FROM {{ ref('stg_piano__studios_events') }}
+    FROM {{ ref('int_piano__events_cleaned') }}
     WHERE
         site_id = 638824
         AND event_time::DATE > '2025-06-25'

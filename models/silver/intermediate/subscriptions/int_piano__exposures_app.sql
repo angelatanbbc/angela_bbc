@@ -60,7 +60,7 @@ WITH composer_events AS (
         NULL AS c1x_likelihood_to_return,
         NULL AS c1x_revenue_auto_optimization
 
-    FROM {{ ref('stg_piano__studios_events') }} c
+    FROM {{ ref('int_piano__events_cleaned') }} c
     JOIN {{ ref('dim_experience') }} e USING (experience_id)
     WHERE
         c.site_id = 638824
