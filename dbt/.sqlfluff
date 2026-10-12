@@ -1,0 +1,41 @@
+# SQL style rules, enforced by `dbt lint` (dbt Fusion) locally and in CI.
+# dbt lint reads SQLFluff rule codes but does not implement the layout (LT) rules,
+# so indentation and comma placement are not checked here.
+
+[sqlfluff]
+dialect = snowflake
+templater = dbt
+# AL09: staging models alias every source column to itself (SOURCE_COL AS source_col) as documentation
+# AM04, ST06: SELECT * and column order are left to review
+# RF02-RF04: Piano column names include keywords (url, language, term) and joins are not always qualified
+# AM05, ST01, ST07, ST09: bare JOIN, ELSE NULL, JOIN USING and join-condition order are accepted house style
+exclude_rules = AL09, AM04, AM05, ST01, ST06, ST07, ST09, RF02, RF03, RF04
+
+# SELECT, FROM, AS, CASE, ...
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = upper
+
+# Aliases are lowercase. Source column references are left alone so staging
+# models can keep the warehouse's UPPERCASE names on the left of AS.
+[sqlfluff:rules:capitalisation.identifiers]
+extended_capitalisation_policy = lower
+unquoted_identifiers_policy = aliases
+
+# COUNT, COALESCE, MD5, ...
+[sqlfluff:rules:capitalisation.functions]
+extended_capitalisation_policy = upper
+
+# NULL, TRUE, FALSE
+[sqlfluff:rules:capitalisation.literals]
+capitalisation_policy = upper
+
+# ::DATE, ::STRING
+[sqlfluff:rules:capitalisation.types]
+extended_capitalisation_policy = upper
+
+# FROM events e (no AS for tables), but always AS for columns
+[sqlfluff:rules:aliasing.table]
+aliasing = implicit
+
+[sqlfluff:rules:aliasing.column]
+aliasing = explicit

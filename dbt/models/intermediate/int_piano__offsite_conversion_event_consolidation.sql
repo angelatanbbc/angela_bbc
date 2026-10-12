@@ -60,7 +60,7 @@ ranked_matches AS (
         ons.* EXCLUDE (conversion_time),
         ROW_NUMBER() OVER (
             PARTITION BY ofs.conversion_id
-            ORDER BY ABS(DATEDIFF(second, ofs.conversion_time, ons.conversion_time))
+            ORDER BY ABS(DATEDIFF(SECOND, ofs.conversion_time, ons.conversion_time))
         ) AS ranking
     FROM offsite_conversions ofs
     LEFT JOIN onsite_conversions ons
@@ -95,7 +95,7 @@ SELECT
     geo_id,
     geo_country,
     geo_region,
-    geo_city,
+    geo_city
 FROM ranked_matches
 WHERE
     visitor_id IS NOT NULL
