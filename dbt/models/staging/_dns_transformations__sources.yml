@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: dns_transformations
+    database: sdp_project_sandbox
+    description: Piano subscription snapshots — uploaded manually from Piano API each day.
+    tables:
+      - name: piano_subscription_snapshots
+        description: Piano subscription snapshots.

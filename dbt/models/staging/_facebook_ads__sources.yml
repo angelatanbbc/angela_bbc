@@ -1,0 +1,10 @@
+version: 2
+
+sources:
+  - name: FACEBOOK_ADS
+    database: sdp_bronze
+    schema: FACEBOOK_ADS
+    description: Source data from facebook ads.
+    tables:
+      - name: basic_ad
+        description: facebook ad data.

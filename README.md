@@ -29,7 +29,7 @@ The project follows a layered modelling approach:
 | `piano_subscription_snapshots` | `sdp_project_sandbox` | `dns_transformations` | Daily Piano API subscription snapshot upload |
 | `sfmc_*` | `sdp_silver` | `salesforce_brands_licencing_crm` | Salesforce Marketing Cloud email, journey, and subscriber data |
 
-The complete source list, including table descriptions and sources not currently utilized by a model, is maintained in [`dbt/models/staging/__sources.yml`](dbt/models/staging/__sources.yml). For sources without an explicit schema in that file, dbt uses the configured profile default. The active source-to-model relationships are maintained in the [lineage inventory](docs/lineage.md#complete-model-dependency-inventory).
+The complete source list, including table descriptions and sources not currently utilized by a model, is maintained in the [`dbt/models/staging/_<source>__sources.yml`](dbt/models/staging/) files. For sources without an explicit schema in those files, dbt uses the configured profile default. The active source-to-model relationships are maintained in the [lineage inventory](docs/lineage.md#complete-model-dependency-inventory).
 
 
 ### Core subscription outputs
@@ -120,7 +120,7 @@ Documentation is distributed by audience and topic. Use the document listed as a
 | Topic | Authoritative location | What belongs there |
 | --- | --- | --- |
 | Project orientation and domain context | This README | Purpose, source-system overview, layer descriptions, key outputs, attribution concepts, seeds, and analyses |
-| Declared source definitions | [`dbt/models/staging/__sources.yml`](dbt/models/staging/__sources.yml) | Exact source databases, schemas, tables, and source descriptions |
+| Declared source definitions | [`dbt/models/staging/_<source>__sources.yml`](dbt/models/staging/) | Exact source databases, schemas, tables, and source descriptions |
 | Model dependencies and scheduling | [`docs/lineage.md`](docs/lineage.md) | Current model names, direct upstream dependencies, cross-package boundaries, and build order |
 | Model and column contracts | Linked dbt YAML files above | Column descriptions, data types, tests, and relationships |
 | Local development and deployment operations | [DNS Transformations Runbook (Confluence)](https://bbcworldwide.atlassian.net/wiki/spaces/CG/pages/7668924449/DNS+Transformations+Runbook) | Setup, commands, dev/prod targets, promotion, failure diagnosis, and contacts |

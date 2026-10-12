@@ -248,7 +248,7 @@ The following inventory records every project-owned model in the dbt manifest an
 
 ### Declared sources without a current downstream model
 
-These sources are configured in `dbt/models/staging/__sources.yml` but do not appear in a current model `source()` call: `source:ps_piano.ps_piano_events` and `source:sfmc.not_sent`. They are retained as declared inputs for future use, but are not part of the active source-to-mart flow.
+These sources are configured in `dbt/models/staging/_<source>__sources.yml` but do not appear in a current model `source()` call: `source:ps_piano.ps_piano_events` and `source:sfmc.not_sent`. They are retained as declared inputs for future use, but are not part of the active source-to-mart flow.
 
 ## Cross-DAG and cross-project references
 

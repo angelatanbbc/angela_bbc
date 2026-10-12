@@ -1,6 +1,6 @@
 ## JIRA Ticket
 
-SDP-<TICKET_NUM>
+CGM-<TICKET_NUM>
 
 ## Changes Implemented
 
