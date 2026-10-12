@@ -11,7 +11,7 @@ This is the dependency reference for the `dns_transformations` dbt project. Arro
 | Model node | Blue | Project-owned staging or intermediate model |
 | Mart node | Green | Project-owned user-facing mart, fact, dimension, or aggregate |
 | Package node | Purple | Model or source belonging to the installed `facebook_ads` package |
-| Analysis node | Red | SQL analysis output under `dbt/analyses` |
+| Analysis node | Red | SQL analysis output under `analyses/` |
 | `ref()` connection | Blue | Dependency between dbt models |
 | Direct source connection | Yellow | Dependency from a declared external source table |
 | Seed connection | Orange | Dependency from a dbt seed |
@@ -61,22 +61,22 @@ graph LR
     composer --> app_exp["int_piano__exposures_app"]:::model
     experience["dim_experience"]:::mart --> web_exp
     experience --> app_exp
-    web --> conversions["fact_conversions"]:::mart
+    web --> conversions["fct_conversions"]:::mart
     app --> conversions
-    web_exp --> exposures["fact_exposures"]:::mart
+    web_exp --> exposures["fct_exposures"]:::mart
     app_exp --> exposures
-    conversions --> events["fact_subscription_events"]:::mart
+    conversions --> events["fct_subscription_events"]:::mart
     composer --> events
     offsite --> events
-    events --> snapshot["fact_subscriber_daily_snapshot"]:::mart
+    events --> snapshot["fct_subscriber_daily_snapshot"]:::mart
     subscription["dim_subscription"]:::mart --> snapshot
     date["dim_date"]:::mart --> snapshot
-    snapshot --> activity["fact_subscriber_activity_daily"]:::mart
+    snapshot --> activity["fct_subscriber_activity_daily"]:::mart
     analytics["stg_piano__analytics_events"]:::model --> activity
-    snapshot --> retention["fact_cohort_retention"]:::mart
-    analytics --> visitors["fact_visitors_daily"]:::mart
+    snapshot --> retention["fct_cohort_retention"]:::mart
+    analytics --> visitors["fct_visitors_daily"]:::mart
     events --> subscription
-    current["int_piano_subscription_current"]:::model --> subscription
+    current["int_piano__subscription_current"]:::model --> subscription
     snapshots["dns_transformations.piano_subscription_snapshots"]:::source --> staged["stg_piano__subscription_snapshots"]:::model --> current
     composer --> experience
     composer --> template["dim_template"]:::mart
@@ -85,7 +85,7 @@ graph LR
     activity --> engaged_month
     date --> engaged_week["agg_engaged_subscribers_weekly"]:::mart
     activity --> engaged_week
-    events --> survival["int_subscriber_survival"]:::model
+    events --> survival["int_subscription__survival"]:::model
     conversions --> survival
     experience --> survival
     survival --> analysis["analyses/survival_data.sql"]:::analysis
@@ -101,14 +101,14 @@ graph LR
     classDef model fill:#dbeafe,stroke:#2563eb,color:#172554
     classDef mart fill:#dcfce7,stroke:#16a34a,color:#14532d
     classDef package fill:#f3e8ff,stroke:#9333ea,color:#581c87
-    piano["studios_piano.studios_piano_events"]:::source --> attr_stg["stg_subscription_attribution"]:::model
+    piano["studios_piano.studios_piano_events"]:::source --> attr_stg["stg_piano__subscription_attribution"]:::model
     facebook["FACEBOOK_ADS.basic_ad"]:::source --> attr_stg
     google["GOOGLE_ADS.STG_GOOGLE_ADS"]:::source --> attr_stg
-    attr_stg --> attr["int_subscription_attribution"]:::model --> corrected["int_subscription_attribution_src_corrected"]:::model --> attribution["subscription_attribution_model"]:::mart --> conversions["fact_conversions"]:::mart
+    attr_stg --> attr["int_subscription__attribution"]:::model --> corrected["int_subscription__attribution_src_corrected"]:::model --> attribution["fct_subscription_attribution"]:::mart --> conversions["fct_conversions"]:::mart
     piano --> corrected
-    piano --> spend_stg["stg_meta_google_spend_subs"]:::model
+    piano --> spend_stg["stg_piano__paid_media_spend"]:::model
     facebook --> spend_stg
-    google --> spend_stg --> spend["marketing_spend_subs"]:::mart
+    google --> spend_stg --> spend["fct_marketing_spend"]:::mart
     fb_source["facebook_ads source tables"]:::package --> fb_basic["facebook_ads.stg_facebook_ads__basic_ad"]:::package
     fb_source --> fb_actions["facebook_ads.stg_facebook_ads__basic_ad_actions"]:::package
     fb_source --> fb_values["facebook_ads.stg_facebook_ads__basic_ad_action_values"]:::package
@@ -118,7 +118,7 @@ graph LR
     fb_creative --> tags["facebook_ads__url_tags"]:::model
     fb_creative --> creative["int_facebook_ads__creative_history"]:::model
     tags --> creative
-    fb_basic --> url["facebook_ads__url_report"]:::mart
+    fb_basic --> url["agg_facebook_ads_url_report"]:::mart
     fb_conversions --> url
     creative --> url
     linkStyle 3,4,5,6,11,20,23 stroke:#4169e1,stroke-width:1.5px
@@ -139,9 +139,9 @@ graph LR
     subscription["dim_subscription"]:::mart --> content
     subscription --> pillars
     subscription --> usage
-    visitors["fact_visitors_daily"]:::mart --> funnel["agg_acquisition_funnel_daily"]:::mart
-    exposures["fact_exposures"]:::mart --> funnel
-    conversions["fact_conversions"]:::mart --> funnel
+    visitors["fct_visitors_daily"]:::mart --> funnel["agg_acquisition_funnel_daily"]:::mart
+    exposures["fct_exposures"]:::mart --> funnel
+    conversions["fct_conversions"]:::mart --> funnel
     template["dim_template"]:::mart --> funnel
     geography["dim_geography"]:::mart --> funnel
     app["dim_app_type"]:::mart --> funnel
@@ -153,8 +153,8 @@ graph LR
     app --> signups
     device --> signups
     os --> signups
-    activity["fact_subscriber_activity_daily"]:::mart --> bans["agg_subscriber_bans"]:::mart
-    events["fact_subscription_events"]:::mart --> bans
+    activity["fct_subscriber_activity_daily"]:::mart --> bans["agg_subscriber_bans"]:::mart
+    events["fct_subscription_events"]:::mart --> bans
     visitors --> bans
     conversions --> bans
     exposures --> bans
@@ -173,7 +173,7 @@ graph LR
 graph LR
     classDef source fill:#fff3b0,stroke:#eab308,color:#713f12
     classDef mart fill:#dcfce7,stroke:#16a34a,color:#14532d
-    sfmc["sfmc source tables"]:::source --> salesforce["sfmc_journey_send_job"]:::mart
+    sfmc["sfmc source tables"]:::source --> salesforce["fct_sfmc_journey_send_job"]:::mart
     linkStyle 0 stroke:#eab308,stroke-width:2.5px
 ```
 
@@ -185,12 +185,12 @@ The following inventory records every project-owned model in the dbt manifest an
 
 | Model | Direct upstream dependencies |
 | --- | --- |
-| `stg_meta_google_spend_subs` | `source:studios_piano.studios_piano_events`, `source:FACEBOOK_ADS.basic_ad`, `source:GOOGLE_ADS.STG_GOOGLE_ADS` |
+| `stg_piano__paid_media_spend` | `source:studios_piano.studios_piano_events`, `source:FACEBOOK_ADS.basic_ad`, `source:GOOGLE_ADS.STG_GOOGLE_ADS` |
 | `stg_piano__analytics_events` | `source:studios_piano.studios_piano_events` |
 | `stg_piano__composer_events` | `source:studios_piano.studios_piano_events` |
 | `stg_piano__offsite_events` | `source:studios_piano.studios_piano_events` |
 | `stg_piano__subscription_snapshots` | `source:dns_transformations.piano_subscription_snapshots` |
-| `stg_subscription_attribution` | `source:studios_piano.studios_piano_events` |
+| `stg_piano__subscription_attribution` | `source:studios_piano.studios_piano_events` |
 
 ### Intermediate
 
@@ -202,12 +202,12 @@ The following inventory records every project-owned model in the dbt manifest an
 | `int_piano__exposures_app` | `stg_piano__composer_events`, `dim_experience` |
 | `int_piano__exposures_web` | `stg_piano__composer_events`, `dim_experience` |
 | `int_piano__offsite_conversion_event_consolidation` | `stg_piano__offsite_events`, `stg_piano__composer_events` |
-| `int_piano_subscription_current` | `stg_piano__subscription_snapshots` |
-| `int_subscriber_survival` | `fact_subscription_events`, `fact_conversions`, `dim_experience` |
-| `int_subscription_attribution` | `stg_subscription_attribution` |
-| `int_subscription_attribution_src_corrected` | `source:studios_piano.studios_piano_events`, `int_subscription_attribution` |
+| `int_piano__subscription_current` | `stg_piano__subscription_snapshots` |
+| `int_subscription__survival` | `fct_subscription_events`, `fct_conversions`, `dim_experience` |
+| `int_subscription__attribution` | `stg_piano__subscription_attribution` |
+| `int_subscription__attribution_src_corrected` | `source:studios_piano.studios_piano_events`, `int_subscription__attribution` |
 
-### Core and subscription marts
+### Core and subscription facts and dimensions
 
 | Model | Direct upstream dependencies |
 | --- | --- |
@@ -217,51 +217,51 @@ The following inventory records every project-owned model in the dbt manifest an
 | `dim_experience` | `stg_piano__composer_events`, `seed:experience_app_type` |
 | `dim_geography` | `seed:geo_mapping` |
 | `dim_os_group` | None; static reference model |
-| `dim_subscription` | `int_piano_subscription_current`, `fact_subscription_events` |
+| `dim_subscription` | `int_piano__subscription_current`, `fct_subscription_events` |
 | `dim_template` | `stg_piano__composer_events` |
-| `dim_term` | `fact_conversions` |
-| `fact_conversions` | `int_piano__conversion_attribution_web`, `int_piano__conversion_attribution_app`, `subscription_attribution_model` |
-| `fact_exposures` | `int_piano__exposures_web`, `int_piano__exposures_app` |
-| `fact_subscription_events` | `fact_conversions`, `stg_piano__composer_events`, `stg_piano__offsite_events` |
-| `fact_subscriber_daily_snapshot` | `fact_subscription_events`, `dim_subscription`, `dim_date` |
-| `fact_subscriber_activity_daily` | `fact_subscriber_daily_snapshot`, `stg_piano__analytics_events` |
-| `fact_cohort_retention` | `fact_subscriber_daily_snapshot` |
-| `fact_visitors_daily` | `stg_piano__analytics_events` |
-| `marketing_spend_subs` | `stg_meta_google_spend_subs` |
-| `subscription_attribution_model` | `source:studios_piano.studios_piano_events`, `int_subscription_attribution_src_corrected` |
-| `facebook_ads__url_report` | `facebook_ads.stg_facebook_ads__basic_ad`, `facebook_ads.int_facebook_ads__conversions`, `int_facebook_ads__creative_history`, `facebook_ads.stg_facebook_ads__account_history`, `facebook_ads.stg_facebook_ads__ad_history`, `facebook_ads.stg_facebook_ads__ad_set_history`, `facebook_ads.stg_facebook_ads__campaign_history` |
+| `dim_term` | `fct_conversions` |
+| `fct_conversions` | `int_piano__conversion_attribution_web`, `int_piano__conversion_attribution_app`, `fct_subscription_attribution` |
+| `fct_exposures` | `int_piano__exposures_web`, `int_piano__exposures_app` |
+| `fct_subscription_events` | `fct_conversions`, `stg_piano__composer_events`, `stg_piano__offsite_events` |
+| `fct_subscriber_daily_snapshot` | `fct_subscription_events`, `dim_subscription`, `dim_date` |
+| `fct_subscriber_activity_daily` | `fct_subscriber_daily_snapshot`, `stg_piano__analytics_events` |
+| `fct_cohort_retention` | `fct_subscriber_daily_snapshot` |
+| `fct_visitors_daily` | `stg_piano__analytics_events` |
+| `fct_marketing_spend` | `stg_piano__paid_media_spend` |
+| `fct_subscription_attribution` | `source:studios_piano.studios_piano_events`, `int_subscription__attribution_src_corrected` |
+| `agg_facebook_ads_url_report` | `facebook_ads.stg_facebook_ads__basic_ad`, `facebook_ads.int_facebook_ads__conversions`, `int_facebook_ads__creative_history`, `facebook_ads.stg_facebook_ads__account_history`, `facebook_ads.stg_facebook_ads__ad_history`, `facebook_ads.stg_facebook_ads__ad_set_history`, `facebook_ads.stg_facebook_ads__campaign_history` |
 
 ### Reporting and semantic outputs
 
 | Model | Direct upstream dependencies |
 | --- | --- |
-| `agg_acquisition_funnel_daily` | `dim_template`, `fact_exposures`, `fact_conversions`, `fact_visitors_daily`, `dim_geography`, `dim_app_type`, `dim_device_type`, `dim_os_group` |
-| `agg_acquisition_signups_daily` | `fact_conversions`, `dim_experience`, `dim_template`, `dim_app_type`, `dim_device_type`, `dim_os_group` |
-| `agg_engaged_subscribers_monthly` | `fact_subscriber_activity_daily`, `dim_date` |
-| `agg_engaged_subscribers_weekly` | `fact_subscriber_activity_daily`, `dim_date` |
+| `agg_acquisition_funnel_daily` | `dim_template`, `fct_exposures`, `fct_conversions`, `fct_visitors_daily`, `dim_geography`, `dim_app_type`, `dim_device_type`, `dim_os_group` |
+| `agg_acquisition_signups_daily` | `fct_conversions`, `dim_experience`, `dim_template`, `dim_app_type`, `dim_device_type`, `dim_os_group` |
+| `agg_engaged_subscribers_monthly` | `fct_subscriber_activity_daily`, `dim_date` |
+| `agg_engaged_subscribers_weekly` | `fct_subscriber_activity_daily`, `dim_date` |
 | `agg_subs_content_1w_snapshot` | `source:studios_piano.studios_piano_events`, `dim_subscription` |
 | `agg_subs_pillar_views_l30d_snapshot` | `source:studios_piano.studios_piano_events`, `dim_subscription` |
 | `agg_subs_product_usage_30d_snapshot` | `source:studios_piano.studios_piano_events`, `dim_subscription` |
-| `agg_subscriber_bans` | `fact_subscriber_activity_daily`, `fact_subscription_events`, `fact_visitors_daily`, `fact_conversions`, `fact_exposures` |
-| `bbc_com_semantic_view_dbt` | `fact_conversions`, `dim_date`, `dim_subscription` |
-| `sfmc_journey_send_job` | `source:sfmc.sent`, `source:sfmc.opens`, `source:sfmc.clicks`, `source:sfmc.bounces`, `source:sfmc.unsubs`, `source:sfmc.send_jobs`, `source:sfmc.journey`, `source:sfmc.journey_activity`, `source:sfmc.list_subscribers` |
+| `agg_subscriber_bans` | `fct_subscriber_activity_daily`, `fct_subscription_events`, `fct_visitors_daily`, `fct_conversions`, `fct_exposures` |
+| `bbc_com_semantic_view_dbt` | `fct_conversions`, `dim_date`, `dim_subscription` |
+| `fct_sfmc_journey_send_job` | `source:sfmc.sent`, `source:sfmc.opens`, `source:sfmc.clicks`, `source:sfmc.bounces`, `source:sfmc.unsubs`, `source:sfmc.send_jobs`, `source:sfmc.journey`, `source:sfmc.journey_activity`, `source:sfmc.list_subscribers` |
 
 ### Declared sources without a current downstream model
 
-These sources are configured in `dbt/models/staging/_<source>__sources.yml` but do not appear in a current model `source()` call: `source:ps_piano.ps_piano_events` and `source:sfmc.not_sent`. They are retained as declared inputs for future use, but are not part of the active source-to-mart flow.
+These sources are configured in `models/bronze/<source>/_<source>__sources.yml` but do not appear in a current model `source()` call: `source:ps_piano.ps_piano_events` and `source:sfmc.not_sent`. They are retained as declared inputs for future use, but are not part of the active source-to-mart flow.
 
 ## Cross-DAG and cross-project references
 
-- `facebook_ads__url_report` and `int_facebook_ads__creative_history` are project-owned models that depend on models from the installed `facebook_ads` dbt package. That package DAG must be available before these local outputs are built.
-- `fact_conversions` depends on `subscription_attribution_model`, so the attribution mart is upstream of the canonical conversion fact.
-- `subscription_attribution_model` and the `agg_subs_*` content and pillar models read `studios_piano.studios_piano_events` directly in addition to local models.
+- `agg_facebook_ads_url_report` and `int_facebook_ads__creative_history` are project-owned models that depend on models from the installed `facebook_ads` dbt package. That package DAG must be available before these local outputs are built.
+- `fct_conversions` depends on `fct_subscription_attribution`, so the attribution mart is upstream of the canonical conversion fact.
+- `fct_subscription_attribution` and the `agg_subs_*` content and pillar models read `studios_piano.studios_piano_events` directly in addition to local models.
 - `stg_piano__subscription_snapshots` depends on the daily external Piano API upload to `piano_subscription_snapshots`.
 - No direct `ref()` to a mart in a sibling repository is present in this project's model SQL. The explicit dbt project boundary is the installed `facebook_ads` package.
 
 ## Scheduling order
 
 1. Load the declared source tables and the daily `piano_subscription_snapshots` upload.
-2. Build staging models.
-3. Build intermediate models and the `facebook_ads` package models.
-4. Build subscription, attribution, engagement, and core marts.
-5. Build reporting aggregates after their fact and dimension inputs.
+2. Build bronze staging models.
+3. Build silver intermediate models and the `facebook_ads` package models.
+4. Build silver facts and dimensions (subscription, attribution, engagement, and core).
+5. Build gold reporting aggregates after their fact and dimension inputs.

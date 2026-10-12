@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'dbt/seeds/**'
+      - 'seeds/**'
   workflow_dispatch:
     inputs:
       environment:
@@ -23,10 +23,6 @@ jobs:
     runs-on:
       - codebuild-dns-transformations-project-${{ github.run_id }}-${{ github.run_attempt }}
     environment: ${{ inputs.environment || 'live' }}
-    defaults:
-      run:
-        working-directory: ./dbt
-
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
