@@ -8,7 +8,7 @@ See the [DNS Transformations lineage overview](docs/lineage.md) for full source-
 
 ## Runbook
 
-See the [DNS Transformations runbook](docs/runbook.md) for local setup, dev/prod targets, dev -> prod promotion, debugging, and ownership information.
+See the [DNS Transformations runbook](https://bbcworldwide.atlassian.net/wiki/spaces/CG/pages/7668924449/DNS+Transformations+Runbook) for local setup, dev/prod targets, dev -> prod promotion, debugging, and ownership information.
 
 ## Data model
 
@@ -88,7 +88,7 @@ The downstream `int_subscription_attribution_src_corrected` model redistributes 
 | `geo_mapping` | Geography reference data |
 | `piano_retention_curves` | Expected retention curves for survival-analysis benchmarking
 
-Seed definitions and column tests are maintained in [`dbt/seeds/schema.yml`](dbt/seeds/schema.yml). Seed changes are promoted through the workflow described in the [runbook](docs/runbook.md#usage).
+Seed definitions and column tests are maintained in [`dbt/seeds/schema.yml`](dbt/seeds/schema.yml). Seed changes are promoted through the workflow described in the [runbook](https://bbcworldwide.atlassian.net/wiki/spaces/CG/pages/7668924449/DNS+Transformations+Runbook#Usage).
 
 ## Analyses
 
@@ -96,7 +96,7 @@ The `dbt/analyses/` directory contains exploratory queries that build on mart ta
 
 ## Development
 
-This is a quickstart only guide - [`docs/runbook.md`](docs/runbook.md) is definitive for local setup, environment installation, and command reference.
+This is a quickstart only guide - [DNS Transformations Runbook (Confluence)](https://bbcworldwide.atlassian.net/wiki/spaces/CG/pages/7668924449/DNS+Transformations+Runbook) is definitive for local setup, environment installation, and command reference.
 
 Key commands:
 ```bash
@@ -112,7 +112,7 @@ dbt test # Run all data and schema tests
 dbt build # Run models and tests together
 ```
 
-Use the `dev` target for local validation. **Do not target `prod` with unverified/unvalidated code**; Please follow the [promotion and prod workflow process](docs/runbook.md#usage) in the runbook.
+Use the `dev` target for local validation. **Do not target `prod` with unverified/unvalidated code**; Please follow the [promotion and prod workflow process](https://bbcworldwide.atlassian.net/wiki/spaces/CG/pages/7668924449/DNS+Transformations+Runbook#Usage) in the runbook.
 
 ## Documentation ownership
 
@@ -124,4 +124,4 @@ Documentation is distributed by audience and topic. Use the document listed as a
 | Declared source definitions | [`dbt/models/staging/__sources.yml`](dbt/models/staging/__sources.yml) | Exact source databases, schemas, tables, and source descriptions |
 | Model dependencies and scheduling | [`docs/lineage.md`](docs/lineage.md) | Current model names, direct upstream dependencies, cross-package boundaries, and build order |
 | Model and column contracts | Linked dbt YAML files above | Column descriptions, data types, tests, and relationships |
-| Local development and deployment operations | [`docs/runbook.md`](docs/runbook.md) | Setup, commands, dev/prod targets, promotion, failure diagnosis, and contacts |
+| Local development and deployment operations | [DNS Transformations Runbook (Confluence)](https://bbcworldwide.atlassian.net/wiki/spaces/CG/pages/7668924449/DNS+Transformations+Runbook) | Setup, commands, dev/prod targets, promotion, failure diagnosis, and contacts |
