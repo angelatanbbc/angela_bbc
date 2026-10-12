@@ -8,6 +8,9 @@ on:
       - '.github/workflows/lint-dbt.yml'
       - '.github/actions/install-dbt-fusion/**'
 
+permissions:
+  contents: read
+
 jobs:
   lint_dbt:
     name: Lint DBT
