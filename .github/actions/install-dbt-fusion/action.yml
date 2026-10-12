@@ -5,7 +5,7 @@ inputs:
   version:
     description: dbt Fusion version. Keep in step with the version used locally (`dbt --version`).
     required: false
-    default: 2.0.6
+    default: 2.0.8
 
 runs:
   using: "composite"
