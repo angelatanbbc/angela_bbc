@@ -100,8 +100,7 @@ This is a quickstart only guide - [DNS Transformations Runbook (Confluence)](htt
 
 Key commands:
 ```bash
-uv sync # install dependencies
-source .venv/bin/activate # activate virtual environment
+brew tap dbt-labs/dbt && brew install dbt-labs/dbt/dbt # install dbt on macOS (Windows: winget install --id dbtLabs.dbt --exact)
 cd dbt # navigate to dbt folder
 dbt debug --target dev # test connection
 dbt deps # install dbt dependencies
