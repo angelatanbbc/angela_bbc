@@ -72,12 +72,10 @@ runs:
 
     - name: Install DBT dependencies
       shell: bash
-      working-directory: ./dbt
       run: dbt deps
 
     - name: Validate DBT project
       shell: bash
-      working-directory: ./dbt
       run: |
         echo "Parsing DBT project..."
         dbt parse
@@ -86,7 +84,6 @@ runs:
 
     - name: Run DBT Task
       shell: bash
-      working-directory: ./dbt
       env:
         DBT_ARGS: ${{ inputs.dbt_args }}
       run: |

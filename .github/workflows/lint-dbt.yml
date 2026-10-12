@@ -3,8 +3,8 @@ name: Lint DBT
 on:
   pull_request:
     paths:
-      - 'dbt/models/**.sql'
-      - 'dbt/.sqlfluff'
+      - 'models/**.sql'
+      - '.sqlfluff'
       - '.github/workflows/lint-dbt.yml'
       - '.github/actions/install-dbt-fusion/**'
 
@@ -16,10 +16,6 @@ jobs:
     name: Lint DBT
     runs-on:
       - codebuild-dns-transformations-project-${{ github.run_id }}-${{ github.run_attempt }}
-    defaults:
-      run:
-        working-directory: ./dbt
-
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -30,8 +26,7 @@ jobs:
         id: changed
         run: |
           git diff --name-only --diff-filter=ACMR \
-            "origin/${{ github.base_ref }}...HEAD" -- 'models/*.sql' \
-            | sed 's#^dbt/##' > changed_models.txt
+            "origin/${{ github.base_ref }}...HEAD" -- 'models/*.sql' > changed_models.txt
           echo "Changed models:"
           cat changed_models.txt
           echo "count=$(wc -l < changed_models.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
