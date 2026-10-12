@@ -334,7 +334,6 @@ SELECT
     PUB_UPDATE_DATE AS pub_update_date,
     _START_SCAN_TIME_UTC AS _start_scan_time_utc,
     AV_CONTENT_CONTRIBUTORS AS av_content_contributors,
-    AV_CONTENT_TOPIC AS av_content_topic,
     ISE_SEARCH_TYPE AS ise_search_type,
     ITEM_TEXT AS item_text,
     SRC_BBC_TEAM AS src_bbc_team,
@@ -662,6 +661,8 @@ SELECT
     DEVICE_USER_AGENT AS device_user_agent,
     CONTENT_WINDOW_IS_ENABLED AS content_window_is_enabled,
     AD_IS_COMPLIMENTARY AS ad_is_complimentary,
+    EARLY_ACCESS_START_DATE AS early_access_start_date,
+    EARLY_ACCESS_END_DATE AS early_access_end_date,
 
     -- Derived: Term (flattened from the TERM array)
     TERM[0]['term_id2']::STRING AS term_id,
