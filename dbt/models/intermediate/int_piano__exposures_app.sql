@@ -60,10 +60,12 @@ WITH composer_events AS (
         NULL AS c1x_likelihood_to_return,
         NULL AS c1x_revenue_auto_optimization
 
-    FROM {{ ref('stg_piano__composer_events') }} c
+    FROM {{ ref('stg_piano__studios_events') }} c
     JOIN {{ ref('dim_experience') }} e USING (experience_id)
     WHERE
-        c.event_name = 'experience.action'
+        c.site_id = 638824
+        AND c.event_time::DATE > '2025-06-25'
+        AND c.event_name = 'experience.action'
         AND c.event_collection_platform = 'da-composer-vx'
         AND e.app_type_id = MD5('Mobile App')
         {% if is_incremental() %}

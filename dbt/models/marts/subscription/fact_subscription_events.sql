@@ -63,9 +63,11 @@ subs_actions_onsite AS (
         c.geo_city,
         c.cohort_month,
         a.cart_turnovertaxfree AS transaction_value
-    FROM {{ ref('stg_piano__composer_events') }} a
+    FROM {{ ref('stg_piano__studios_events') }} a
     JOIN conversions c USING (subscription_id)
     WHERE 1=1
+        AND a.site_id = 638824
+        AND a.event_time::DATE > '2025-06-25'
         AND a.event_name = 'subscription.action'
 
 ),
@@ -98,11 +100,13 @@ subs_actions_offsite AS (
         c.geo_city,
         c.cohort_month,
         a.cart_turnovertaxfree AS transaction_value
-    FROM {{ ref('stg_piano__offsite_events') }} a
+    FROM {{ ref('stg_piano__studios_events') }} a
     JOIN conversions c  -- This join ensures we only get subscription actions for subscriptions that have converted
         ON a.subscription_id = c.subscription_id
     WHERE 1=1
-        AND a.event_name ILIKE 'subscription.action%'
+        AND a.site_id = 638824
+        AND a.event_time::DATE > '2025-06-25'
+        AND a.event_name = 'subscription.action.offsite'
 
 ),
 

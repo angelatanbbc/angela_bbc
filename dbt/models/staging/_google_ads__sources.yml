@@ -1,0 +1,10 @@
+version: 2
+
+sources:
+  - name: GOOGLE_ADS
+    database: sdp_project_sandbox
+    schema: DNS_TRANSFORMATIONS
+    description: Source data from google ads.
+    tables:
+      - name: STG_GOOGLE_ADS
+        description: Google ad data.

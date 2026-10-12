@@ -19,8 +19,11 @@ WITH offsite_conversions AS (
         IFF(term_name ILIKE '%monthly%', '1 month', '1 year') AS billing_period,
         subscription_period_number,
         created_via_upgrade
-    FROM {{ ref('stg_piano__offsite_events') }}
-    WHERE event_name = 'vx.conversion.offsite'
+    FROM {{ ref('stg_piano__studios_events') }}
+    WHERE
+        site_id = 638824
+        AND event_time::DATE > '2025-06-25'
+        AND event_name = 'vx.conversion.offsite'
 
 ),
 
@@ -41,9 +44,11 @@ onsite_conversions AS (
         geo_country,
         geo_region,
         geo_city
-    FROM {{ ref('stg_piano__composer_events') }}
+    FROM {{ ref('stg_piano__studios_events') }}
     WHERE
-        event_name = 'vx.conversion'
+        site_id = 638824
+        AND event_time::DATE > '2025-06-25'
+        AND event_name = 'vx.conversion'
         AND subscription_id IS NULL  -- Selects only mobile app conversions
 
 ),
@@ -55,7 +60,7 @@ ranked_matches AS (
         ons.* EXCLUDE (conversion_time),
         ROW_NUMBER() OVER (
             PARTITION BY ofs.conversion_id
-            ORDER BY ABS(DATEDIFF(second, ofs.conversion_time, ons.conversion_time))
+            ORDER BY ABS(DATEDIFF(SECOND, ofs.conversion_time, ons.conversion_time))
         ) AS ranking
     FROM offsite_conversions ofs
     LEFT JOIN onsite_conversions ons
@@ -90,7 +95,7 @@ SELECT
     geo_id,
     geo_country,
     geo_region,
-    geo_city,
+    geo_city
 FROM ranked_matches
 WHERE
     visitor_id IS NOT NULL

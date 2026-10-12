@@ -8,7 +8,7 @@ See the [DNS Transformations lineage overview](docs/lineage.md) for full source-
 
 ## Runbook
 
-See the [DNS Transformations runbook](docs/runbook.md) for local setup, dev/prod targets, dev -> prod promotion, debugging, and ownership information.
+See the [DNS Transformations runbook](https://bbcworldwide.atlassian.net/wiki/spaces/CG/pages/7668924449/DNS+Transformations+Runbook) for local setup, dev/prod targets, dev -> prod promotion, debugging, and ownership information.
 
 ## Data model
 
@@ -29,7 +29,7 @@ The project follows a layered modelling approach:
 | `piano_subscription_snapshots` | `sdp_project_sandbox` | `dns_transformations` | Daily Piano API subscription snapshot upload |
 | `sfmc_*` | `sdp_silver` | `salesforce_brands_licencing_crm` | Salesforce Marketing Cloud email, journey, and subscriber data |
 
-The complete source list, including table descriptions and sources not currently utilized by a model, is maintained in [`dbt/models/staging/__sources.yml`](dbt/models/staging/__sources.yml). For sources without an explicit schema in that file, dbt uses the configured profile default. The active source-to-model relationships are maintained in the [lineage inventory](docs/lineage.md#complete-model-dependency-inventory).
+The complete source list, including table descriptions and sources not currently utilized by a model, is maintained in the [`dbt/models/staging/_<source>__sources.yml`](dbt/models/staging/) files. For sources without an explicit schema in those files, dbt uses the configured profile default. The active source-to-model relationships are maintained in the [lineage inventory](docs/lineage.md#complete-model-dependency-inventory).
 
 
 ### Core subscription outputs
@@ -88,7 +88,7 @@ The downstream `int_subscription_attribution_src_corrected` model redistributes 
 | `geo_mapping` | Geography reference data |
 | `piano_retention_curves` | Expected retention curves for survival-analysis benchmarking
 
-Seed definitions and column tests are maintained in [`dbt/seeds/schema.yml`](dbt/seeds/schema.yml). Seed changes are promoted through the workflow described in the [runbook](docs/runbook.md#usage).
+Seed definitions and column tests are maintained in [`dbt/seeds/schema.yml`](dbt/seeds/schema.yml). Seed changes are promoted through the workflow described in the [runbook](https://bbcworldwide.atlassian.net/wiki/spaces/CG/pages/7668924449/DNS+Transformations+Runbook#Usage).
 
 ## Analyses
 
@@ -96,12 +96,11 @@ The `dbt/analyses/` directory contains exploratory queries that build on mart ta
 
 ## Development
 
-This is a quickstart only guide - [`docs/runbook.md`](docs/runbook.md) is definitive for local setup, environment installation, and command reference.
+This is a quickstart only guide - [DNS Transformations Runbook (Confluence)](https://bbcworldwide.atlassian.net/wiki/spaces/CG/pages/7668924449/DNS+Transformations+Runbook) is definitive for local setup, environment installation, and command reference.
 
 Key commands:
 ```bash
-uv sync # install dependencies
-source .venv/bin/activate # activate virtual environment
+brew tap dbt-labs/dbt && brew install dbt-labs/dbt/dbt # install dbt on macOS (Windows: winget install --id dbtLabs.dbt --exact)
 cd dbt # navigate to dbt folder
 dbt debug --target dev # test connection
 dbt deps # install dbt dependencies
@@ -112,7 +111,7 @@ dbt test # Run all data and schema tests
 dbt build # Run models and tests together
 ```
 
-Use the `dev` target for local validation. **Do not target `prod` with unverified/unvalidated code**; Please follow the [promotion and prod workflow process](docs/runbook.md#usage) in the runbook.
+Use the `dev` target for local validation. **Do not target `prod` with unverified/unvalidated code**; Please follow the [promotion and prod workflow process](https://bbcworldwide.atlassian.net/wiki/spaces/CG/pages/7668924449/DNS+Transformations+Runbook#Usage) in the runbook.
 
 ## Documentation ownership
 
@@ -121,7 +120,7 @@ Documentation is distributed by audience and topic. Use the document listed as a
 | Topic | Authoritative location | What belongs there |
 | --- | --- | --- |
 | Project orientation and domain context | This README | Purpose, source-system overview, layer descriptions, key outputs, attribution concepts, seeds, and analyses |
-| Declared source definitions | [`dbt/models/staging/__sources.yml`](dbt/models/staging/__sources.yml) | Exact source databases, schemas, tables, and source descriptions |
+| Declared source definitions | [`dbt/models/staging/_<source>__sources.yml`](dbt/models/staging/) | Exact source databases, schemas, tables, and source descriptions |
 | Model dependencies and scheduling | [`docs/lineage.md`](docs/lineage.md) | Current model names, direct upstream dependencies, cross-package boundaries, and build order |
 | Model and column contracts | Linked dbt YAML files above | Column descriptions, data types, tests, and relationships |
-| Local development and deployment operations | [`docs/runbook.md`](docs/runbook.md) | Setup, commands, dev/prod targets, promotion, failure diagnosis, and contacts |
+| Local development and deployment operations | [DNS Transformations Runbook (Confluence)](https://bbcworldwide.atlassian.net/wiki/spaces/CG/pages/7668924449/DNS+Transformations+Runbook) | Setup, commands, dev/prod targets, promotion, failure diagnosis, and contacts |

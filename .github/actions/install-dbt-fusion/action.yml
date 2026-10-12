@@ -1,0 +1,23 @@
+name: Install dbt Fusion
+description: Installs a pinned version of the dbt Fusion engine and adds it to PATH.
+
+inputs:
+  version:
+    description: dbt Fusion version. Keep in step with the version used locally (`dbt --version`).
+    required: false
+    default: 2.0.8
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install dbt Fusion
+      shell: bash
+      env:
+        DBT_FUSION_VERSION: ${{ inputs.version }}
+      run: |
+        mkdir -p "$HOME/.local/bin"
+        curl -fsSL https://public.cdn.getdbt.com/fs/install/install.sh \
+          | sh -s -- --version "$DBT_FUSION_VERSION" --to "$HOME/.local/bin"
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+        echo "DBT_DISABLE_VERSION_CHECK=true" >> "$GITHUB_ENV"
+        "$HOME/.local/bin/dbt" --version

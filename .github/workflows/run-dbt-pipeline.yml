@@ -25,8 +25,6 @@ jobs:
     runs-on:
       - codebuild-dns-transformations-project-${{ github.run_id }}-${{ github.run_attempt }}
     environment: ${{ inputs.environment || 'live' }}
-    env:
-      FULL_REFRESH_FLAG: ${{ inputs.full_refresh && '--full-refresh' || '' }}
     defaults:
       run:
         working-directory: ./dbt
@@ -36,7 +34,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run DBT Task
-        uses: bbc/sdp-deployment-scripts/actions/run-dbt-task@main
+        uses: ./.github/actions/run-dbt-task
         with:
           snowflake_account: ${{ vars.SNOWFLAKE_ACCOUNT }}
           snowflake_machine_user: ${{ vars.SNOWFLAKE_MACHINE_USER }}
@@ -46,11 +44,11 @@ jobs:
           snowflake_database: ${{ vars.SNOWFLAKE_DATABASE }}
           snowflake_schema: ${{ vars.SNOWFLAKE_SCHEMA }}
           snowflake_warehouse: ${{ vars.SNOWFLAKE_WAREHOUSE }}
-          dbt_args: run $FULL_REFRESH_FLAG
+          dbt_args: run ${{ inputs.full_refresh && '--full-refresh' || '' }}
 
       - name: Run DBT Tests
         id: dbt_tests
-        uses: bbc/sdp-deployment-scripts/actions/run-dbt-task@main
+        uses: ./.github/actions/run-dbt-task
         with:
           snowflake_account: ${{ vars.SNOWFLAKE_ACCOUNT }}
           snowflake_machine_user: ${{ vars.SNOWFLAKE_MACHINE_USER }}

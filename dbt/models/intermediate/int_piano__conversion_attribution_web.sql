@@ -6,9 +6,11 @@
 WITH web_conversion_events AS (
 
     SELECT *
-    FROM {{ ref('stg_piano__composer_events') }}
+    FROM {{ ref('stg_piano__studios_events') }}
     WHERE
-        event_name IN ('vx.conversion', 'vx.conversion.optout')
+        site_id = 638824
+        AND event_time::DATE > '2025-06-25'
+        AND event_name IN ('vx.conversion', 'vx.conversion.optout')
         AND term_offer_id IN ('OFR1N7V2XJPI',  -- Initial Offer (USA)
                               'OFC29VO25AKU',  -- Initial Offer (Canada)
                               'OFNG74GEQIKA',  -- ACP Upgrade for Annual Plan (USA)
@@ -29,12 +31,14 @@ lead_up_events AS (
             PARTITION BY e.visitor_id, e.event_name, c.event_time
             ORDER BY e.event_time DESC
         ) AS rn
-    FROM {{ ref('stg_piano__composer_events') }} e
+    FROM {{ ref('stg_piano__studios_events') }} e
     INNER JOIN web_conversion_events c
         ON c.visitor_id = e.visitor_id
         AND e.event_time < c.event_time  -- Strictly before conversion
         AND e.event_time >= DATEADD(DAY, -1, c.event_time)
     WHERE 1=1
+        AND e.site_id = 638824
+        AND e.event_time::DATE > '2025-06-25'
         AND e.event_name IN ('experience.action', 'experience.interaction', 'subscription.select')
         AND (e.page NOT IN ('id.auth_identifier_signin.page',
                             'id.auth_identifier_magic_link_check.page',

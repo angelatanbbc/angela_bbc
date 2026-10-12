@@ -24,8 +24,11 @@ WITH multiple_geos AS (
         geo_id,
         COUNT(DISTINCT visit_id) AS n_visits,
         COUNT(*) AS n_pageviews
-    FROM {{ ref('stg_piano__analytics_events') }}
+    FROM {{ ref('stg_piano__studios_events') }}
     WHERE 1=1
+        AND site_id IN (638824, 644938, 644937)
+        AND event_time::DATE > '2025-06-25'
+        AND event_name = 'page.display'
         AND geo_country IN ('United states', 'Canada')
     {% if is_incremental() %}
         AND event_time::DATE >= DATEADD(DAY, -1, (SELECT MAX(date_key) FROM {{ this }}))

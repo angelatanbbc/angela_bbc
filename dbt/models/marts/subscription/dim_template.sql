@@ -11,10 +11,20 @@ WITH base AS (
         template_id,
         template_name,
         event_time
-    FROM {{ ref('stg_piano__composer_events') }}
+    FROM {{ ref('stg_piano__studios_events') }}
     WHERE
-        template_id IS NOT NULL
+        site_id = 638824
+        AND event_time::DATE > '2025-06-25'
+        AND template_id IS NOT NULL
         AND template_name IS NOT NULL
+        AND event_name IN (
+            'vx.conversion',
+            'vx.conversion.optout',
+            'experience.action',
+            'experience.interaction',
+            'subscription.select',
+            'subscription.action'
+        )
 
 ),
 

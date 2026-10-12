@@ -1,0 +1,70 @@
+name: Lint DBT
+
+on:
+  pull_request:
+    paths:
+      - 'dbt/models/**.sql'
+      - 'dbt/.sqlfluff'
+      - '.github/workflows/lint-dbt.yml'
+      - '.github/actions/install-dbt-fusion/**'
+
+permissions:
+  contents: read
+
+jobs:
+  lint_dbt:
+    name: Lint DBT
+    runs-on:
+      - codebuild-dns-transformations-project-${{ github.run_id }}-${{ github.run_attempt }}
+    defaults:
+      run:
+        working-directory: ./dbt
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find changed models
+        id: changed
+        run: |
+          git diff --name-only --diff-filter=ACMR \
+            "origin/${{ github.base_ref }}...HEAD" -- 'models/*.sql' \
+            | sed 's#^dbt/##' > changed_models.txt
+          echo "Changed models:"
+          cat changed_models.txt
+          echo "count=$(wc -l < changed_models.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
+
+      - name: Install dbt Fusion
+        if: steps.changed.outputs.count != '0'
+        uses: ./.github/actions/install-dbt-fusion
+
+      # Linting renders Jinja but never connects to Snowflake, so a placeholder profile is enough
+      - name: Set up placeholder DBT profile
+        if: steps.changed.outputs.count != '0'
+        run: |
+          mkdir -p ~/.dbt
+          cat > ~/.dbt/profiles.yml <<'EOF'
+          snowflake:
+            target: ci
+            outputs:
+              ci:
+                type: snowflake
+                account: ci
+                user: ci
+                password: ci
+                role: ci
+                database: ci
+                warehouse: ci
+                schema: ci
+                threads: 1
+          EOF
+
+      - name: Install DBT dependencies
+        if: steps.changed.outputs.count != '0'
+        run: dbt deps
+
+      - name: Lint changed models
+        if: steps.changed.outputs.count != '0'
+        run: xargs dbt lint --target ci < changed_models.txt

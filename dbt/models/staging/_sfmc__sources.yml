@@ -1,0 +1,28 @@
+version: 2
+
+sources:
+  - name: sfmc
+    database: sdp_silver
+    schema: salesforce_brands_licencing_crm
+    description: SFMC meta data
+    tables:
+      - name: sent
+        description: SFMC sent email data
+      - name: opens
+        description: SFMC open email data
+      - name: clicks
+        description: SFMC click email data
+      - name: bounces
+        description: SFMC bounce email data
+      - name: unsubs
+        description: SFMC unsub email data
+      - name: send_jobs
+        description: SFMC job data
+      - name: journey
+        description: SFMC journey email data
+      - name: journey_activity
+        description: SFMC journey activity
+      - name: list_subscribers
+        description: SFMC subscriber table
+      - name: not_sent
+        description: SFMC reasons emails didn't send
