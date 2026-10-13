@@ -26,8 +26,7 @@ WITH composer_events AS (
 
 ),
 
--- Use attributes from Piano Analytics events (page.display) instead of Composer attributes since there are various issues
--- issues with the Composer attributes. Join back to the page.display events using pageview_id to get the relevant attributes for exposures.
+-- One exposure per experience.action event
 experience_actions AS (
     
     SELECT

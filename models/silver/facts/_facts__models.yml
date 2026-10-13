@@ -276,10 +276,10 @@ models:
         description: Weight assigned to the position of the card in the Composer experience.
 
   - name: fct_exposures
-    description: Daily-visitor level fact table capturing exposure events to Composer experiences.
+    description: Exposures to Piano Composer experiences on web and app, at the grain of one row per experience.action event.
     columns:
       - name: exposure_id
-        description: Surrogate key for the exposure event (combination of visit_id, experience_id, card_id, template_id and ab_test_variant_name).
+        description: Surrogate key for the exposure event (combination of experience_execution_id, experience_id, card_id, template_id and exposure_time).
         tests:
           - not_null
           - unique
@@ -442,7 +442,10 @@ models:
     description: Event-level fact table for subscription lifecycle events and status changes.
     columns:
       - name: subscription_action_id
-        description: Surrogate key for the subscription action.
+        description: Surrogate key for the subscription action (combination of subscription_id, event_time and subscription_action).
+        tests:
+          - not_null
+          - unique
       - name: conversion_id
         description: Identifier for the conversion associated with the event.
       - name: event_time
@@ -494,11 +497,11 @@ models:
       - name: previous_transaction_value
         description: The value of the previous transaction.
       - name: previous_mrr
-        description: The MRR of the previous transaction.
+        description: The subscription's MRR before this event (0 for the first event).
       - name: mrr_change_amount
-        description: The change in MRR from the previous transaction.
+        description: Change in MRR caused by this event (current_mrr - previous_mrr). Summing it over a subscription's events up to a point in time gives its MRR at that time.
       - name: current_mrr
-        description: The current MRR for the subscription.
+        description: The subscription's MRR after this event. Set by new, upgraded and renewed subscriptions (annual values / 12; renewals without a value keep the last known price), set to 0 by Canceled, Expired, Renewal failed (will not retry) and Upgrade completed, and carried forward by all other events.
 
   - name: fct_cohort_retention
     description: Cohort retention fact table measuring subscriber retention by cohort and period.
