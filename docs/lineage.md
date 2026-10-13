@@ -1,6 +1,6 @@
 # DNS Transformations Lineage
 
-This is the dependency reference for the `dns_transformations` dbt project. Arrows point from upstream to downstream, left to right. Names in the diagrams are the dbt model or source table names as they exist in the project. This README covers project and domain orientation; the runbook covers local execution, deployment, debugging, and ownership.
+This is the dependency reference for the `dns_transformations` dbt project. Arrows point from upstream to downstream, left to right. Names in the diagrams are the dbt model or source table names as they exist in the project. For what each model means, see the [Models](https://bbcworldwide.atlassian.net/wiki/spaces/CG/folder/7672725513) pages in Confluence; the [README](../README.md) links to the rest of the documentation.
 
 ### Color legend
 
