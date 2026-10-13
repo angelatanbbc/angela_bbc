@@ -15,6 +15,7 @@ Team documentation lives in Confluence, in the **BBC.com Data Model** folder of 
 | What each fact, dimension and aggregate means | [Models](https://bbcworldwide.atlassian.net/wiki/spaces/CG/folder/7672725513) |
 | Model dependencies and scheduling order | [`docs/lineage.md`](docs/lineage.md) |
 | Columns, tests and source definitions | The YAML files next to the models (see below) |
+| Guidance for AI coding agents, and which docs to update with each change | [`AGENTS.md`](AGENTS.md) |
 
 ## Repository layout
 
