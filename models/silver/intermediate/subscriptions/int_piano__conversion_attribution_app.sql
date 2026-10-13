@@ -10,16 +10,6 @@ WITH consolidated_conversions AS (
 
 ),
 
-app_experiences AS (
-
-    SELECT
-        experience_id,
-        experience_name
-    FROM {{ ref('dim_experience') }}
-    WHERE app_type_id = MD5('Mobile App')
-
-),
-
 lead_up_ctas AS (
 
     SELECT

@@ -127,7 +127,10 @@ unioned AS (
 
 ),
 
-mrr AS (
+-- MRR is tracked as a level per subscription: paying events set it, terminal events set it to 0,
+-- and every other event carries it forward. The change is the difference from the previous level,
+-- so repeated terminal events (Piano often sends Expired more than once) don't push MRR below zero.
+mrr_levels AS (
 
     SELECT
         {{ dbt_utils.generate_surrogate_key(['subscription_id', 'event_time', 'subscription_action']) }} AS subscription_action_id,
@@ -136,20 +139,46 @@ mrr AS (
             PARTITION BY subscription_id
             ORDER BY event_time
         ) AS previous_transaction_value,
-        ZEROIFNULL(IFF(billing_period ILIKE '%year%', previous_transaction_value / 12, previous_transaction_value)) AS previous_mrr, 
-
         CASE
-            WHEN subscription_action IN ('New subscription', 'Upgraded subscription') THEN IFF(billing_period ILIKE '%year%', transaction_value / 12, transaction_value)
-            WHEN subscription_action = 'Renewed' AND billing_period ILIKE '%month%' THEN transaction_value - previous_mrr
-            WHEN subscription_action = 'Renewed' AND billing_period ILIKE '%year%' THEN (transaction_value / 12) - previous_mrr
-            WHEN subscription_action IN ('Canceled', 'Expired', 'Renewal failed, will not retry', 'Upgrade completed') THEN -previous_mrr
-            ELSE 0
-        END AS mrr_change_amount,
-        previous_mrr + mrr_change_amount AS current_mrr
+            -- Renewals without a value (mostly app store) keep the last known price
+            WHEN subscription_action IN ('New subscription', 'Upgraded subscription', 'Renewed')
+                THEN IFF(
+                    billing_period ILIKE '%year%',
+                    COALESCE(transaction_value, previous_transaction_value) / 12,
+                    COALESCE(transaction_value, previous_transaction_value)
+                )
+            WHEN subscription_action IN ('Canceled', 'Expired', 'Renewal failed, will not retry', 'Upgrade completed') THEN 0
+        END AS mrr_level_set
     FROM unioned
+
+),
+
+mrr AS (
+
+    SELECT
+        * EXCLUDE (mrr_level_set),
+        COALESCE(
+            LAST_VALUE(mrr_level_set) IGNORE NULLS OVER (
+                PARTITION BY subscription_id
+                ORDER BY event_time
+                ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+            ),
+            0
+        ) AS level_after_event
+    FROM mrr_levels
 
 )
 
-SELECT *
+SELECT
+    * EXCLUDE (level_after_event),
+    COALESCE(
+        LAG(level_after_event) OVER (
+            PARTITION BY subscription_id
+            ORDER BY event_time
+        ),
+        0
+    ) AS previous_mrr,
+    level_after_event - previous_mrr AS mrr_change_amount,
+    level_after_event AS current_mrr
 FROM mrr
 ORDER BY user_id, event_time
