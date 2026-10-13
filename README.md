@@ -45,4 +45,4 @@ dbt lint --changed                # check SQL style
 dbt build --select <model_name>+  # build and test a model and its downstream models on dev
 ```
 
-Develop against `dev`, the default target. Production is updated by the scheduled pipeline; see the [runbook](https://bbcworldwide.atlassian.net/wiki/spaces/CG/pages/7668924449/DNS+Transformations+Runbook#Getting-changes-into-production).
+Develop against `dev`, the default target. `dev` is rebuilt from `main` every night at 03:00 UTC by [dns-ds-transformations](https://github.com/bbc/dns-ds-transformations), which overwrites feature-branch tables, so rebuild yours with `dbt build --select <model>+`. Production (the `live` target) is updated by the scheduled pipeline; see the [runbook](https://bbcworldwide.atlassian.net/wiki/spaces/CG/pages/7668924449/DNS+Transformations+Runbook#Getting-changes-into-production).

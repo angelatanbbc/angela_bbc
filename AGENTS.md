@@ -37,7 +37,7 @@ Before writing or reviewing SQL, read **dbt Modelling Standards**. Before docume
 ## Rules
 
 - Run dbt commands from the repository root. The default target is `dev`.
-- **Never** run `--target prod` builds, seeds or full refreshes. Production is updated by the scheduled pipeline (see the runbook). Read-only queries against prod (`dbt show --target prod`) are fine when the user has asked for them.
+- **Never** run `--target live` builds, seeds or full refreshes. Production is updated by the scheduled pipeline (see the runbook). Read-only queries against live (`dbt show --target live`) are fine when the user has asked for them.
 - Before finishing a SQL change, run `dbt parse`, `dbt lint --changed`, and where possible `dbt build --select <model>+`. CI fails pull requests on lint errors. `.sqlfluff` is the source of truth for enforced style.
 - Put new models in the folder for their layer and follow the naming conventions above.
 - Branch from `main` as `feature/CGM-<ticket>-<description>` or `fix/<description>`, and fill in `pull-request-template.md`.
