@@ -10,16 +10,6 @@ WITH consolidated_conversions AS (
 
 ),
 
-app_experiences AS (
-
-    SELECT
-        experience_id,
-        experience_name
-    FROM {{ ref('dim_experience') }}
-    WHERE app_type_id = MD5('Mobile App')
-
-),
-
 lead_up_ctas AS (
 
     SELECT
@@ -142,5 +132,5 @@ SELECT
     NULL AS c1x_likelihood_to_register,
     NULL AS c1x_likelihood_to_return,
     NULL AS c1x_revenue_auto_optimization
-FROM fill_forward_ids
+FROM last_fix
 QUALIFY ROW_NUMBER() OVER (PARTITION BY conversion_id ORDER BY event_time DESC) = 1
