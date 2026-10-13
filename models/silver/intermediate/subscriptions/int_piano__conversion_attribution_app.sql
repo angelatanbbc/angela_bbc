@@ -142,5 +142,5 @@ SELECT
     NULL AS c1x_likelihood_to_register,
     NULL AS c1x_likelihood_to_return,
     NULL AS c1x_revenue_auto_optimization
-FROM fill_forward_ids
+FROM last_fix
 QUALIFY ROW_NUMBER() OVER (PARTITION BY conversion_id ORDER BY event_time DESC) = 1

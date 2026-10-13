@@ -276,10 +276,10 @@ models:
         description: Weight assigned to the position of the card in the Composer experience.
 
   - name: fct_exposures
-    description: Daily-visitor level fact table capturing exposure events to Composer experiences.
+    description: Exposures to Piano Composer experiences on web and app, at the grain of one row per experience.action event.
     columns:
       - name: exposure_id
-        description: Surrogate key for the exposure event (combination of visit_id, experience_id, card_id, template_id and ab_test_variant_name).
+        description: Surrogate key for the exposure event (combination of experience_execution_id, experience_id, card_id, template_id and exposure_time).
         tests:
           - not_null
           - unique
@@ -442,7 +442,10 @@ models:
     description: Event-level fact table for subscription lifecycle events and status changes.
     columns:
       - name: subscription_action_id
-        description: Surrogate key for the subscription action.
+        description: Surrogate key for the subscription action (combination of subscription_id, event_time and subscription_action).
+        tests:
+          - not_null
+          - unique
       - name: conversion_id
         description: Identifier for the conversion associated with the event.
       - name: event_time
