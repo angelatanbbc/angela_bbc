@@ -2,10 +2,27 @@ version: 2
 
 models:
   - name: fct_visitors_daily
-    description: Daily visitor fact table at the grain of one row per visitor, date, geography, app type, device type and operating system group.
+    description: >
+      Daily visitor fact table at the grain of one row per visitor, date, site, app type,
+      device type and operating system group. geo_id is the visitor's modal geography for
+      the day and is not part of the grain. Incremental runs delete and rebuild every date
+      from the day before the latest loaded date_key.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - date_key
+              - site_id
+              - app_type_id
+              - device_type_id
+              - os_group_id
+              - visitor_id
+          config:
+            # Warn until tables built before the delete+insert fix have been fully refreshed
+            severity: warn
     columns:
       - name: visitor_date_key
-        description: Surrogate key for the visitor-date and dimensional grain.
+        description: Surrogate key of date, site, geography, device type, app type, operating system group and visitor. Unique per row; geo_id is the modal geography, so the key is not stable across runs if that changes.
         tests:
           - not_null
           - unique
@@ -42,7 +59,7 @@ models:
                 to: ref('dim_os_group')
                 field: os_group_id
       - name: geo_id
-        description: Geographic identifier for the visitor's country and region.
+        description: Geographic identifier for the visitor's modal country and region on the date (the geography with the most page views).
         tests:
           - not_null
       - name: visitor_id
