@@ -18,3 +18,120 @@ models:
         description: >
           First-party user identifier aka FED_ID (24, 44 or 64 characters). Taken from whichever
           of the raw user_first_party_id / user_id columns holds a value of that length; NULL otherwise.
+
+  - name: int_piano__page_views
+    description: >
+      Page view pool. One row per pageview_id. Filters the cleaned events to page.display
+      events with a pageview_id, then collapses duplicate events for the same page view
+      (max page_duration; page_view_time is the first event's timestamp; latest event wins
+      for attributes). Piano populates pageview_id for web (js) traffic only, so native app
+      page views are excluded. Incremental: merges on pageview_id, reprocessing from the day
+      before the latest loaded date; dev builds only the last 3 days.
+    columns:
+      - name: pageview_id
+        description: Unique identifier for the page view. Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: visit_id
+        description: Piano visit (session) identifier.
+      - name: visitor_id
+        description: Persistent visitor identifier (browser/device level).
+      - name: user_id
+        description: Piano user identifier (43 characters), repaired in int_piano__events_cleaned.
+      - name: site_id
+        description: Piano site identifier.
+        tests:
+          - not_null
+      - name: page_view_time
+        description: Timestamp of the first page.display event of the page view, local time.
+        tests:
+          - not_null
+      - name: last_event_time
+        description: Timestamp of the latest page.display event of the page view. Incremental high-water mark.
+      - name: page_display_event_count
+        description: >
+          Distinct page.display event_ids in the page view. Piano's Pageviews metric counts
+          these, so re-fired events each count.
+      - name: page_duration
+        description: Time on page in seconds, max across duplicate events.
+
+  - name: int_piano__scroll_events
+    description: >
+      page.scroll events aggregated to one row per pageview_id. Piano stores scroll depth
+      as a 0-1 fraction on page.scroll events only; converted here to a 0-100 percentage
+      (max depth per page view).
+    columns:
+      - name: pageview_id
+        description: Page view the scroll events occurred within. Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: last_event_time
+        description: Timestamp of the latest scroll event in the page view. Incremental high-water mark.
+      - name: scroll_depth_pct
+        description: Maximum scroll depth reached on the page view, 0-100.
+
+  - name: int_piano__click_events
+    description: >
+      Click-type events aggregated to one row per pageview_id, with a breakout per family.
+      click_count covers the client's click definition (click.*, viewability.select,
+      subscription.select, ad.click, internal_search_result.click, av.ad.click).
+      newsletter.subscribe and experience.interaction are click-like events with their own
+      definitions, counted in separate columns and excluded from click_count.
+    columns:
+      - name: pageview_id
+        description: Page view the clicks occurred within. Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: last_event_time
+        description: Timestamp of the latest click-type event in the page view. Incremental high-water mark.
+      - name: click_count
+        description: >
+          Total click events on this page view (click.*, viewability.select,
+          subscription.select, ad.click, internal_search_result.click, av.ad.click).
+      - name: viewability_view_count
+        description: >
+          viewability.view events. Always 0 at present because int_piano__events_cleaned
+          does not select viewability.view.
+      - name: newsletter_subscribe_count
+        description: newsletter.subscribe events. Not included in click_count.
+      - name: experience_interaction_count
+        description: experience.interaction events. Not included in click_count.
+
+  - name: int_piano__ad_impressions
+    description: >
+      Ad impression events aggregated to one row per pageview_id, covering ad.impression
+      (monetized, sole carrier of ad_revenue), publisher.display and widget.impression.
+    columns:
+      - name: pageview_id
+        description: Page view the ad impressions occurred within. Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: last_event_time
+        description: Timestamp of the latest ad impression in the page view. Incremental high-water mark.
+      - name: ad_impression_count
+        description: Total ad impressions on this page view across all families.
+      - name: total_ad_revenue
+        description: Sum of ad_revenue across monetized impressions on this page view.
+
+  - name: int_piano__event_durations
+    description: >
+      Sum of event_duration (milliseconds) per pageview_id, feeding Piano's time-based
+      metrics. Reads from staging rather than int_piano__events_cleaned because Piano sums
+      event_duration across all event families. Keeps events with a pageview_id and drops
+      exclusion.* events. One row per pageview_id.
+    columns:
+      - name: pageview_id
+        description: Page view the events occurred within. Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: last_event_time
+        description: Timestamp of the latest event in the page view. Incremental high-water mark.
+      - name: event_duration_ms
+        description: Sum of event_duration in milliseconds across all events in the page view.
+      - name: events_with_duration_count
+        description: Number of events in the page view with event_duration > 0.
