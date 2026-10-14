@@ -77,7 +77,7 @@ graph LR
     analytics --> visitors["fct_visitors_daily"]:::mart
     events --> subscription
     current["int_piano__subscription_current"]:::model --> subscription
-    snapshots["dns_transformations.piano_subscription_snapshots"]:::source --> staged["stg_piano__subscription_snapshots"]:::model --> current
+    snapshots["cgm_extract_load.raw_piano_subscription_snapshots"]:::source --> staged["stg_piano__subscription_snapshots"]:::model --> current
     composer --> experience
     composer --> template["dim_template"]:::mart
     conversions --> term["dim_term"]:::mart
@@ -189,7 +189,7 @@ The following inventory records every project-owned model in the dbt manifest an
 | `stg_piano__analytics_events` | `source:studios_piano.studios_piano_events` |
 | `stg_piano__composer_events` | `source:studios_piano.studios_piano_events` |
 | `stg_piano__offsite_events` | `source:studios_piano.studios_piano_events` |
-| `stg_piano__subscription_snapshots` | `source:dns_transformations.piano_subscription_snapshots` |
+| `stg_piano__subscription_snapshots` | `source:cgm_extract_load.raw_piano_subscription_snapshots` |
 | `stg_piano__subscription_attribution` | `source:studios_piano.studios_piano_events` |
 
 ### Intermediate
@@ -255,12 +255,12 @@ These sources are configured in `models/bronze/<source>/_<source>__sources.yml` 
 - `agg_facebook_ads_url_report` and `int_facebook_ads__creative_history` are project-owned models that depend on models from the installed `facebook_ads` dbt package. That package DAG must be available before these local outputs are built.
 - `fct_conversions` depends on `fct_subscription_attribution`, so the attribution mart is upstream of the canonical conversion fact.
 - `fct_subscription_attribution` and the `agg_subs_*` content and pillar models read `studios_piano.studios_piano_events` directly in addition to local models.
-- `stg_piano__subscription_snapshots` depends on the daily external Piano API upload to `piano_subscription_snapshots`.
+- `stg_piano__subscription_snapshots` depends on the daily [cgm-extract-load](https://github.com/bbc/cgm-extract-load) load into `raw_piano_subscription_snapshots`, which has a source freshness check (warn after 20 hours, error after 26).
 - No direct `ref()` to a mart in a sibling repository is present in this project's model SQL. The explicit dbt project boundary is the installed `facebook_ads` package.
 
 ## Scheduling order
 
-1. Load the declared source tables and the daily `piano_subscription_snapshots` upload.
+1. Load the declared source tables. [cgm-extract-load](https://github.com/bbc/cgm-extract-load) runs as the first step of the same scheduled workflow and appends the day's snapshot to `raw_piano_subscription_snapshots`. Then `dbt source freshness` checks it, and stops the run if it is more than 26 hours old.
 2. Build bronze staging models.
 3. Build silver intermediate models and the `facebook_ads` package models.
 4. Build silver facts and dimensions (subscription, attribution, engagement, and core).

@@ -17,6 +17,11 @@ on:
         description: Run with --full-refresh flag
         default: false
         required: true
+      skip_extract_load:
+        type: boolean
+        description: Skip the cgm-extract-load step and only run dbt
+        default: false
+        required: true
 
 jobs:
   run_dbt_pipeline:
@@ -27,6 +32,64 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+
+      # Loads raw source tables (e.g. Piano subscriptions) into DNS_TRANSFORMATIONS.
+      # Checked out after this repo, whose checkout would otherwise clean it away.
+      - name: Checkout cgm-extract-load
+        if: ${{ !inputs.skip_extract_load }}
+        uses: actions/checkout@v4
+        with:
+          repository: bbc/cgm-extract-load
+          path: cgm-extract-load
+          ssh-key: ${{ secrets.CGM_EXTRACT_LOAD_DEPLOY_KEY }}
+
+      # A failed load still lets dbt run on the previous day's raw data; it
+      # sends its own failure notification below.
+      - name: Run Extract Load
+        id: extract_load
+        if: ${{ !inputs.skip_extract_load }}
+        continue-on-error: true
+        uses: ./cgm-extract-load/.github/actions/run-extract-load
+        with:
+          target: prod
+          snowflake_account: ${{ vars.SNOWFLAKE_ACCOUNT }}
+          snowflake_machine_user: ${{ vars.SNOWFLAKE_MACHINE_USER }}
+          snowflake_role: ${{ vars.SNOWFLAKE_ROLE }}
+          snowflake_private_key_base64: ${{ secrets.SNOWFLAKE_CERT }}
+          snowflake_private_key_passphrase: ${{ secrets.SNOWFLAKE_CERT_PASS }}
+          snowflake_database: ${{ vars.SNOWFLAKE_DATABASE }}
+          snowflake_schema: ${{ vars.SNOWFLAKE_SCHEMA }}
+          snowflake_warehouse: ${{ vars.SNOWFLAKE_WAREHOUSE }}
+          piano_aid: ${{ secrets.PIANO_AID }}
+          piano_api_token: ${{ secrets.PIANO_API_TOKEN }}
+
+      - name: Trigger Extract Load Failure Notification
+        uses: bbc/sdp-deployment-scripts/actions/trigger-notification@main
+        if: ${{ !cancelled() && steps.extract_load.outcome == 'failure' }}
+        with:
+          TYPE: "transformation-executed"
+          ENVIRONMENT: ${{ inputs.environment || 'live' }}
+          SERVICE_NAME: "dns-transformations-project-transformations"
+          TRANSFORMATION_NAME: "extract load (cgm-extract-load)"
+          TRIGGERED_BY_USERNAME: ${{ github.actor }}
+          STATUS: "failure"
+          DEPLOYMENTS_API_KEY: ${{ secrets.DEPLOYMENTS_API_KEY }}
+
+      # Stops the run if the raw sources the extract/load fills are more than
+      # 26 hours old (i.e. it has missed two nights), rather than building on
+      # stale data. One missed night only warns.
+      - name: Check Source Freshness
+        uses: ./.github/actions/run-dbt-task
+        with:
+          snowflake_account: ${{ vars.SNOWFLAKE_ACCOUNT }}
+          snowflake_machine_user: ${{ vars.SNOWFLAKE_MACHINE_USER }}
+          snowflake_role: ${{ vars.SNOWFLAKE_ROLE }}
+          snowflake_private_key_base64: ${{ secrets.SNOWFLAKE_CERT }}
+          snowflake_private_key_passphrase: ${{ secrets.SNOWFLAKE_CERT_PASS }}
+          snowflake_database: ${{ vars.SNOWFLAKE_DATABASE }}
+          snowflake_schema: ${{ vars.SNOWFLAKE_SCHEMA }}
+          snowflake_warehouse: ${{ vars.SNOWFLAKE_WAREHOUSE }}
+          dbt_args: source freshness --select source:cgm_extract_load.raw_piano_subscription_snapshots
 
       - name: Run DBT Task
         uses: ./.github/actions/run-dbt-task

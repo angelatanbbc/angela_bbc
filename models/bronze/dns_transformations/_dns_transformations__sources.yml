@@ -3,7 +3,9 @@ version: 2
 sources:
   - name: dns_transformations
     database: sdp_project_sandbox
-    description: Piano subscription snapshots — uploaded manually from Piano API each day.
+    description: Piano subscription snapshots, uploaded by hand from the Piano API each day.
     tables:
       - name: piano_subscription_snapshots
-        description: Piano subscription snapshots.
+        description: >
+          Legacy Piano subscription snapshots. Replaced by cgm_extract_load.raw_piano_subscription_snapshots and
+          no longer read; kept for reference.

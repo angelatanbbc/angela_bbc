@@ -1,0 +1,23 @@
+version: 2
+
+sources:
+  - name: cgm_extract_load
+    database: sdp_project_sandbox
+    # Each environment's own schema (DNS_DS in dev, DNS_TRANSFORMATIONS in live):
+    # cgm-extract-load loads into both, and the dev role can't read live.
+    schema: "{{ target.schema }}"
+    description: >
+      Raw tables loaded by cgm-extract-load (https://github.com/bbc/cgm-extract-load), which runs as the first
+      step of the scheduled pipeline and the nightly dev build. Loads are append-only: a re-run adds another load
+      for the same day, identified by _dlt_load_id.
+    tables:
+      - name: raw_piano_subscription_snapshots
+        description: >
+          Daily Piano subscription snapshots from the Piano API, with non-allowlisted (PII) fields removed. In live,
+          history from dns_transformations.piano_subscription_snapshots was backfilled with _dlt_load_id '0'.
+          Dev only has the loads since the dev extract/load started.
+        config:
+          loaded_at_field: snapshot_at
+          freshness:
+            warn_after: {count: 20, period: hour}
+            error_after: {count: 26, period: hour}
