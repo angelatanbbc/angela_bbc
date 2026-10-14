@@ -75,6 +75,22 @@ jobs:
           STATUS: "failure"
           DEPLOYMENTS_API_KEY: ${{ secrets.DEPLOYMENTS_API_KEY }}
 
+      # Stops the run if the raw sources the extract/load fills are more than
+      # 26 hours old (i.e. it has missed two nights), rather than building on
+      # stale data. One missed night only warns.
+      - name: Check Source Freshness
+        uses: ./.github/actions/run-dbt-task
+        with:
+          snowflake_account: ${{ vars.SNOWFLAKE_ACCOUNT }}
+          snowflake_machine_user: ${{ vars.SNOWFLAKE_MACHINE_USER }}
+          snowflake_role: ${{ vars.SNOWFLAKE_ROLE }}
+          snowflake_private_key_base64: ${{ secrets.SNOWFLAKE_CERT }}
+          snowflake_private_key_passphrase: ${{ secrets.SNOWFLAKE_CERT_PASS }}
+          snowflake_database: ${{ vars.SNOWFLAKE_DATABASE }}
+          snowflake_schema: ${{ vars.SNOWFLAKE_SCHEMA }}
+          snowflake_warehouse: ${{ vars.SNOWFLAKE_WAREHOUSE }}
+          dbt_args: source freshness --select source:cgm_extract_load.raw_piano_subscription_snapshots
+
       - name: Run DBT Task
         uses: ./.github/actions/run-dbt-task
         with:
