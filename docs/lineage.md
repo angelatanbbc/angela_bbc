@@ -260,7 +260,7 @@ These sources are configured in `models/bronze/<source>/_<source>__sources.yml` 
 
 ## Scheduling order
 
-1. Load the declared source tables and the daily `piano_subscription_snapshots` upload.
+1. Load the declared source tables and the daily `piano_subscription_snapshots` upload. [cgm-extract-load](https://github.com/bbc/cgm-extract-load) runs as the first step of the same scheduled workflow, before dbt, and appends to `raw_piano_subscription_snapshots` (not yet a dbt source; it will replace `piano_subscription_snapshots` once its counts are checked against the legacy upload).
 2. Build bronze staging models.
 3. Build silver intermediate models and the `facebook_ads` package models.
 4. Build silver facts and dimensions (subscription, attribution, engagement, and core).
