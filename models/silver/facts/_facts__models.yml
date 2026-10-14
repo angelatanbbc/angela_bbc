@@ -684,3 +684,91 @@ models:
         description: Weighted revenue for the subscription
       - name: annualised_revenue
         description: Annualised revenue for the subscription.
+
+  - name: fct_page_views
+    description: >
+      Page view fact table. One row per pageview_id; the grain is guaranteed upstream by
+      int_piano__page_views. Joins pre-aggregated scroll depth, click, ad impression and
+      event duration measures (all already at page view grain, so no fan-out) and carries
+      surrogate keys for content, user, visit, geography, device and site. Web page views
+      only: Piano populates pageview_id for web (js) traffic only. Incremental: merges on
+      pageview_id, reprocessing from the day before the latest loaded page view date; dev
+      builds only the last 3 days.
+    columns:
+      - name: pageview_id
+        description: Primary key. Unique page view identifier.
+        tests:
+          - unique
+          - not_null
+      - name: content_sk
+        description: Surrogate key of content_id.
+      - name: user_sk
+        description: Surrogate key of user_id.
+      - name: visit_sk
+        description: Surrogate key of visit_id.
+      - name: geography_sk
+        description: Surrogate key of (geo_country_code_alpha2, geo_region, geo_city).
+      - name: device_sk
+        description: Surrogate key of (device_type, os_group, browser_group).
+      - name: site_sk
+        description: Surrogate key of site_id.
+      - name: user_id
+        description: Piano user identifier (43 characters), repaired in int_piano__events_cleaned.
+      - name: visitor_id
+        description: >
+          Persistent visitor identifier (browser/device level). Natural key for unique
+          visitor counts and the denominator of Piano Time Spent / Visitor.
+      - name: visit_id
+        description: Piano visit (session) identifier.
+      - name: site_id
+        description: Piano site identifier.
+        tests:
+          - not_null
+      - name: visitor_new_return
+        description: >
+          Whether the visitor was new or returning at the time of this page view. Kept on
+          the fact because it is state at page view time.
+      - name: visitor_is_signed_in
+        description: Whether the visitor was signed in during this page view. State at page view time.
+      - name: page_view_time
+        description: Timestamp of the page view (first page.display event), local time.
+        tests:
+          - not_null
+      - name: page_view_time_utc
+        description: Timestamp of the page view (first page.display event), UTC.
+      - name: page_view_date
+        description: Date of the page view, derived from page_view_time.
+        tests:
+          - not_null
+      - name: page_display_event_count
+        description: Distinct page.display event_ids in the page view. Piano's Pageviews metric is the sum of this column.
+      - name: page_duration_seconds
+        description: Time spent on the page in seconds.
+      - name: visit_duration_seconds
+        description: >
+          Session duration in seconds (Piano rounds to the nearest second). Filter for Piano
+          Time Spent / Visit (visit_duration > 0).
+      - name: event_duration_ms
+        description: >
+          Sum of event_duration in milliseconds across all events in the page view. Numerator
+          of Piano time-spent metrics; the visitor-level filter (event_duration > 0) applies
+          to this column.
+      - name: events_with_duration_count
+        description: Number of events in the page view with event_duration > 0.
+      - name: scroll_depth_pct
+        description: Maximum scroll depth as a percentage (0-100).
+      - name: click_count
+        description: >
+          Total click events on this page view (click.*, viewability.select,
+          subscription.select, ad.click, internal_search_result.click, av.ad.click).
+          newsletter.subscribe and experience.interaction are counted separately.
+      - name: viewability_view_count
+        description: viewability.view events. Always 0 at present because int_piano__events_cleaned does not select viewability.view.
+      - name: newsletter_subscribe_count
+        description: newsletter.subscribe events. Not included in click_count.
+      - name: experience_interaction_count
+        description: experience.interaction events. Not included in click_count.
+      - name: ad_impression_count
+        description: Total ad impressions on this page view.
+      - name: ad_revenue
+        description: Total ad revenue attributed to this page view.
