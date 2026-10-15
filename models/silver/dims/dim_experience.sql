@@ -5,50 +5,44 @@
     )
 }}
 
-WITH composer_events AS (
+WITH experiences AS (
 
+    -- Latest state of every experience in the Piano API snapshots: the nightly
+    -- list, plus archived experiences backfilled by id, which the list leaves
+    -- out. An experience archived after the snapshots began keeps its last
+    -- listed state.
     SELECT
         experience_id,
         experience_name,
-        event_time
-    FROM {{ ref('int_piano__events_cleaned') }}
-    WHERE
-        site_id = 638824
-        AND event_time::DATE > '2025-06-25'
-        AND event_name IN (
-            'experience.action',
-            'experience.interaction',
-            'vx.conversion',
-            'vx.conversion.optout'
-        )
-        AND experience_id IS NOT NULL
-        AND experience_name IS NOT NULL
-
-),
-
-name_spans AS (
-
-    SELECT
-        experience_id,
-        experience_name,
-        MIN(event_time) AS first_seen
-    FROM composer_events
-    WHERE experience_name IS NOT NULL
-    GROUP BY ALL
+        experience_description,
+        experience_type,
+        experience_status,
+        is_deleted,
+        created_at,
+        updated_at,
+        NOT is_fetched_by_id
+        AND snapshot_date = MAX(IFF(is_fetched_by_id, NULL, snapshot_date)) OVER () AS is_listed_in_piano
+    FROM {{ ref('stg_piano__experiences') }}
+    QUALIFY ROW_NUMBER() OVER (PARTITION BY experience_id ORDER BY snapshot_at DESC) = 1
 
 )
 
 SELECT
-    n.experience_id,
-    n.experience_name,
-    COALESCE(
-        CASE
-            WHEN n.experience_name ILIKE '%_web_%' THEN MD5('Web')
-            WHEN n.experience_name ILIKE '%_app_%' THEN MD5('Mobile App')
-            ELSE NULL
-        END,
-        MD5(s.app_type)) AS app_type_id
-FROM name_spans n
-LEFT JOIN {{ ref('experience_app_type') }} s
-    ON n.experience_id = s.experience_id
-QUALIFY ROW_NUMBER() OVER (PARTITION BY n.experience_id ORDER BY first_seen DESC) = 1
+    experience_id,
+    -- Piano's experience type: site and template-interaction experiences run
+    -- on the web, mobile ones in the app. A new type is Unknown, not guessed.
+    CASE experience_type
+        WHEN 'site' THEN MD5('Web')
+        WHEN 'template-interaction' THEN MD5('Web')
+        WHEN 'mobile' THEN MD5('Mobile App')
+        ELSE MD5('Unknown')
+    END AS app_type_id,
+    experience_name,
+    experience_description,
+    experience_type,
+    experience_status,
+    is_deleted,
+    is_listed_in_piano,
+    created_at,
+    updated_at
+FROM experiences

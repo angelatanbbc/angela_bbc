@@ -78,10 +78,6 @@ graph LR
     events --> subscription
     current["int_piano__subscription_current"]:::model --> subscription
     snapshots["cgm_extract_load.raw_piano_subscription_snapshots"]:::source --> staged["stg_piano__subscription_snapshots"]:::model --> current
-    studios --> experience
-    app_type_seed["experience_app_type"]:::seed --> experience
-    studios --> template["dim_template"]:::mart
-    conversions --> term["dim_term"]:::mart
     date --> engaged_month["agg_engaged_subscribers_monthly"]:::mart
     activity --> engaged_month
     date --> engaged_week["agg_engaged_subscribers_weekly"]:::mart
@@ -91,9 +87,36 @@ graph LR
     experience --> survival
     events --> analysis["analyses/survival_data.sql"]:::analysis
     linkStyle 0,25 stroke:#eab308,stroke-width:2.5px
-    linkStyle 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,26,27,29,30,31,32,33,34,35,36,37 stroke:#4169e1,stroke-width:1.5px
-    linkStyle 28 stroke:#f97316,stroke-width:2.5px
-    linkStyle 38 stroke:#e11d48,stroke-width:2.5px
+    linkStyle 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,26,27,28,29,30,31,32,33 stroke:#4169e1,stroke-width:1.5px
+    linkStyle 34 stroke:#e11d48,stroke-width:2.5px
+```
+
+### Piano catalogue dimensions
+
+`dim_experience`, `dim_template`, `dim_term`, `dim_offer` and `dim_offer_term` are built only from daily snapshots of the Piano API, loaded by the `piano_catalog` job in [cgm-extract-load](https://github.com/bbc/cgm-extract-load), and the `app_store_term_billing_period` seed. Records the Piano list endpoints leave out (archived experiences, system templates) are backfilled by id into the same raw tables with `cgm-extract-load backfill-piano-catalog`.
+
+```mermaid
+graph LR
+    classDef source fill:#fff3b0,stroke:#eab308,color:#713f12
+    classDef seed fill:#ffedd5,stroke:#f97316,color:#7c2d12
+    classDef model fill:#dbeafe,stroke:#2563eb,color:#172554
+    classDef mart fill:#dcfce7,stroke:#16a34a,color:#14532d
+    raw_exp["cgm_extract_load.raw_piano_experiences"]:::source --> stg_exp["stg_piano__experiences"]:::model
+    raw_tpl["cgm_extract_load.raw_piano_offer_templates"]:::source --> stg_tpl["stg_piano__offer_templates"]:::model
+    raw_term["cgm_extract_load.raw_piano_terms"]:::source --> stg_term["stg_piano__terms"]:::model
+    raw_offer["cgm_extract_load.raw_piano_offers"]:::source --> stg_offer["stg_piano__offers"]:::model
+    raw_ot["cgm_extract_load.raw_piano_offer_terms"]:::source --> stg_ot["stg_piano__offer_terms"]:::model
+    stg_exp --> experience["dim_experience"]:::mart
+    stg_tpl --> template["dim_template"]:::mart
+    stg_term --> term["dim_term"]:::mart
+    stg_offer --> offer["dim_offer"]:::mart
+    stg_ot --> offer
+    stg_ot --> offer_term["dim_offer_term"]:::mart
+    stg_offer --> offer_term
+    billing_seed["app_store_term_billing_period"]:::seed --> term
+    linkStyle 0,1,2,3,4 stroke:#eab308,stroke-width:2.5px
+    linkStyle 5,6,7,8,9,10,11 stroke:#4169e1,stroke-width:1.5px
+    linkStyle 12 stroke:#f97316,stroke-width:2.5px
 ```
 
 ### Page view flow
@@ -216,6 +239,11 @@ The following inventory records every project-owned model in the dbt manifest an
 | `stg_piano__paid_media_spend` | `source:studios_piano.studios_piano_events`, `source:FACEBOOK_ADS.basic_ad`, `source:GOOGLE_ADS.STG_GOOGLE_ADS` |
 | `stg_piano__studios_events` | `source:studios_piano.studios_piano_events` |
 | `stg_piano__subscription_snapshots` | `source:cgm_extract_load.raw_piano_subscription_snapshots` |
+| `stg_piano__experiences` | `source:cgm_extract_load.raw_piano_experiences` |
+| `stg_piano__offers` | `source:cgm_extract_load.raw_piano_offers` |
+| `stg_piano__offer_terms` | `source:cgm_extract_load.raw_piano_offer_terms` |
+| `stg_piano__offer_templates` | `source:cgm_extract_load.raw_piano_offer_templates` |
+| `stg_piano__terms` | `source:cgm_extract_load.raw_piano_terms` |
 | `stg_piano__subscription_attribution` | `source:studios_piano.studios_piano_events` |
 | `stg_piano__studios_events` | `source:studios_piano.studios_piano_events` |
 
@@ -248,12 +276,14 @@ The following inventory records every project-owned model in the dbt manifest an
 | `dim_app_type` | None; static reference model |
 | `dim_date` | None; static date spine model |
 | `dim_device_type` | None; static reference model |
-| `dim_experience` | `stg_piano__studios_events`, `seed:experience_app_type` |
+| `dim_experience` | `stg_piano__experiences` |
 | `dim_geography` | `seed:geo_mapping` |
 | `dim_os_group` | None; static reference model |
+| `dim_offer` | `stg_piano__offers`, `stg_piano__offer_terms` |
+| `dim_offer_term` | `stg_piano__offer_terms`, `stg_piano__offers` |
 | `dim_subscription` | `int_piano__subscription_current`, `fct_subscription_events` |
-| `dim_template` | `stg_piano__studios_events` |
-| `dim_term` | `fct_conversions` |
+| `dim_template` | `stg_piano__offer_templates` |
+| `dim_term` | `stg_piano__terms`, `seed:app_store_term_billing_period` |
 | `fct_conversions` | `int_piano__conversion_attribution_web`, `int_piano__conversion_attribution_app`, `fct_subscription_attribution` |
 | `fct_exposures` | `int_piano__exposures_web`, `int_piano__exposures_app` |
 | `fct_subscription_events` | `fct_conversions`, `stg_piano__studios_events` |
@@ -286,7 +316,6 @@ These sources are configured in `models/bronze/<source>/_<source>__sources.yml` 
 
 ### Intermediate models without a current downstream model
 
-- `int_piano__events_cleaned` is the single cleaning pass over `stg_piano__studios_events` for page view analysis. No model reads it yet.
 - `int_subscription__survival` is built but not referenced. `analyses/survival_data.sql` reads `fct_subscription_events` directly.
 
 ## Cross-DAG and cross-project references
@@ -295,6 +324,7 @@ These sources are configured in `models/bronze/<source>/_<source>__sources.yml` 
 - `fct_conversions` depends on `fct_subscription_attribution`, so the attribution mart is upstream of the canonical conversion fact.
 - `int_subscription__attribution_src_corrected`, `fct_subscription_attribution` and the `agg_subs_*` content, pillar and usage models read `studios_piano.studios_piano_events` directly in addition to local models.
 - `stg_piano__subscription_snapshots` depends on the daily [cgm-extract-load](https://github.com/bbc/cgm-extract-load) load into `raw_piano_subscription_snapshots`, which has a source freshness check (warn after 20 hours, error after 26).
+- The `stg_piano__experiences`, `stg_piano__offers`, `stg_piano__offer_terms`, `stg_piano__offer_templates` and `stg_piano__terms` staging models depend on the same daily load (job `piano_catalog`), with the same freshness checks.
 - No direct `ref()` to a mart in a sibling repository is present in this project's model SQL. The explicit dbt project boundary is the installed `facebook_ads` package.
 
 ## Scheduling order

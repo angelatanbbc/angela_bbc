@@ -5,14 +5,56 @@
     )
 }}
 
+WITH terms AS (
+
+    -- Latest state of every term in the Piano API snapshots.
+    SELECT
+        term_id,
+        term_name,
+        term_description,
+        term_type,
+        resource_id,
+        resource_name,
+        billing_plan_description,
+        currency_code,
+        first_price_amount,
+        -- The last billing step is the price the term renews at; earlier
+        -- steps are introductory prices.
+        GET(billing_plan_steps, ARRAY_SIZE(billing_plan_steps) - 1) AS recurring_step,
+        is_subscription,
+        has_free_trial,
+        is_trial_new_customers_only,
+        external_api_name,
+        created_at,
+        updated_at,
+        NOT is_fetched_by_id
+        AND snapshot_date = MAX(IFF(is_fetched_by_id, NULL, snapshot_date)) OVER () AS is_listed_in_piano
+    FROM {{ ref('stg_piano__terms') }}
+    QUALIFY ROW_NUMBER() OVER (PARTITION BY term_id ORDER BY snapshot_at DESC) = 1
+
+)
+
 SELECT
-    term_id,
-    MAX(term_name) AS term_name,
-    MAX(billing_period) AS billing_period,
-    MAX(COALESCE(term_offer_id, 'OFR1N7V2XJPI')) AS term_offer_id,
-    MAX(COALESCE(term_offer_name, 'BBC Subscription')) AS term_offer_name
-FROM {{ ref('fct_conversions') }}
-WHERE
-    term_id IS NOT NULL
-    AND billing_period IS NOT NULL
-GROUP BY term_id
+    t.term_id,
+    t.term_name,
+    t.term_description,
+    t.term_type,
+    t.resource_id,
+    t.resource_name,
+    -- App store terms are billed by the store, so Piano has no billing plan
+    -- for them; their period comes from a seed.
+    COALESCE(t.recurring_step:billingPeriod::STRING, s.billing_period) AS billing_period,
+    t.billing_plan_description,
+    t.currency_code,
+    t.first_price_amount,
+    t.recurring_step:priceValue::FLOAT AS recurring_price_amount,
+    t.is_subscription,
+    t.has_free_trial,
+    t.is_trial_new_customers_only,
+    t.external_api_name,
+    t.is_listed_in_piano,
+    t.created_at,
+    t.updated_at
+FROM terms t
+LEFT JOIN {{ ref('app_store_term_billing_period') }} s
+    ON t.term_id = s.term_id
