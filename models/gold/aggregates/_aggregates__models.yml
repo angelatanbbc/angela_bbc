@@ -332,3 +332,39 @@ models:
         description: The month-over-month change in product usage.
         tests:
           - not_null
+
+  - name: agg_subscription_attribution_touchpoint
+    description: >
+      The click-based subscription attribution, flat, for the Subscriptions Click Based Attribution
+      dashboard. One row per attributable web subscription x credited touchpoint (the grain of
+      fct_attribution_touchpoints): every touch, its four credits and every label it is filtered or
+      grouped by. No weight is recalculated; left joins, so no touch is dropped. Text is capped at
+      VARCHAR(512) for Tableau's Snowflake driver.
+    columns:
+      - name: attribution_touchpoint_sk
+        description: Primary key (the fact's).
+        tests:
+          - not_null
+          - unique
+      - name: conversion_id
+        description: The subscription purchase; count distinct for subscriptions.
+        tests:
+          - not_null
+      - name: touchpoint_date
+        description: Date of the touch - the date the dashboard reports by.
+        tests:
+          - not_null
+      - name: is_paid_touch
+        description: TRUE for an 8MS / DBS paid-media touch.
+        tests:
+          - not_null
+      - name: funnel_stage
+        description: TOF / MOF / BOF from the ad platform's campaign name; NULL for touches without a known Meta ad (the Google upload has no campaign).
+      - name: position_weight
+        description: Position-based credit, the dashboard's model; sums to 1 per conversion.
+        tests:
+          - not_null
+    tests:
+      - dbt_utils.equal_rowcount:
+          arguments:
+            compare_model: ref('fct_attribution_touchpoints')

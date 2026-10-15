@@ -15,3 +15,62 @@ seeds:
     description: Geography reference data.
   - name: piano_retention_curves
     description: Expected retention curves for survival-analysis benchmarking.
+  - name: excluded_promo_codes
+    description: >
+      Promo codes whose purchases are never attributed (staff, editorial, internal).
+      Shared with the dns_dbt_enablement project in the live schema; keep the two identical.
+    columns:
+      - name: promo_code
+        tests:
+          - not_null
+          - unique
+  - name: subscription_sites
+    description: >
+      Piano sites whose purchases and page views the subscription attribution counts.
+      Shared with the dns_dbt_enablement project in the live schema; keep the two identical.
+    columns:
+      - name: site_id
+        tests:
+          - not_null
+          - unique
+  - name: bbc_team_agencies
+    description: >
+      Piano team codes (src_bbc_team / at_bbc_team, lower-cased) and whether each is a paid-media
+      agency. The one agency rule for the attribution, dim_channel and dim_ad; a team not listed is
+      not paid. Shared with the dns_dbt_enablement project in the live schema; keep the two identical.
+    columns:
+      - name: bbc_team_raw
+        tests:
+          - not_null
+          - unique
+      - name: is_paid_media
+        tests:
+          - not_null
+  - name: traffic_source_channels
+    description: >
+      The attribution dashboard's grouping of attribution sources (dim_channel.channel_group); a
+      source not listed is its own group. Shared with the dns_dbt_enablement project in the live
+      schema; keep the two identical.
+    columns:
+      - name: attribution_source
+        tests:
+          - not_null
+          - unique
+      - name: channel_group
+        tests:
+          - not_null
+  - name: meta_ads_accounts
+    description: >
+      The Meta ad accounts in scope: account_purpose for dim_ad, and default_bbc_team as the last
+      fallback for an ad's team. Shared with the dns_dbt_enablement project in the live schema; keep
+      the two identical.
+    columns:
+      - name: account_id
+        tests:
+          - not_null
+          - unique
+      - name: account_purpose
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["subscriptions", "app_installs", "other"]

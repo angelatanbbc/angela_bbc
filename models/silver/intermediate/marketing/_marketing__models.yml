@@ -1,0 +1,190 @@
+version: 2
+
+models:
+  - name: int_attribution__conversions
+    description: >
+      Attributable web subscription purchases. One row per conversion_id. A vx.conversion with a
+      conversion_id and a pageview_id, not from the mobile app, not a staff, editorial or empty promo
+      code, and on a subscription site (seed subscription_sites) when var attribution_site_scope is on.
+      Resolves the buyer: the checkout cookie (the journey key), the real account and the browser id.
+      Limitation: vx.conversion events without a pageview_id carry no conversion_id and cannot be
+      attributed.
+    columns:
+      - name: conversion_id
+        description: Piano conversion id of the purchase. Primary key.
+        tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('fct_attribution_touchpoints')
+                field: conversion_id
+      - name: subscription_id
+        description: Piano subscription bought.
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: checkout_pageview_id
+        description: The checkout page view the purchase was made on.
+      - name: checkout_visitor_id
+        description: Cookie on the checkout page view, else the purchase event's own. The journey key.
+        tests:
+          - not_null
+      - name: conversion_visitor_id
+        description: Cookie on the purchase event itself.
+      - name: buyer_user_id
+        description: >
+          Real account of the buyer, from the purchase or the checkout page view. Never the
+          'unidentified-user' placeholder.
+      - name: buyer_device_id
+        description: device_first_party_id of the buyer's browser.
+      - name: conversion_at
+        description: Timestamp of the purchase, local time.
+        tests:
+          - not_null
+      - name: conversion_date
+        description: Date of the purchase.
+        tests:
+          - not_null
+      - name: previous_conversion_at
+        description: The checkout cookie's previous purchase on any site. The journey reaches back no further.
+      - name: is_lookback_complete
+        description: >
+          FALSE when the page view history does not yet reach var attribution_lookback_days before
+          the purchase, so the journey may be missing early touches.
+      - name: promo_code
+        description: Promo code used on the purchase.
+    tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "buyer_user_id IS NULL OR buyer_user_id NOT ILIKE 'unidentified%'"
+
+  - name: int_attribution__journey_identities
+    description: >
+      The cookies in each buyer's journey. One row per conversion x cookie. Links: checkout_cookie
+      (always), account (page views carrying the buyer's user_id) and device (cookies seen on the
+      buyer's device_first_party_id, unless that browser carried more than var
+      attribution_max_cookies_per_browser cookies or the cookie carries another account), all judged
+      inside the journey window. var attribution_link_types switches links off. Incremental:
+      rebuilds the last var attribution_reprocess_days conversion dates. Limitation: the device link
+      only reaches cookies that carry device_first_party_id.
+    columns:
+      - name: conversion_id
+        description: The purchase.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('int_attribution__conversions')
+                field: conversion_id
+      - name: visitor_id
+        description: A cookie in the purchase's journey.
+        tests:
+          - not_null
+      - name: conversion_date
+        description: Date of the purchase. Incremental key.
+      - name: identity_link_type
+        description: How the cookie is tied to the buyer.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["checkout_cookie", "account", "device"]
+      - name: browser_cookie_count
+        description: Cookies seen on the buyer's browser in the journey window. Device links only.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - conversion_id
+              - visitor_id
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "identity_link_type != 'device' OR browser_cookie_count <= {{ var('attribution_max_cookies_per_browser') }}"
+
+  - name: int_attribution__journey_touches
+    description: >
+      Every touch in each purchase's journey. One row per conversion x pageview_id x touchpoint_type:
+      the page views on the buyer's cookies inside the journey window (on subscription sites when var
+      attribution_site_scope is on), plus the purchase itself when it was recorded on the checkout
+      cookie. Drops the sign-in return from account.bbc.com unless a journey would be empty (var
+      attribution_skip_signin_return), and fills a lost agency tag from the ad id or campaign name (var
+      attribution_fill_agency). Carries the campaign tags, the conformed geography, device type and OS
+      group ids, and the content labels. Incremental on conversion_date.
+    columns:
+      - name: touchpoint_type
+        description: page_view, or conversion for the purchase itself.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["page_view", "conversion"]
+      - name: identity_link_type
+        description: How the touch's cookie is tied to the buyer.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["checkout_cookie", "account", "device"]
+      - name: agency_resolved_from
+        description: Where the agency came from - visit_tag, ad_id, campaign_name or none.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["visit_tag", "ad_id", "campaign_name", "none"]
+      - name: ad_sk
+        description: dim_ad key when the touch's creative id is a known Meta, Google or Microsoft ad; NULL otherwise. Only Meta ads fill a lost agency tag.
+      - name: campaign_tracking_sk
+        description: dim_campaign_tracking key; the 'none' row when the visit has no tags.
+        tests:
+          - not_null
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - conversion_id
+              - pageview_id
+              - touchpoint_type
+
+  - name: int_attribution__touchpoints
+    description: >
+      The credited touchpoints and their weights. One row per conversion x pageview_id x
+      touchpoint_type, a subset of int_attribution__journey_touches. Today's keep rules, position
+      weight and attribution source (int_subscription__attribution) step for step. The sign-up touch
+      weight counts per purchase, not per cookie; as today it sums to 0.6 on journeys whose purchase
+      was recorded on another cookie, which have no purchase row. Incremental on conversion_date.
+    columns:
+      - name: attribution_source
+        description: Credited source before unknown sources are handled; NULL when unknown.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - conversion_id
+              - pageview_id
+              - touchpoint_type
+
+  - name: int_attribution__touchpoints_source_imputed
+    description: >
+      The credited touchpoints with every touch given a source. One row per conversion x pageview_id
+      x touchpoint_type. A touch with no source is reassigned in proportion to the last var
+      attribution_imputation_window_days of known non-paid credit (is_source_imputed; var
+      attribution_impute_unknown_sources off leaves it Unknown), the generic Search engines detail is
+      split across the named engines, and owned banners are credited to House Ad, as today.
+      Incremental on conversion_date.
+    columns:
+      - name: attribution_source
+        description: Credited source.
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: channel_sk
+        description: dim_channel key.
+        tests:
+          - not_null
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - conversion_id
+              - pageview_id
+              - touchpoint_type

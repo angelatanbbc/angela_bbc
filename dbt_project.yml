@@ -7,6 +7,33 @@ model-paths: ["models"]
 models:
   dns_transformations:
     +materialized: table
+    # the subscription attribution models are off until their first live build is planned (see the
+    # runbook); build them with --vars '{enable_marketing_models: true}'
+    bronze:
+      google_ads:
+        stg_google_ads__spend:
+          +enabled: "{{ var('enable_marketing_models', false) }}"
+    silver:
+      intermediate:
+        marketing:
+          +enabled: "{{ var('enable_marketing_models', false) }}"
+      dims:
+        dim_ad:
+          +enabled: "{{ var('enable_marketing_models', false) }}"
+        dim_channel:
+          +enabled: "{{ var('enable_marketing_models', false) }}"
+        dim_campaign_tracking:
+          +enabled: "{{ var('enable_marketing_models', false) }}"
+      facts:
+        fct_attribution_touchpoints:
+          +enabled: "{{ var('enable_marketing_models', false) }}"
+    gold:
+      aggregates:
+        agg_subscription_attribution_touchpoint:
+          +enabled: "{{ var('enable_marketing_models', false) }}"
+      # also needs the CREATE SEMANTIC VIEW privilege: --vars '{build_semantic_views: true}'
+      semantic_views:
+        +enabled: "{{ var('enable_marketing_models', false) and var('build_semantic_views', false) }}"
   facebook_ads:
     intermediate:
       int_facebook_ads__creative_history:
@@ -14,6 +41,31 @@ models:
     facebook_ads__url_report:
       +enabled: false
     +schema:
+
+# the attribution seeds share live tables with the dns_dbt_enablement project, so their types match it
+seeds:
+  dns_transformations:
+    bbc_team_agencies:
+      +column_types:
+        bbc_team_raw: varchar
+        agency: varchar
+        is_paid_media: boolean
+        note: varchar
+    excluded_promo_codes:
+      +column_types:
+        promo_code: varchar
+        reason: varchar
+    traffic_source_channels:
+      +column_types:
+        attribution_source: varchar
+        channel_group: varchar
+    meta_ads_accounts:
+      +column_types:
+        account_id: varchar
+    subscription_sites:
+      +column_types:
+        site_id: number
+        site_name: varchar
 
 vars:
   facebook_ads_database: sdp_bronze
@@ -30,3 +82,15 @@ vars:
     - name: offsite_conversion.fb_pixel_purchase
     - name: offsite_conversion.fb_pixel_lead
     - name: offsite_conversion.fb_pixel_custom # same as pattern: offsite_conversion.custom%
+
+  # subscription attribution. Today's logic, for parity: attribution_link_types: ["checkout_cookie"],
+  # attribution_fill_agency, attribution_site_scope and attribution_skip_signin_return false
+  attribution_link_types: ["checkout_cookie", "account", "device"]
+  attribution_fill_agency: true
+  attribution_site_scope: true
+  attribution_skip_signin_return: true
+  attribution_impute_unknown_sources: true
+  attribution_lookback_days: 30
+  attribution_max_cookies_per_browser: 20
+  attribution_reprocess_days: 7
+  attribution_imputation_window_days: 90

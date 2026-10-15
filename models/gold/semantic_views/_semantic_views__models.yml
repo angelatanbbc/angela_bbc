@@ -1,0 +1,11 @@
+version: 2
+
+models:
+  - name: sv_marketing_attribution
+    description: >
+      Snowflake semantic view over fct_attribution_touchpoints and its dimensions (dim_channel,
+      dim_campaign_tracking, dim_ad, dim_device_type, dim_os_group), with the attribution metrics in
+      business terms: attributed subscriptions (position, sign-up touch, first and last touch), paid
+      attributed subscriptions, subscriptions and subscriptions with a paid touch. Country, browser and
+      content pillar are dimensions on the fact. Needs the CREATE SEMANTIC VIEW privilege, so it is
+      built only with var build_semantic_views.

@@ -385,3 +385,85 @@ models:
         description: Current MRR amount for the subscription, set to zero when superseded by an upgrade.
         tests:
           - not_null
+
+  - name: dim_ad
+    description: >
+      Paid ads on Meta, Google and Microsoft. One row per ad (platform + ad_id), with its ad set,
+      campaign, creative and account flattened on, plus one 'unknown' row. Meta ads come from the
+      facebook_ads package's staging and int_facebook_ads__creative_history; their bbc_team is the
+      creative's at_bbc_team URL tag, else DBS / 8MS in the ad, ad set or campaign name, else the
+      account's default (seed meta_ads_accounts). Google and Microsoft ads come from the manual upload
+      (stg_google_ads__spend), which has no campaign, creative or account: name and team (from the ad
+      name) only, platform from the id length. is_paid_media comes from seed bbc_team_agencies.
+      Latest attributes only.
+    columns:
+      - name: ad_sk
+        description: Surrogate key of platform + ad_id.
+        tests:
+          - not_null
+          - unique
+      - name: platform
+        description: Ad platform - meta, google or microsoft; unknown on the unknown row.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["meta", "google", "microsoft", "unknown"]
+      - name: ad_id
+        description: Platform ad id, as text so it matches Piano's src_creative_id.
+        tests:
+          - not_null
+      - name: bbc_team
+        description: Team the ad belongs to (8ms, dbs, ...), lower-cased.
+      - name: bbc_team_source
+        description: Where bbc_team came from - url_tag, name or account_default.
+      - name: is_paid_media
+        description: TRUE when bbc_team is a paid-media agency.
+        tests:
+          - not_null
+
+  - name: dim_channel
+    description: >
+      Where an attributed touch came from. One row per distinct combination of credited attribution
+      source and detail, Piano's source and detail, organic source and detail, team and partner, plus
+      one 'Unknown' row. channel_group comes from seed traffic_source_channels (a source not listed is
+      its own group) and agency from seed bbc_team_agencies. Built from the attributed touchpoints.
+    columns:
+      - name: channel_sk
+        description: Surrogate key of the source combination.
+        tests:
+          - not_null
+          - unique
+      - name: channel_group
+        description: The attribution dashboard's grouping of attribution_source.
+      - name: attribution_source
+        description: Source credited for the touch - Paid, Direct traffic, Search engines, House Ad, '<code> Promo code' ...
+      - name: attribution_source_detail
+        description: The agency for paid touches; the referrer, engine or code otherwise.
+      - name: agency
+        description: Paid-media agency; NULL for every other team.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["8ms", "dbs"]
+      - name: partner
+        description: Partner the visit came from (facebook, instagram, google ...), as Piano reports it.
+      - name: is_paid_media
+        description: TRUE when the team is a paid-media agency.
+        tests:
+          - not_null
+
+  - name: dim_campaign_tracking
+    description: >
+      The campaign tags on an attributed visit. One row per distinct set of tags, plus the 'none' row
+      for a visit with no tags (has_tags = FALSE). Each tag is Piano's column first and the landing
+      URL's at_* tag as the fallback. Covers emails, search and house ads as well as Meta ads.
+    columns:
+      - name: campaign_tracking_sk
+        description: Surrogate key of the set of tags.
+        tests:
+          - not_null
+          - unique
+      - name: has_tags
+        description: FALSE only on the 'none' row.
+        tests:
+          - not_null

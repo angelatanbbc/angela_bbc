@@ -157,6 +157,56 @@ graph LR
     linkStyle 0,1,2,7,8,9,10,11 stroke:#eab308,stroke-width:2.5px
 ```
 
+### Click-based subscription attribution flow
+
+The corrected subscription attribution, built from the page view chain beside the attribution chain above. These models are disabled unless `var('enable_marketing_models')` is true; the semantic view also needs `var('build_semantic_views')`.
+
+```mermaid
+graph LR
+    classDef seed fill:#ffedd5,stroke:#f97316,color:#7c2d12
+    classDef model fill:#dbeafe,stroke:#2563eb,color:#172554
+    classDef mart fill:#dcfce7,stroke:#16a34a,color:#14532d
+    classDef package fill:#f3e8ff,stroke:#9333ea,color:#581c87
+    classDef source fill:#fff3b0,stroke:#eab308,color:#713f12
+    cleaned["int_piano__events_cleaned"]:::model --> conversions["int_attribution__conversions"]:::model
+    page_views["int_piano__page_views"]:::model --> conversions
+    promo_codes["excluded_promo_codes"]:::seed --> conversions
+    sites["subscription_sites"]:::seed --> conversions
+    conversions --> identities["int_attribution__journey_identities"]:::model
+    page_views --> identities
+    conversions --> touches["int_attribution__journey_touches"]:::model
+    identities --> touches
+    page_views --> touches
+    fb_history["facebook_ads ad, ad set, campaign and account history staging models"]:::package --> ad["dim_ad"]:::mart
+    creative["int_facebook_ads__creative_history"]:::model --> ad
+    accounts["meta_ads_accounts"]:::seed --> ad
+    agencies["bbc_team_agencies"]:::seed --> ad
+    ad --> touches
+    touches --> touchpoints["int_attribution__touchpoints"]:::model --> imputed["int_attribution__touchpoints_source_imputed"]:::model
+    agencies --> touchpoints
+    imputed --> channel["dim_channel"]:::mart
+    channels_seed["traffic_source_channels"]:::seed --> channel
+    touches --> tracking["dim_campaign_tracking"]:::mart
+    imputed --> fact["fct_attribution_touchpoints"]:::mart
+    conversions --> fact
+    touches --> fact
+    fact --> agg["agg_subscription_attribution_touchpoint"]:::mart
+    channel --> agg
+    tracking --> agg
+    ad --> agg
+    device["dim_device_type, dim_os_group"]:::mart --> agg
+    fact --> sv["sv_marketing_attribution"]:::mart
+    channel --> sv
+    tracking --> sv
+    ad --> sv
+    device --> sv
+    google["GOOGLE_ADS.STG_GOOGLE_ADS"]:::source --> google_stg["stg_google_ads__spend"]:::model --> ad
+    linkStyle 0,1,4,5,6,7,8,10,13,14,15,17,19,20,21,22,23,24,25,26,27,28,29,30,31,32,34 stroke:#4169e1,stroke-width:1.5px
+    linkStyle 2,3,11,12,16,18 stroke:#f97316,stroke-width:2.5px
+    linkStyle 9 stroke:#9333ea,stroke-width:2.5px
+    linkStyle 33 stroke:#eab308,stroke-width:2.5px
+```
+
 ### Dimensions and reporting outputs
 
 ```mermaid
@@ -217,6 +267,7 @@ The following inventory records every project-owned model in the dbt manifest an
 | `stg_piano__studios_events` | `source:studios_piano.studios_piano_events` |
 | `stg_piano__subscription_snapshots` | `source:cgm_extract_load.raw_piano_subscription_snapshots` |
 | `stg_piano__subscription_attribution` | `source:studios_piano.studios_piano_events` |
+| `stg_google_ads__spend` | `source:GOOGLE_ADS.STG_GOOGLE_ADS` |
 | `stg_piano__studios_events` | `source:studios_piano.studios_piano_events` |
 
 ### Intermediate
@@ -240,6 +291,11 @@ The following inventory records every project-owned model in the dbt manifest an
 | `int_subscription__survival` | `fct_subscription_events`, `fct_conversions`, `dim_experience` |
 | `int_subscription__attribution` | `stg_piano__subscription_attribution` |
 | `int_subscription__attribution_src_corrected` | `source:studios_piano.studios_piano_events`, `int_subscription__attribution` |
+| `int_attribution__conversions` | `int_piano__events_cleaned`, `int_piano__page_views`, `seed:excluded_promo_codes`, `seed:subscription_sites` |
+| `int_attribution__journey_identities` | `int_attribution__conversions`, `int_piano__page_views` |
+| `int_attribution__journey_touches` | `int_attribution__conversions`, `int_attribution__journey_identities`, `int_piano__page_views`, `dim_ad`, `seed:bbc_team_agencies`, `seed:subscription_sites` |
+| `int_attribution__touchpoints` | `int_attribution__journey_touches`, `seed:bbc_team_agencies` |
+| `int_attribution__touchpoints_source_imputed` | `int_attribution__touchpoints` |
 
 ### Core and subscription facts and dimensions
 
@@ -264,6 +320,10 @@ The following inventory records every project-owned model in the dbt manifest an
 | `fct_marketing_spend` | `stg_piano__paid_media_spend` |
 | `fct_page_views` | `int_piano__page_views`, `int_piano__scroll_events`, `int_piano__click_events`, `int_piano__ad_impressions`, `int_piano__event_durations` |
 | `fct_subscription_attribution` | `source:studios_piano.studios_piano_events`, `int_subscription__attribution_src_corrected` |
+| `dim_ad` | `facebook_ads.stg_facebook_ads__ad_history`, `facebook_ads.stg_facebook_ads__ad_set_history`, `facebook_ads.stg_facebook_ads__campaign_history`, `facebook_ads.stg_facebook_ads__account_history`, `int_facebook_ads__creative_history`, `stg_google_ads__spend`, `seed:meta_ads_accounts`, `seed:bbc_team_agencies` |
+| `dim_channel` | `int_attribution__touchpoints_source_imputed`, `seed:traffic_source_channels`, `seed:bbc_team_agencies` |
+| `dim_campaign_tracking` | `int_attribution__journey_touches` |
+| `fct_attribution_touchpoints` | `int_attribution__touchpoints_source_imputed`, `int_attribution__conversions`, `int_attribution__journey_touches` |
 | `fct_sfmc_journey_send_job` | `source:sfmc.sent`, `source:sfmc.opens`, `source:sfmc.clicks`, `source:sfmc.bounces`, `source:sfmc.unsubs`, `source:sfmc.send_jobs`, `source:sfmc.journey`, `source:sfmc.journey_activity`, `source:sfmc.list_subscribers` |
 
 ### Reporting outputs
@@ -279,6 +339,8 @@ The following inventory records every project-owned model in the dbt manifest an
 | `agg_subs_pillar_views_l30d_snapshot` | `source:studios_piano.studios_piano_events`, `dim_subscription` |
 | `agg_subs_product_usage_30d_snapshot` | `source:studios_piano.studios_piano_events`, `dim_subscription` |
 | `agg_subscriber_bans` | `fct_subscriber_activity_daily`, `fct_subscription_events`, `fct_visitors_daily`, `fct_conversions`, `fct_exposures` |
+| `agg_subscription_attribution_touchpoint` | `fct_attribution_touchpoints`, `dim_channel`, `dim_campaign_tracking`, `dim_ad`, `dim_device_type`, `dim_os_group` |
+| `sv_marketing_attribution` | `fct_attribution_touchpoints`, `dim_channel`, `dim_campaign_tracking`, `dim_ad`, `dim_device_type`, `dim_os_group` |
 
 ### Declared sources without a current downstream model
 

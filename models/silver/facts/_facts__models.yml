@@ -845,3 +845,150 @@ models:
         description: Total ad impressions on this page view.
       - name: ad_revenue
         description: Total ad revenue attributed to this page view.
+
+  - name: fct_attribution_touchpoints
+    description: >
+      Click-based subscription attribution. One row per attributable web subscription x credited
+      touchpoint in the var attribution_lookback_days days before it. Four credit models side by side:
+      position_weight (the dashboard's), first_touch_weight and last_touch_weight each sum to 1 per
+      conversion; signup_touch_weight (40 / 40 / 20) sums to 1 only when the purchase itself is a
+      touch, 0.6 otherwise. No revenue. Limitations: the browser link only reaches cookies that carry
+      device_first_party_id, so paid credit is a floor; journeys are incomplete where
+      is_lookback_complete is FALSE. Incremental: rebuilds the last var attribution_reprocess_days
+      conversion dates.
+    columns:
+      - name: attribution_touchpoint_sk
+        description: Surrogate key of conversion_id + pageview_id + touchpoint_type. Primary key.
+        tests:
+          - not_null
+          - unique
+      - name: conversion_id
+        description: Piano conversion id of the subscription purchase.
+        tests:
+          - not_null
+      - name: subscription_id
+        description: Piano subscription bought.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_subscription')
+                field: subscription_id
+              config:
+                severity: warn
+      - name: channel_sk
+        description: Key to dim_channel.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_channel')
+                field: channel_sk
+      - name: campaign_tracking_sk
+        description: Key to dim_campaign_tracking.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_campaign_tracking')
+                field: campaign_tracking_sk
+      - name: ad_sk
+        description: Key to dim_ad when the touch's creative id is a known Meta, Google or Microsoft ad; NULL otherwise.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_ad')
+                field: ad_sk
+      - name: geo_id
+        description: Key to dim_geography. dim_geography holds US and Canadian regions only, so geo_country and geo_region are also carried.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_geography')
+                field: geo_id
+              config:
+                severity: warn
+      - name: device_type_id
+        description: Key to dim_device_type.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_device_type')
+                field: device_type_id
+      - name: os_group_id
+        description: Key to dim_os_group.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_os_group')
+                field: os_group_id
+      - name: visitor_id
+        description: The journey's checkout cookie.
+      - name: touchpoint_visitor_id
+        description: The cookie the touch was on.
+      - name: touchpoint_date
+        description: Date of the touch - the date the attribution dashboard reports by.
+        tests:
+          - not_null
+      - name: conversion_date
+        description: Date the subscription was bought. Incremental key.
+        tests:
+          - not_null
+      - name: touchpoint_type
+        description: page_view, or conversion for the purchase itself.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["page_view", "conversion"]
+      - name: identity_link_type
+        description: How the touch's cookie is tied to the buyer.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["checkout_cookie", "account", "device"]
+      - name: agency_resolved_from
+        description: Where the touch's agency came from.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["visit_tag", "ad_id", "campaign_name", "none"]
+      - name: is_paid_touch
+        description: TRUE for an 8MS / DBS paid-media touch.
+        tests:
+          - not_null
+      - name: is_source_imputed
+        description: TRUE when the touch had no source and was given one in proportion to the known sources.
+        tests:
+          - not_null
+      - name: is_lookback_complete
+        description: FALSE when the page view history does not reach the full lookback before the purchase.
+      - name: position_weight
+        description: Position-based credit, the dashboard's model.
+        tests:
+          - not_null
+          - sums_to_one:
+              arguments:
+                group_by: conversion_id
+      - name: signup_touch_weight
+        description: 40 / 40 / 20 first / purchase / middle credit.
+        tests:
+          - sums_to_one:
+              arguments:
+                group_by: conversion_id
+              config:
+                severity: warn
+      - name: first_touch_weight
+        description: 1 on the journey's first touch.
+        tests:
+          - sums_to_one:
+              arguments:
+                group_by: conversion_id
+      - name: last_touch_weight
+        description: 1 on the last touch before the purchase.
+        tests:
+          - sums_to_one:
+              arguments:
+                group_by: conversion_id
+    tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "position_weight BETWEEN 0 AND 1 AND signup_touch_weight BETWEEN 0 AND 1"
