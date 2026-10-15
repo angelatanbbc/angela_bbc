@@ -1,0 +1,254 @@
+version: 2
+
+# Piano catalogue snapshots loaded daily by cgm-extract-load (job piano_catalog).
+# Each staging model keeps the latest nightly load per snapshot_date (one row per entity per day), plus any
+# records backfilled by id, which are flagged is_fetched_by_id.
+
+models:
+  - name: stg_piano__experiences
+    description: Daily snapshot of Piano Composer experiences. One row per experience per snapshot_date.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [experience_id, snapshot_date, is_fetched_by_id]
+    columns:
+      - name: experience_id
+        description: Piano identifier for the Composer experience.
+        tests: [not_null]
+      - name: experience_name
+        description: Experience title in Piano.
+      - name: experience_description
+        description: Description entered in Piano; null when blank.
+      - name: experience_type
+        description: Piano experience type.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["site", "mobile", "template-interaction"]
+              config:
+                severity: warn
+      - name: experience_status
+        description: Piano experience status in upper case, such as LIVE, OFFLINE, SCHEDULED or ARCHIVED (archived experiences only arrive by backfill).
+      - name: hierarchy_type
+        description: Piano hierarchy type of the experience.
+      - name: parent_experience_id
+        description: Parent experience, when the experience is nested; null otherwise.
+      - name: schedule
+        description: Experience schedule as parsed JSON.
+      - name: is_deleted
+        description: >
+          Whether the experience is deleted in Piano. experience/get (the backfill) has no deleted field, so an
+          archived experience, which is how Piano reports a deleted one, counts as deleted.
+        tests: [not_null]
+      - name: major_version
+        description: Major version of the experience.
+      - name: minor_version
+        description: Minor version of the experience.
+      - name: created_at
+        description: When the experience was created in Piano.
+      - name: updated_at
+        description: When the experience was last updated in Piano.
+      - name: is_fetched_by_id
+        description: >
+          False for the nightly snapshot of the list endpoint; true for records backfilled one at a time by id
+          (cgm-extract-load backfill-piano-catalog), such as archived experiences the list leaves out.
+        tests: [not_null]
+      - name: snapshot_at
+        description: When the snapshot was taken.
+        tests: [not_null]
+      - name: snapshot_date
+        description: Date of the snapshot.
+        tests: [not_null]
+
+  - name: stg_piano__offers
+    description: Daily snapshot of Piano offers. One row per offer per snapshot_date.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [offer_id, snapshot_date, is_fetched_by_id]
+    columns:
+      - name: offer_id
+        description: Piano identifier for the offer.
+        tests: [not_null]
+      - name: offer_name
+        description: Offer name in Piano.
+      - name: offer_status
+        description: Piano offer status.
+      - name: is_deleted
+        description: Whether Piano marks the offer as deleted.
+      - name: created_at
+        description: When the offer was created in Piano.
+      - name: updated_at
+        description: When the offer was last updated in Piano.
+      - name: is_fetched_by_id
+        description: >
+          False for the nightly snapshot of the list endpoint; true for records backfilled one at a time by id
+          (cgm-extract-load backfill-piano-catalog), such as archived experiences the list leaves out.
+        tests: [not_null]
+      - name: snapshot_at
+        description: When the snapshot was taken.
+        tests: [not_null]
+      - name: snapshot_date
+        description: Date of the snapshot.
+        tests: [not_null]
+
+  - name: stg_piano__offer_terms
+    description: Daily snapshot of the terms each Piano offer sells. One row per offer, term and snapshot_date.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [offer_id, term_id, snapshot_date, is_fetched_by_id]
+    columns:
+      - name: offer_id
+        description: Piano offer identifier.
+        tests: [not_null]
+      - name: term_id
+        description: Piano term identifier.
+        tests: [not_null]
+      - name: is_fetched_by_id
+        description: >
+          False for the nightly snapshot of the list endpoint; true for records backfilled one at a time by id
+          (cgm-extract-load backfill-piano-catalog), such as archived experiences the list leaves out.
+        tests: [not_null]
+      - name: snapshot_at
+        description: When the snapshot was taken.
+        tests: [not_null]
+      - name: snapshot_date
+        description: Date of the snapshot.
+        tests: [not_null]
+
+  - name: stg_piano__offer_templates
+    description: Daily snapshot of Piano offer templates, including archived ones. One row per template per snapshot_date.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [template_id, snapshot_date, is_fetched_by_id]
+    columns:
+      - name: template_id
+        description: Piano identifier for the offer template (offer_template_id).
+        tests: [not_null]
+      - name: template_name
+        description: Template name in Piano.
+      - name: template_description
+        description: Description entered in Piano; null when blank.
+      - name: template_piano_type
+        description: Piano's label for the template type, such as Template or Default offer.
+      - name: template_piano_type_id
+        description: Piano's identifier for the template type, such as template or default_offer.
+      - name: template_category_id
+        description: Piano template category, such as paywall or churn_prevention.
+      - name: template_status
+        description: Piano template status, active or archived.
+      - name: boilerplate_type
+        description: Piano boilerplate the template was built from.
+      - name: boilerplate_type_id
+        description: Identifier of the Piano boilerplate.
+      - name: token_type
+        description: Piano token type of the template.
+      - name: engine
+        description: Piano template engine.
+      - name: is_published
+        description: Whether the template is published.
+      - name: is_global
+        description: Whether the template is global across Piano applications.
+      - name: is_deleted
+        description: Whether Piano marks the template as deleted.
+      - name: template_version
+        description: Template version number.
+      - name: variant_count
+        description: Number of template variants.
+      - name: published_at
+        description: When the template was last published.
+      - name: created_at
+        description: When the template was created in Piano.
+      - name: updated_at
+        description: When the template was last updated in Piano.
+      - name: archived_at
+        description: When the template was archived; null unless archived.
+      - name: is_fetched_by_id
+        description: >
+          False for the nightly snapshot of the list endpoint; true for records backfilled one at a time by id
+          (cgm-extract-load backfill-piano-catalog), such as archived experiences the list leaves out.
+        tests: [not_null]
+      - name: snapshot_at
+        description: When the snapshot was taken.
+        tests: [not_null]
+      - name: snapshot_date
+        description: Date of the snapshot.
+        tests: [not_null]
+
+  - name: stg_piano__terms
+    description: Daily snapshot of Piano terms with their resource and billing plan. One row per term per snapshot_date.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [term_id, snapshot_date, is_fetched_by_id]
+    columns:
+      - name: term_id
+        description: Piano identifier for the term.
+        tests: [not_null]
+      - name: term_name
+        description: Term name in Piano.
+      - name: term_description
+        description: Description entered in Piano; null when blank.
+      - name: term_type
+        description: Piano term type, such as payment, external, registration or grant_access.
+      - name: term_type_name
+        description: Piano's label for the term type.
+      - name: resource_id
+        description: Piano resource (rid) the term grants access to.
+      - name: resource_name
+        description: Name of the Piano resource.
+      - name: billing_config
+        description: Piano billing configuration, such as subscription.
+      - name: product_category
+        description: Piano product category; null when blank.
+      - name: billing_plan
+        description: Piano's encoded billing plan, for example [49.99 USD|1 year|1][89.99 USD|1 year|*].
+      - name: billing_plan_description
+        description: Human-readable billing plan, for example $8.99 per month.
+      - name: billing_plan_steps
+        description: Parsed billing plan table, one array element per billing step (introductory then recurring), with billingPeriod, priceValue, currency and cycles.
+      - name: currency_code
+        description: Currency of the term's price.
+      - name: first_price_amount
+        description: Price of the first billing period, in currency_code.
+      - name: is_subscription
+        description: Whether the term is a recurring subscription.
+      - name: has_free_trial
+        description: Whether the term has a free trial.
+      - name: is_new_customers_only
+        description: Whether the term is restricted to new customers.
+      - name: is_trial_new_customers_only
+        description: Whether the term's trial or introductory price is restricted to new customers.
+      - name: is_auto_renew_forced
+        description: Whether auto-renew is forced on.
+      - name: is_gift_allowed
+        description: Whether the term can be bought as a gift.
+      - name: renew_grace_period_days
+        description: Grace period for failed renewals, in days.
+      - name: shared_account_count
+        description: Number of shared accounts for group or business terms.
+      - name: external_api_id
+        description: Piano external API (app store integration) for external terms.
+      - name: external_api_name
+        description: Name of the external API integration.
+      - name: itunes_product_id
+        description: App Store product identifier for iOS terms.
+      - name: google_play_product_id
+        description: Google Play product identifier for Android terms.
+      - name: created_at
+        description: When the term was created in Piano.
+      - name: updated_at
+        description: When the term was last updated in Piano.
+      - name: is_fetched_by_id
+        description: >
+          False for the nightly snapshot of the list endpoint; true for records backfilled one at a time by id
+          (cgm-extract-load backfill-piano-catalog), such as archived experiences the list leaves out.
+        tests: [not_null]
+      - name: snapshot_at
+        description: When the snapshot was taken.
+        tests: [not_null]
+      - name: snapshot_date
+        description: Date of the snapshot.
+        tests: [not_null]

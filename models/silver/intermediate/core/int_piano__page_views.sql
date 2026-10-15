@@ -166,10 +166,8 @@ SELECT
     geo_city,
     geo_metro,
 
-    -- device / browser / OS / app
-    app_type,
-    device_type,
-    os_group,
+    -- platform / browser
+    device_platform_id,
     browser_group,
 
     -- site

@@ -3,9 +3,9 @@ version: 2
 models:
   - name: fct_visitors_daily
     description: >
-      Daily visitor fact table at the grain of one row per visitor, date, site, app type,
-      device type and operating system group. geo_id is the visitor's modal geography for
-      the day and is not part of the grain. Incremental runs delete and rebuild every date
+      Daily visitor fact table at the grain of one row per visitor, date, site and device
+      platform (app type, device type and operating system group, see dim_device_platform).
+      geo_id is the visitor's modal geography for the day and is not part of the grain. Incremental runs delete and rebuild every date
       from the day before the latest loaded date_key.
     tests:
       - dbt_utils.unique_combination_of_columns:
@@ -13,16 +13,14 @@ models:
             combination_of_columns:
               - date_key
               - site_id
-              - app_type_id
-              - device_type_id
-              - os_group_id
+              - device_platform_id
               - visitor_id
           config:
             # Warn until tables built before the delete+insert fix have been fully refreshed
             severity: warn
     columns:
       - name: visitor_date_key
-        description: Surrogate key of date, site, geography, device type, app type, operating system group and visitor. Unique per row; geo_id is the modal geography, so the key is not stable across runs if that changes.
+        description: Surrogate key of date, site, geography, device platform and visitor. Unique per row; geo_id is the modal geography, so the key is not stable across runs if that changes.
         tests:
           - not_null
           - unique
@@ -34,30 +32,14 @@ models:
         description: Surrogate key for the site associated with the visitor activity.
         tests:
           - not_null
-      - name: app_type_id
-        description: App type dimension identifier for the visitor activity.
+      - name: device_platform_id
+        description: Device platform (app type, device type and operating system group) of the visitor activity.
         tests:
           - not_null
           - relationships:
               arguments:
-                to: ref('dim_app_type')
-                field: app_type_id
-      - name: device_type_id
-        description: Device type dimension identifier for the visitor activity.
-        tests:
-          - not_null
-          - relationships:
-              arguments:
-                to: ref('dim_device_type')
-                field: device_type_id
-      - name: os_group_id
-        description: Operating system group dimension identifier for the visitor activity.
-        tests:
-          - not_null
-          - relationships:
-              arguments:
-                to: ref('dim_os_group')
-                field: os_group_id
+                to: ref('dim_device_platform')
+                field: device_platform_id
       - name: geo_id
         description: Geographic identifier for the visitor's modal country and region on the date (the geography with the most page views).
         tests:
@@ -209,12 +191,16 @@ models:
           - not_null:
               config:
                 severity: warn
-      - name: app_type_id
-        description: Identifier for the application type associated with the conversion.
-      - name: device_type_id
-        description: Identifier for the device type associated with the conversion.
-      - name: os_group_id
-        description: Identifier for the operating system group associated with the conversion.
+      - name: device_platform_id
+        description: >
+          Device platform (app type, device type and operating system group) of the conversion. App type is
+          Web for conversions attributed by the web pipeline and Mobile App for the app pipeline.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_device_platform')
+                field: device_platform_id
       - name: conversion_time
         description: Timestamp when the conversion event occurred.
         tests:
@@ -324,18 +310,16 @@ models:
           - not_null
       - name: user_id
         description: Piano unique identifier for the registered user.
-      - name: app_type_id
-        description: App type dimension identifier associated with the exposure event.
+      - name: device_platform_id
+        description: >
+          Device platform (app type, device type and operating system group) of the exposure. App type is Web
+          for web experiences and Mobile App for app experiences, from dim_experience.
         tests:
           - not_null
-      - name: device_type_id
-        description: Device type dimension identifier for the exposure event.
-        tests:
-          - not_null
-      - name: os_group_id
-        description: Operating system group dimension identifier for the exposure event.
-        tests:
-          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_device_platform')
+                field: device_platform_id
       - name: page
         description: Page on which the exposure event occurred.
       - name: page_title
@@ -412,12 +396,8 @@ models:
         description: Unique identifier for the subscription.
         tests:
           - not_null
-      - name: conversion_app_type_id
-        description: Identifier for the conversion application type.
-      - name: conversion_device_type_id
-        description: Identifier for the conversion device type.
-      - name: conversion_os_group_id
-        description: Identifier for the conversion operating system group.
+      - name: conversion_device_platform_id
+        description: Device platform (app type, device type and operating system group) of the conversion that created the subscription.
       - name: last_subscription_action
         description: Latest observed subscription action or event type.
         tests:
@@ -485,12 +465,8 @@ models:
         description: Identifier for the subscription.
       - name: created_via_upgrade
         description: Indicates if the subscription was created via an upgrade.
-      - name: conversion_app_type_id
-        description: Identifier for the conversion application type.
-      - name: conversion_device_type_id
-        description: Identifier for the conversion device type.
-      - name: conversion_os_group_id
-        description: Identifier for the conversion operating system group.
+      - name: conversion_device_platform_id
+        description: Device platform (app type, device type and operating system group) of the conversion that created the subscription.
       - name: term_id
         description: Identifier for the subscription term associated with the event.
       - name: term_name
@@ -527,12 +503,8 @@ models:
         description: Identifier for the subscription term associated with the event.
         tests:
           - not_null
-      - name: conversion_app_type_id
-        description: Identifier for the conversion application type.
-      - name: conversion_device_type_id
-        description: Identifier for the conversion device type.
-      - name: conversion_os_group_id
-        description: Identifier for the conversion operating system group.
+      - name: conversion_device_platform_id
+        description: Device platform (app type, device type and operating system group) of the conversion that created the subscription.
       - name: billing_period
         description: The billing period for the subscription.
       - name: cohort
@@ -725,8 +697,14 @@ models:
         description: Surrogate key of visit_id.
       - name: geography_sk
         description: Surrogate key of (geo_country_code_alpha2, geo_region, geo_city).
-      - name: device_sk
-        description: Surrogate key of (device_type, os_group, browser_group).
+      - name: device_platform_id
+        description: Device platform (app type, device type and operating system group) of the page view, from its latest page.display event.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_device_platform')
+                field: device_platform_id
       - name: site_sk
         description: Surrogate key of site_id.
       - name: user_id
@@ -751,8 +729,8 @@ models:
         description: First-party user identifier aka FED_ID (24, 44 or 64 characters), repaired in int_piano__events_cleaned.
       - name: device_first_party_id
         description: Piano first-party device identifier.
-      - name: app_type
-        description: Piano app type (for example responsive, mobile-app).
+      - name: browser_group
+        description: Browser family as Piano reports it (Chrome, Safari, ...). Unknown when blank. For native app page views this is the webview engine.
       - name: src_bbc_team
         description: Piano source attribute, BBC team that owns the campaign. Piano attributes the source at visit level.
       - name: src_creative_id

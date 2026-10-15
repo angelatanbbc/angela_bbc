@@ -1,20 +1,26 @@
 version: 2
 
 seeds:
-  - name: experience_app_type
-    description: Maps mobile app experience IDs and names to app types.
-    columns:
-      - name: experience_id
-        tests:
-          - not_null
-          - unique
-      - name: app_type
-        tests:
-          - not_null
   - name: geo_mapping
     description: Geography reference data.
   - name: piano_retention_curves
     description: Expected retention curves for survival-analysis benchmarking.
+  - name: app_store_term_billing_period
+    description: >
+      Billing period of each app store (external) Piano term. Piano holds no billing plan for these terms, because the
+      App Store and Google Play bill them, so dim_term takes their billing period from here. term_name is for reference
+      only. Add a row whenever a new app store term is created; dim_term's billing_period test fails until you do.
+    columns:
+      - name: term_id
+        tests:
+          - not_null
+          - unique
+      - name: billing_period
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["1 month", "1 year"]
   - name: excluded_promo_codes
     description: >
       Promo codes whose purchases are never attributed (staff, editorial, internal).

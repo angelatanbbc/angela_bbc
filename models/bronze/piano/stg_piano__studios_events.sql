@@ -669,9 +669,7 @@ SELECT
     TERM[0]['term_name']::STRING AS term_name,
 
     -- Derived: Dimension Keys
-    {{ generate_app_type_id('APP_TYPE') }} AS app_type_id,
-    {{ generate_device_type_id('DEVICE_TYPE') }} AS device_type_id,
-    {{ generate_os_group_id('OS_GROUP') }} AS os_group_id,
+    {{ generate_device_platform_id('APP_TYPE', 'DEVICE_TYPE', 'OS_GROUP') }} AS device_platform_id,
     {{ generate_geo_id('GEO_COUNTRY', 'GEO_REGION') }} AS geo_id
 
 FROM {{ source('studios_piano', 'studios_piano_events') }}

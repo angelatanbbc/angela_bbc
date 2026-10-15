@@ -21,3 +21,31 @@ sources:
           freshness:
             warn_after: {count: 20, period: hour}
             error_after: {count: 26, period: hour}
+      - name: raw_piano_experiences
+        description: >
+          Daily snapshot of the Composer experiences listed by the Piano API (publisher/experience/metadata/list).
+          Experiences deleted in Piano stop being listed. The users who created or edited each experience are not
+          loaded.
+        config: &piano_catalog_freshness
+          loaded_at_field: snapshot_at
+          freshness:
+            warn_after: {count: 20, period: hour}
+            error_after: {count: 26, period: hour}
+      - name: raw_piano_offers
+        description: Daily snapshot of the offers listed by the Piano API (publisher/offer/list).
+        config: *piano_catalog_freshness
+      - name: raw_piano_offer_terms
+        description: >
+          Daily snapshot of which terms each offer sells, from the terms nested in publisher/offer/list. One row per
+          offer and term; a term can be sold through several offers.
+        config: *piano_catalog_freshness
+      - name: raw_piano_offer_templates
+        description: >
+          Daily snapshot of the offer templates listed by the Piano API (publisher/offer/template/list), including
+          archived templates.
+        config: *piano_catalog_freshness
+      - name: raw_piano_terms
+        description: >
+          Daily snapshot of the terms listed by the Piano API (publisher/term/list), with their resource and billing
+          plan. payment_billing_plan_table is JSON text.
+        config: *piano_catalog_freshness
