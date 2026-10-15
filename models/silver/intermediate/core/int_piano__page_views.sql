@@ -105,6 +105,7 @@ SELECT
     user_category,
     user_recognition,
     user_first_party_id,
+    device_first_party_id,
 
     -- visit / session
     visit_duration,
@@ -125,12 +126,37 @@ SELECT
     src_campaign_type,
     src_detail,
     src_organic,
+    src_organic_detail,
     src_referrer_url,
+    src_bbc_team,
+    src_creative_id,
+    src_creation,
+    src_ptr_name,
+    src_adset_name,
+    src_adset_id,
+    src_objective,
+    src_format,
+    src_sl_term,
     utm_source,
     utm_medium,
     utm_campaign,
     utm_content,
     utm_term,
+
+    -- campaign tags parsed from the landing URL
+    url_at_bbc_team,
+    url_at_creative_id,
+    url_at_campaign,
+    url_at_link_origin,
+    url_at_ptr_name,
+    url_at_adset_name,
+    url_at_adset_id,
+    url_at_objective,
+    url_at_medium,
+    url_at_matchtype,
+    url_at_keyword,
+    url_at_creation,
+    url_at_campaign_name,
 
     -- geography
     geo_continent,
@@ -140,7 +166,8 @@ SELECT
     geo_city,
     geo_metro,
 
-    -- device / browser / OS
+    -- device / browser / OS / app
+    app_type,
     device_type,
     os_group,
     browser_group,
@@ -148,5 +175,9 @@ SELECT
     -- site
     site_level2,
     site_env,
-    orga_id
+    orga_id,
+
+    -- Composer template (populated on experience events only, so normally NULL on page.display)
+    template_display_mode,
+    template_closable
 FROM pageview_grain

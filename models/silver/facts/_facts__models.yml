@@ -747,6 +747,62 @@ models:
           the fact because it is state at page view time.
       - name: visitor_is_signed_in
         description: Whether the visitor was signed in during this page view. State at page view time.
+      - name: user_first_party_id
+        description: First-party user identifier aka FED_ID (24, 44 or 64 characters), repaired in int_piano__events_cleaned.
+      - name: device_first_party_id
+        description: Piano first-party device identifier.
+      - name: app_type
+        description: Piano app type (for example responsive, mobile-app).
+      - name: src_bbc_team
+        description: Piano source attribute, BBC team that owns the campaign. Piano attributes the source at visit level.
+      - name: src_creative_id
+        description: Piano source attribute, campaign creative identifier. Piano attributes the source at visit level.
+      - name: src_creation
+        description: Piano source attribute, campaign creative name. Piano attributes the source at visit level.
+      - name: src_ptr_name
+        description: Piano source attribute, partner name. Piano attributes the source at visit level.
+      - name: src_adset_name
+        description: Piano source attribute, ad set name. Piano attributes the source at visit level.
+      - name: src_adset_id
+        description: Piano source attribute, ad set identifier. Piano attributes the source at visit level.
+      - name: src_objective
+        description: Piano source attribute, campaign objective. Piano attributes the source at visit level.
+      - name: src_format
+        description: Piano source attribute, campaign format. Piano attributes the source at visit level.
+      - name: src_organic_detail
+        description: Piano source attribute, organic source detail. Piano attributes the source at visit level.
+      - name: src_sl_term
+        description: Piano source attribute, sponsored link search term. Piano attributes the source at visit level.
+      - name: url_at_bbc_team
+        description: at_bbc_team campaign tag parsed from this page's landing URL (event_url_full); NULL when the URL has no such parameter. Can differ from the visit-level src_* attribute.
+      - name: url_at_creative_id
+        description: at_creative_id campaign tag parsed from this page's landing URL (event_url_full); NULL when the URL has no such parameter. Can differ from the visit-level src_* attribute.
+      - name: url_at_campaign
+        description: at_campaign campaign tag parsed from this page's landing URL (event_url_full); NULL when the URL has no such parameter. Can differ from the visit-level src_* attribute.
+      - name: url_at_link_origin
+        description: at_link_origin campaign tag parsed from this page's landing URL (event_url_full); NULL when the URL has no such parameter. Can differ from the visit-level src_* attribute.
+      - name: url_at_ptr_name
+        description: at_ptr_name campaign tag parsed from this page's landing URL (event_url_full); NULL when the URL has no such parameter. Can differ from the visit-level src_* attribute.
+      - name: url_at_adset_name
+        description: at_adset_name campaign tag parsed from this page's landing URL (event_url_full); NULL when the URL has no such parameter. Can differ from the visit-level src_* attribute.
+      - name: url_at_adset_id
+        description: at_adset_id campaign tag parsed from this page's landing URL (event_url_full); NULL when the URL has no such parameter. Can differ from the visit-level src_* attribute.
+      - name: url_at_objective
+        description: at_objective campaign tag parsed from this page's landing URL (event_url_full); NULL when the URL has no such parameter. Can differ from the visit-level src_* attribute.
+      - name: url_at_medium
+        description: at_medium campaign tag parsed from this page's landing URL (event_url_full); NULL when the URL has no such parameter. Can differ from the visit-level src_* attribute.
+      - name: url_at_matchtype
+        description: at_matchtype campaign tag parsed from this page's landing URL (event_url_full); NULL when the URL has no such parameter. Can differ from the visit-level src_* attribute.
+      - name: url_at_keyword
+        description: at_keyword campaign tag parsed from this page's landing URL (event_url_full); NULL when the URL has no such parameter. Can differ from the visit-level src_* attribute.
+      - name: url_at_creation
+        description: at_creation campaign tag parsed from this page's landing URL (event_url_full); NULL when the URL has no such parameter. Can differ from the visit-level src_* attribute.
+      - name: url_at_campaign_name
+        description: at_campaign_name campaign tag parsed from this page's landing URL (event_url_full); NULL when the URL has no such parameter. Can differ from the visit-level src_* attribute.
+      - name: template_display_mode
+        description: Composer template display mode. Only sent on Composer events (experience.action, experience.interaction, vx.conversion), so NULL on page views.
+      - name: template_closable
+        description: Whether the Composer template can be closed. Only sent on Composer events, so NULL on page views.
       - name: page_view_time
         description: Timestamp of the page view (first page.display event), local time.
         tests:
