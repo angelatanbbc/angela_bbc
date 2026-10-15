@@ -710,7 +710,7 @@ models:
       surrogate keys for content, user, visit, geography, device and site. Web page views
       only: Piano populates pageview_id for web (js) traffic only. Incremental: merges on
       pageview_id, reprocessing from the day before the latest loaded page view date; dev
-      builds only the last 3 days.
+      builds only the last 30 days.
     columns:
       - name: pageview_id
         description: Primary key. Unique page view identifier.
