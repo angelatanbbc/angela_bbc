@@ -1,9 +1,23 @@
 version: 2
 
 models:
+  - name: int_attribution__purchase_events
+    description: >
+      Piano purchase events. One row per conversion_id: its first vx.conversion event with a
+      pageview_id, on any site and app type, with the purchase's source, tag, geography, device and
+      content columns. Incremental (merge on conversion_id), rereading the events from the day before
+      the latest one loaded; a purchase already loaded keeps its first event.
+    columns:
+      - name: conversion_id
+        description: Piano conversion id. Primary key.
+        tests:
+          - not_null
+          - unique
+
   - name: int_attribution__conversions
     description: >
-      Attributable web subscription purchases. One row per conversion_id. A vx.conversion with a
+      Attributable web subscription purchases, rebuilt in full from int_attribution__purchase_events.
+      One row per conversion_id. A vx.conversion with a
       conversion_id and a pageview_id, not from the mobile app, not a staff, editorial or empty promo
       code, and on a subscription site (seed subscription_sites) when var attribution_site_scope is on.
       Resolves the buyer: the checkout cookie (the journey key), the real account and the browser id.
@@ -188,3 +202,71 @@ models:
               - conversion_id
               - pageview_id
               - touchpoint_type
+
+  - name: int_marketing__ad_spend_daily
+    description: >
+      Ad spend by platform x account x ad x day, from var marketing_start_date. Meta from the
+      facebook_ads package's basic_ad report, with the ad's hierarchy, team and podcast flag from
+      dim_ad and the account from the package's account history; Google and Microsoft from the manual
+      upload (stg_google_ads__spend), which has no account, hierarchy or delivery metrics (an ad renamed
+      during a day is summed onto one row). Spend is never split per visit here.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - platform
+              - account_id
+              - ad_id
+              - spend_date
+
+  - name: int_marketing__paid_visits
+    description: >
+      Visits from paid media. One row per visit whose agency is a paid-media agency (seed
+      bbc_team_agencies), by the attribution's agency rule at visit level: the visit's own tag, else
+      its Meta ad's agency (dim_ad), else an 8ms_ / dbs_ campaign name on a Facebook or Instagram
+      visit. Covers the page view history int_piano__page_views holds.
+    columns:
+      - name: visit_id
+        description: Piano visit id. Primary key.
+        tests:
+          - not_null
+          - unique
+      - name: agency
+        description: Paid-media agency.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["8ms", "dbs"]
+      - name: agency_resolved_from
+        description: Where the agency came from.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["visit_tag", "ad_id", "campaign_name"]
+
+  - name: int_marketing__paid_page_views
+    description: >
+      The page views of paid visits. One row per page view of a visit in int_marketing__paid_visits,
+      with measures from fct_page_views and labels and the RevOps score from int_piano__page_views.
+      vx_conversion_count counts the attributable purchases (int_attribution__conversions) made on the
+      page view. The 'unidentified-user' placeholder is never an account.
+    columns:
+      - name: pageview_id
+        description: Primary key.
+        tests:
+          - not_null
+          - unique
+
+  - name: int_marketing__funnel_events
+    description: >
+      The events the paid visitor funnel follows, for any visitor, from var marketing_start_date. One
+      row per event that is a paywall or inline-offer exposure or click (Composer template columns),
+      an attributable purchase (int_attribution__conversions), or a newsletter sign-up: on a page view,
+      or on the newsletters page of var marketing_site_ids, which never carries a pageview_id.
+      Incremental (merge on event_id), rereading the events from the day before the latest one loaded.
+    columns:
+      - name: event_id
+        description: Piano event id. Primary key.
+        tests:
+          - not_null
+          - unique

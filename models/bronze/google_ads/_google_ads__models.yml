@@ -5,7 +5,8 @@ models:
     description: >
       Google Ads and Microsoft Ads spend from the manual upload, renamed and cast. One row per upload
       line: an ad renamed during a day appears on two lines for that day, each with its own spend.
-      Rows without a parseable date or an ad id are dropped.
+      Rows without a parseable date or an ad id are dropped. Empty in dev, whose roles can't read the
+      live schema the upload sits in, unless var read_google_ads_upload is true.
     columns:
       - name: ad_id
         description: Platform ad id, as text so it matches Piano's src_creative_id. 12 digits for Google, 14 for Microsoft.

@@ -78,6 +78,7 @@ meta_ads AS (
         acc.account_name,
         acc.account_currency,
         COALESCE(ma.account_purpose, 'other') AS account_purpose,
+        COALESCE(a.ad_name ILIKE '{{ var("podcast_ad_name_pattern") }}', FALSE) AS is_podcast_ad,
         LOWER(NULLIF(TRIM(cr.at_bbc_team), '')) AS bbc_team_from_tag,
         LOWER(REGEXP_SUBSTR(
             UPPER(COALESCE(a.ad_name, '') || ' ' || COALESCE(s.adset_name, '') || ' ' || COALESCE(c.campaign_name, '')),
@@ -125,6 +126,7 @@ resolved AS (
         account_name,
         account_currency,
         account_purpose,
+        is_podcast_ad,
         COALESCE(bbc_team_from_tag, bbc_team_from_name, bbc_team_account_default) AS bbc_team,
         CASE
             WHEN bbc_team_from_tag IS NOT NULL THEN 'url_tag'
@@ -150,6 +152,7 @@ resolved AS (
         NULL AS account_name,
         NULL AS account_currency,
         'subscriptions' AS account_purpose,
+        FALSE AS is_podcast_ad,
         bbc_team_from_name AS bbc_team,
         IFF(bbc_team_from_name IS NOT NULL, 'name', NULL) AS bbc_team_source
     FROM manual_ads
@@ -174,7 +177,8 @@ SELECT
     r.account_purpose,
     r.bbc_team,
     r.bbc_team_source,
-    COALESCE(pa.is_paid_media, FALSE) AS is_paid_media
+    COALESCE(pa.is_paid_media, FALSE) AS is_paid_media,
+    r.is_podcast_ad
 FROM resolved r
 LEFT JOIN {{ ref('bbc_team_agencies') }} pa ON r.bbc_team = pa.bbc_team_raw
 
@@ -198,4 +202,5 @@ SELECT
     'other' AS account_purpose,
     NULL AS bbc_team,
     NULL AS bbc_team_source,
-    FALSE AS is_paid_media
+    FALSE AS is_paid_media,
+    FALSE AS is_podcast_ad

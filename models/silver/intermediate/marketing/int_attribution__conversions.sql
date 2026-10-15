@@ -6,7 +6,9 @@
 }}
 
 /*
-Attributable web subscription purchases: one row per conversion_id.
+Attributable web subscription purchases: one row per conversion_id. Rebuilt in full from the
+stored purchase events, because a journey reaches back only to the same cookie's previous purchase on
+any site.
 
 checkout_visitor_id is the cookie on the checkout page view, else the purchase event's own;
 Piano often writes a fresh cookie on the purchase event. The 'unidentified-user' placeholder
@@ -22,7 +24,7 @@ WITH purchase_events AS (
         subscription_id,
         pageview_id,
         visitor_id,
-        IFF(user_id ILIKE 'unidentified%', NULL, NULLIF(user_id, '')) AS user_id,
+        user_id,
         device_first_party_id,
         event_time,
         billing_period,
@@ -31,12 +33,7 @@ WITH purchase_events AS (
         {{ column }},
         {%- endfor %}
         app_type
-    FROM {{ ref('int_piano__events_cleaned') }}
-    WHERE
-        event_name = 'vx.conversion'
-        AND conversion_id IS NOT NULL
-        AND pageview_id IS NOT NULL
-    QUALIFY ROW_NUMBER() OVER (PARTITION BY conversion_id ORDER BY event_time) = 1
+    FROM {{ ref('int_attribution__purchase_events') }}
 
 ),
 

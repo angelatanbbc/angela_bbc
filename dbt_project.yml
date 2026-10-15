@@ -27,9 +27,21 @@ models:
       facts:
         fct_attribution_touchpoints:
           +enabled: "{{ var('enable_marketing_models', false) }}"
+        fct_ad_performance_daily:
+          +enabled: "{{ var('enable_marketing_models', false) }}"
+        fct_paid_page_views:
+          +enabled: "{{ var('enable_marketing_models', false) }}"
+        fct_paid_visitor_funnel:
+          +enabled: "{{ var('enable_marketing_models', false) }}"
     gold:
       aggregates:
         agg_subscription_attribution_touchpoint:
+          +enabled: "{{ var('enable_marketing_models', false) }}"
+        agg_marketing_paid_page_views:
+          +enabled: "{{ var('enable_marketing_models', false) }}"
+        agg_marketing_visitor_funnel:
+          +enabled: "{{ var('enable_marketing_models', false) }}"
+        agg_marketing_campaign_daily:
           +enabled: "{{ var('enable_marketing_models', false) }}"
       # also needs the CREATE SEMANTIC VIEW privilege: --vars '{build_semantic_views: true}'
       semantic_views:
@@ -94,3 +106,11 @@ vars:
   attribution_max_cookies_per_browser: 20
   attribution_reprocess_days: 7
   attribution_imputation_window_days: 90
+
+  # marketing reporting: history start, the bbc.com site, podcast ads and the RevOps score bands
+  marketing_start_date: "2026-07-17"
+  marketing_site_ids: [638824]
+  podcast_ad_name_pattern: "%POD%"
+  include_podcast_ads: false
+  med_ro_threshold: 50
+  high_ro_threshold: 80

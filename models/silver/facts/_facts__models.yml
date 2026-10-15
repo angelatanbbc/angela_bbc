@@ -992,3 +992,92 @@ models:
       - dbt_utils.expression_is_true:
           arguments:
             expression: "position_weight BETWEEN 0 AND 1 AND signup_touch_weight BETWEEN 0 AND 1"
+
+  - name: fct_ad_performance_daily
+    description: >
+      Ad delivery and spend. One row per platform x account x ad x day: Meta from the facebook_ads
+      package, Google and Microsoft from the manual upload (spend only; their delivery measures are 0).
+      Descriptive attributes are in dim_ad. Never sum spend across currencies; reach and frequency
+      are not additive across days or ads.
+    columns:
+      - name: ad_performance_sk
+        description: Surrogate key of platform + account_id + ad_id + spend_date. Primary key.
+        tests:
+          - not_null
+          - unique
+      - name: ad_sk
+        description: Key to dim_ad.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_ad')
+                field: ad_sk
+              config:
+                severity: warn
+      - name: spend_date
+        description: Day of the spend.
+        tests:
+          - not_null
+      - name: spend_amount
+        description: Spend in account_currency.
+
+  - name: fct_paid_page_views
+    description: >
+      Page views from paid media. One row per page view of a paid visit (int_marketing__paid_page_views),
+      with the visit's agency and ad, and the page's content, device and geography. Limitation:
+      ro_lower_bound_pct (the RevOps score) is NULL until int_piano__page_views carries
+      c1x_revenue_auto_optimization.
+    columns:
+      - name: pageview_id
+        description: Primary key.
+        tests:
+          - not_null
+          - unique
+      - name: ad_sk
+        description: Key to dim_ad when the visit's ad id is a known Meta ad.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_ad')
+                field: ad_sk
+      - name: device_type_id
+        description: Key to dim_device_type.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_device_type')
+                field: device_type_id
+      - name: os_group_id
+        description: Key to dim_os_group.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_os_group')
+                field: os_group_id
+      - name: agency
+        description: Paid-media agency of the visit.
+        tests:
+          - not_null
+
+  - name: fct_paid_visitor_funnel
+    description: >
+      What paid visitors went on to do. One row per paid visitor x campaign (src_campaign, '(none)'
+      when Piano captured none): an accumulating snapshot of first paid arrival, paywall and offer
+      seen, clicks on either, first purchase and newsletter sign-up, with 0 / 1 flags. Events link to
+      the visitor through their paid page views, the same cookie afterwards, the same real account
+      afterwards, or the same browser afterwards (a browser holding more than var
+      attribution_max_cookies_per_browser paid cookies is skipped). Over-time flags repeat on each of
+      a visitor's rows; same-visit flags are per campaign. Nothing is windowed: compare cohorts with a
+      fixed window.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - visitor_id
+              - src_campaign
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - visitor_id
+          config:
+            where: "is_last_paid_touch"

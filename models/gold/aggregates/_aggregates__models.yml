@@ -368,3 +368,51 @@ models:
       - dbt_utils.equal_rowcount:
           arguments:
             compare_model: ref('fct_attribution_touchpoints')
+
+  - name: agg_marketing_paid_page_views
+    description: >
+      Paid page views with the spend that bought them, for the Marketing Measurement Dashboard's
+      Overview and Stage deep dive. One row per paid page view x ad-day, plus one row per ad-day with
+      spend but no page views. The ad-day's spend, impressions and clicks are split equally across its
+      page views (spend_per_page_view and its twins are additive; spend and the other ad-day totals
+      are not). Podcast ads are left out unless var include_podcast_ads. Column names follow the
+      dashboard.
+    columns:
+      - name: pageview_id
+        description: The paid page view; NULL on spend-only ad-days.
+        tests:
+          - unique
+      - name: date_day
+        description: Day of the page view, or of the ad-day when it had none.
+        tests:
+          - not_null
+
+  - name: agg_marketing_visitor_funnel
+    description: >
+      The paid visitor funnel for the Marketing Measurement Dashboard's Funnel tab. One row per paid
+      visitor x campaign (fct_paid_visitor_funnel) with the labels the dashboard filters by. date_day
+      is the visitor's first arrival on the campaign. Column names follow the dashboard.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - visitor_id
+              - src_campaign
+
+  - name: agg_marketing_campaign_daily
+    description: >
+      Campaign economics by day for the Marketing Measurement Dashboard's Campaign deep dive. One row
+      per platform x src_campaign x funnel stage x agency x day, combining delivery and spend
+      (agg_marketing_paid_page_views), visitor outcomes (agg_marketing_visitor_funnel) and the
+      click-based attribution's paid credit (fct_attribution_touchpoints), each additive by day, so
+      every ratio is SUM / SUM. Google and Microsoft spend-only ad-days are left out.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - platform
+              - date_day
+              - src_campaign
+              - funnel_stage
+              - funnel_stage_v2
+              - src_bbc_team
