@@ -23,6 +23,9 @@ on:
         default: false
         required: true
 
+permissions:
+  contents: read
+
 # Extract/load and dbt run in separate jobs because each runner is capped at
 # one hour (IT policy) and the two together take longer than that.
 jobs:
