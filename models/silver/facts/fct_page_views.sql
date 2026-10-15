@@ -89,6 +89,40 @@ SELECT
     pv.site_id,
     pv.visitor_new_return,
     pv.visitor_is_signed_in,
+    pv.user_first_party_id,
+    pv.device_first_party_id,
+    pv.app_type,
+
+    -- campaign source attributes (Piano src_*), as captured on the page view
+    pv.src_bbc_team,
+    pv.src_creative_id,
+    pv.src_creation,
+    pv.src_ptr_name,
+    pv.src_adset_name,
+    pv.src_adset_id,
+    pv.src_objective,
+    pv.src_format,
+    pv.src_organic_detail,
+    pv.src_sl_term,
+
+    -- campaign tags parsed from the landing URL (fallback for the src_* attributes)
+    pv.url_at_bbc_team,
+    pv.url_at_creative_id,
+    pv.url_at_campaign,
+    pv.url_at_link_origin,
+    pv.url_at_ptr_name,
+    pv.url_at_adset_name,
+    pv.url_at_adset_id,
+    pv.url_at_objective,
+    pv.url_at_medium,
+    pv.url_at_matchtype,
+    pv.url_at_keyword,
+    pv.url_at_creation,
+    pv.url_at_campaign_name,
+
+    -- Composer template attributes
+    pv.template_display_mode,
+    pv.template_closable,
 
     -- timestamps (page view grain: first page.display event of the page view)
     pv.page_view_time,

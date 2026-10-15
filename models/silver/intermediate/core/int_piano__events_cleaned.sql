@@ -127,6 +127,7 @@ SELECT
     visitor_is_signed_in,
     user_category,
     user_recognition,
+    device_first_party_id,
 
     -- visit / session
     visit_duration,
@@ -147,12 +148,39 @@ SELECT
     src_campaign_type,
     src_detail,
     src_organic,
+    src_organic_detail,
     src_referrer_url,
+    src_bbc_team,
+    src_creative_id,
+    src_creation,
+    src_ptr_name,
+    src_adset_name,
+    src_adset_id,
+    src_objective,
+    src_format,
+    src_sl_term,
     utm_source,
     utm_medium,
     utm_campaign,
     utm_content,
     utm_term,
+
+    -- campaign tags parsed from the landing URL (NULL when the parameter is absent)
+    -- fallback when the src_* equivalents are not populated
+    {{ extract_url_param('event_url_full', 'at_bbc_team') }} AS url_at_bbc_team,
+    {{ extract_url_param('event_url_full', 'at_creative_id') }} AS url_at_creative_id,
+    -- the rest of the landing URL's campaign tags, for subscription attribution
+    {{ extract_url_param('event_url_full', 'at_campaign') }} AS url_at_campaign,
+    {{ extract_url_param('event_url_full', 'at_link_origin') }} AS url_at_link_origin,
+    {{ extract_url_param('event_url_full', 'at_ptr_name') }} AS url_at_ptr_name,
+    {{ extract_url_param('event_url_full', 'at_adset_name') }} AS url_at_adset_name,
+    {{ extract_url_param('event_url_full', 'at_adset_id') }} AS url_at_adset_id,
+    {{ extract_url_param('event_url_full', 'at_objective') }} AS url_at_objective,
+    {{ extract_url_param('event_url_full', 'at_medium') }} AS url_at_medium,
+    {{ extract_url_param('event_url_full', 'at_matchtype') }} AS url_at_matchtype,
+    {{ extract_url_param('event_url_full', 'at_keyword') }} AS url_at_keyword,
+    {{ extract_url_param('event_url_full', 'at_creation') }} AS url_at_creation,
+    {{ extract_url_param('event_url_full', 'at_campaign_name') }} AS url_at_campaign_name,
 
     -- geography
     geo_continent,
@@ -164,6 +192,7 @@ SELECT
     geo_id,
 
     -- dimension keys (computed in staging from the raw values, so unaffected by the normalization below)
+    app_type,
     app_type_id,
     device_type_id,
     os_group_id,
@@ -197,6 +226,8 @@ SELECT
     card_action,
     template_id,
     template_name,
+    template_display_mode,
+    template_closable,
     ab_test_card_title,
     ab_test_variant_name,
 
