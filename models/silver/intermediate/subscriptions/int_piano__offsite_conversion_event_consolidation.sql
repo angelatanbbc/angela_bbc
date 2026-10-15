@@ -19,7 +19,7 @@ WITH offsite_conversions AS (
         IFF(term_name ILIKE '%monthly%', '1 month', '1 year') AS billing_period,
         subscription_period_number,
         created_via_upgrade
-    FROM {{ ref('stg_piano__studios_events') }}
+    FROM {{ ref('int_piano__events_cleaned') }}
     WHERE
         site_id = 638824
         AND event_time::DATE > '2025-06-25'
@@ -44,7 +44,7 @@ onsite_conversions AS (
         geo_country,
         geo_region,
         geo_city
-    FROM {{ ref('stg_piano__studios_events') }}
+    FROM {{ ref('int_piano__events_cleaned') }}
     WHERE
         site_id = 638824
         AND event_time::DATE > '2025-06-25'

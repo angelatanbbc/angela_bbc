@@ -96,6 +96,31 @@ graph LR
     linkStyle 38 stroke:#e11d48,stroke-width:2.5px
 ```
 
+### Page view flow
+
+Only events with a `pageview_id` reach these models, which in practice means web (js) traffic. Each intermediate aggregates to one row per `pageview_id`.
+
+```mermaid
+graph LR
+    classDef source fill:#fff3b0,stroke:#eab308,color:#713f12
+    classDef model fill:#dbeafe,stroke:#2563eb,color:#172554
+    classDef mart fill:#dcfce7,stroke:#16a34a,color:#14532d
+    piano["studios_piano.studios_piano_events"]:::source --> staging["stg_piano__studios_events"]:::model
+    staging --> cleaned["int_piano__events_cleaned"]:::model
+    cleaned --> page_views["int_piano__page_views"]:::model
+    cleaned --> scrolls["int_piano__scroll_events"]:::model
+    cleaned --> clicks["int_piano__click_events"]:::model
+    cleaned --> ads["int_piano__ad_impressions"]:::model
+    staging --> durations["int_piano__event_durations"]:::model
+    page_views --> fct["fct_page_views"]:::mart
+    scrolls --> fct
+    clicks --> fct
+    ads --> fct
+    durations --> fct
+    linkStyle 0 stroke:#eab308,stroke-width:2.5px
+    linkStyle 1,2,3,4,5,6,7,8,9,10,11 stroke:#4169e1,stroke-width:1.5px
+```
+
 ### Attribution and Facebook package flow
 
 ```mermaid
@@ -192,6 +217,7 @@ The following inventory records every project-owned model in the dbt manifest an
 | `stg_piano__studios_events` | `source:studios_piano.studios_piano_events` |
 | `stg_piano__subscription_snapshots` | `source:cgm_extract_load.raw_piano_subscription_snapshots` |
 | `stg_piano__subscription_attribution` | `source:studios_piano.studios_piano_events` |
+| `stg_piano__studios_events` | `source:studios_piano.studios_piano_events` |
 
 ### Intermediate
 
@@ -205,6 +231,12 @@ The following inventory records every project-owned model in the dbt manifest an
 | `int_piano__exposures_web` | `stg_piano__studios_events`, `dim_experience` |
 | `int_piano__offsite_conversion_event_consolidation` | `stg_piano__studios_events` |
 | `int_piano__subscription_current` | `stg_piano__subscription_snapshots` |
+| `int_piano__events_cleaned` | `stg_piano__studios_events` |
+| `int_piano__page_views` | `int_piano__events_cleaned` |
+| `int_piano__scroll_events` | `int_piano__events_cleaned` |
+| `int_piano__click_events` | `int_piano__events_cleaned` |
+| `int_piano__ad_impressions` | `int_piano__events_cleaned` |
+| `int_piano__event_durations` | `stg_piano__studios_events` |
 | `int_subscription__survival` | `fct_subscription_events`, `fct_conversions`, `dim_experience` |
 | `int_subscription__attribution` | `stg_piano__subscription_attribution` |
 | `int_subscription__attribution_src_corrected` | `source:studios_piano.studios_piano_events`, `int_subscription__attribution` |
@@ -230,6 +262,7 @@ The following inventory records every project-owned model in the dbt manifest an
 | `fct_cohort_retention` | `fct_subscriber_daily_snapshot` |
 | `fct_visitors_daily` | `stg_piano__studios_events` |
 | `fct_marketing_spend` | `stg_piano__paid_media_spend` |
+| `fct_page_views` | `int_piano__page_views`, `int_piano__scroll_events`, `int_piano__click_events`, `int_piano__ad_impressions`, `int_piano__event_durations` |
 | `fct_subscription_attribution` | `source:studios_piano.studios_piano_events`, `int_subscription__attribution_src_corrected` |
 | `fct_sfmc_journey_send_job` | `source:sfmc.sent`, `source:sfmc.opens`, `source:sfmc.clicks`, `source:sfmc.bounces`, `source:sfmc.unsubs`, `source:sfmc.send_jobs`, `source:sfmc.journey`, `source:sfmc.journey_activity`, `source:sfmc.list_subscribers` |
 

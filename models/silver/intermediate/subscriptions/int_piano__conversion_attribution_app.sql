@@ -22,7 +22,7 @@ lead_up_ctas AS (
         e.template_id,
         e.ab_test_variant_name
     FROM consolidated_conversions c
-    LEFT JOIN {{ ref('stg_piano__studios_events') }} e
+    LEFT JOIN {{ ref('int_piano__events_cleaned') }} e
         ON e.visit_id = c.visit_id
         AND e.site_id = 638824
         AND e.event_time::DATE > '2025-06-25'

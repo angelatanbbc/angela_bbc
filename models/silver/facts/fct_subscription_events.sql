@@ -63,7 +63,7 @@ subs_actions_onsite AS (
         c.geo_city,
         c.cohort_month,
         a.cart_turnovertaxfree AS transaction_value
-    FROM {{ ref('stg_piano__studios_events') }} a
+    FROM {{ ref('int_piano__events_cleaned') }} a
     JOIN conversions c USING (subscription_id)
     WHERE 1=1
         AND a.site_id = 638824
@@ -100,7 +100,7 @@ subs_actions_offsite AS (
         c.geo_city,
         c.cohort_month,
         a.cart_turnovertaxfree AS transaction_value
-    FROM {{ ref('stg_piano__studios_events') }} a
+    FROM {{ ref('int_piano__events_cleaned') }} a
     JOIN conversions c  -- This join ensures we only get subscription actions for subscriptions that have converted
         ON a.subscription_id = c.subscription_id
     WHERE 1=1
