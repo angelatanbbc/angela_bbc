@@ -142,16 +142,14 @@ models:
           - not_null
       - name: geo_region
         description: Region or state where the sign-up occurred.
-      - name: app_type_id
-        description: Surrogate key for the app type.
+      - name: device_platform_id
+        description: Surrogate key for the device platform (dim_device_platform).
+      - name: platform
+        description: Reporting platform the sign-up came from (iOS App, Android App, Mobile Web, Desktop Web, ...).
       - name: app_type
         description: Platform family (Web or Mobile App) the sign-up came from.
-      - name: device_type_id
-        description: Surrogate key for the device type.
       - name: device_type
         description: Device category the sign-up came from.
-      - name: os_group_id
-        description: Surrogate key for the operating system group.
       - name: os_group
         description: Operating system group the sign-up came from.
       - name: n_signups
@@ -201,16 +199,14 @@ models:
           - accepted_values:
               arguments:
                 values: ['Paywall', 'Ribbon', 'Subscription Landing Page', 'Other']
-      - name: app_type_id
-        description: Surrogate key for the app type.
+      - name: device_platform_id
+        description: Surrogate key for the device platform (dim_device_platform).
+      - name: platform
+        description: Reporting platform for the row (iOS App, Android App, Mobile Web, Desktop Web, ...).
       - name: app_type
         description: Platform family (Web or Mobile App) for the row.
-      - name: device_type_id
-        description: Surrogate key for the device type.
       - name: device_type
         description: Device category for the row.
-      - name: os_group_id
-        description: Surrogate key for the operating system group.
       - name: os_group
         description: Operating system group for the row.
       - name: geo_country

@@ -53,27 +53,14 @@ models:
         description: Piano visit identifier
       - name: visit_time
         description: Timestamp of the piano visit.
-      - name: app_type_id
-        description: Surrogate key identifying the app type as Mobile App.
+      - name: device_platform_id
+        description: Device platform of the conversion event, with app type forced to Mobile App.
         tests:
+          - not_null
           - relationships:
               arguments:
-                to: ref('dim_app_type')
-                field: app_type_id
-      - name: device_type_id
-        description: Surrogate key for the device type used in the conversion event.
-        tests:
-          - relationships:
-              arguments:
-                to: ref('dim_device_type')
-                field: device_type_id
-      - name: os_group_id
-        description: Surrogate key for the operating system group used in the conversion event.
-        tests:
-          - relationships:
-              arguments:
-                to: ref('dim_os_group')
-                field: os_group_id
+                to: ref('dim_device_platform')
+                field: device_platform_id
       - name: conversion_time
         description: Timestamp of the conversion event.
         tests:
@@ -153,27 +140,14 @@ models:
         description: Piano visit identifier
       - name: visit_time
         description: Timestamp of the piano visit.
-      - name: app_type_id
-        description: Surrogate key identifying the app type as Mobile App.
+      - name: device_platform_id
+        description: Device platform of the conversion event, with app type forced to Web.
         tests:
+          - not_null
           - relationships:
               arguments:
-                to: ref('dim_app_type')
-                field: app_type_id
-      - name: device_type_id
-        description: Surrogate key for the device type used in the conversion event.
-        tests:
-          - relationships:
-              arguments:
-                to: ref('dim_device_type')
-                field: device_type_id
-      - name: os_group_id
-        description: Surrogate key for the operating system group used in the conversion event.
-        tests:
-          - relationships:
-              arguments:
-                to: ref('dim_os_group')
-                field: os_group_id
+                to: ref('dim_device_platform')
+                field: device_platform_id
       - name: conversion_time
         description: Timestamp of the conversion event.
         tests:
@@ -265,27 +239,14 @@ models:
               arguments:
                 to: ref('dim_template')
                 field: template_id
-      - name: app_type_id
-        description: Surrogate key identifying the app type as Mobile App.
+      - name: device_platform_id
+        description: Device platform of the exposure event, with app type forced to Mobile App.
         tests:
+          - not_null
           - relationships:
               arguments:
-                to: ref('dim_app_type')
-                field: app_type_id
-      - name: device_type_id
-        description: Surrogate key for the device type used in the exposure event.
-        tests:
-          - relationships:
-              arguments:
-                to: ref('dim_device_type')
-                field: device_type_id
-      - name: os_group_id
-        description: Surrogate key for the operating system group used in the exposure event.
-        tests:
-          - relationships:
-              arguments:
-                to: ref('dim_os_group')
-                field: os_group_id
+                to: ref('dim_device_platform')
+                field: device_platform_id
 
   - name: int_piano__exposures_web
     description: Intermediate web exposure table that builds a deduplicated set of web Composer exposure events with page, geography, and experience attributes.
@@ -350,27 +311,16 @@ models:
         description: Piano visit identifier for the matched conversion journey.
       - name: visit_time
         description: Timestamp of the piano visit for the matched conversion journey.
-      - name: app_type_id
-        description: Surrogate key identifying the app type as Mobile App.
+      - name: device_platform_id
+        description: Device platform of the matched onsite conversion event, with app type forced to Mobile App.
         tests:
+          - not_null
           - relationships:
               arguments:
-                to: ref('dim_app_type')
-                field: app_type_id
-      - name: device_type_id
-        description: Surrogate key for the device type used in the conversion event.
-        tests:
-          - relationships:
-              arguments:
-                to: ref('dim_device_type')
-                field: device_type_id
-      - name: os_group_id
-        description: Surrogate key for the operating system group used in the conversion event.
-        tests:
-          - relationships:
-              arguments:
-                to: ref('dim_os_group')
-                field: os_group_id
+                to: ref('dim_device_platform')
+                field: device_platform_id
+      - name: os_group
+        description: Normalised operating system group of the matched onsite conversion event, used to pick the app store fee.
       - name: conversion_time
         description: Timestamp of the consolidated conv ersion event.
         tests:
@@ -420,12 +370,8 @@ models:
         description: Subscription term identifier for the subscriber's initial subscription.
       - name: billing_period
         description: Billing period associated with the subscriber's initial term.
-      - name: conversion_app_type_id
-        description: Surrogate key identifying the app type for the subscriber's initial conversion event.
-      - name: conversion_device_type_id
-        description: Surrogate key for the device type used in the subscriber's initial conversion event.
-      - name: conversion_os_group_id
-        description: Surrogate key for the operating system group used in the subscriber's initial conversion event
+      - name: conversion_device_platform_id
+        description: Device platform (app type, device type and operating system group) of the subscriber's initial conversion event.
       - name: start_date
         description: Date of the subscriber's first observed subscription event.
         tests:

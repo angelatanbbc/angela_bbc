@@ -20,9 +20,7 @@ WITH composer_events AS (
         c.visitor_id,
         c.visit_id,
         c.user_id,
-        e.app_type_id,
-        c.device_type_id,
-        c.os_group_id,
+        {{ generate_device_platform_id("'Mobile App'", 'c.device_type', 'c.os_group') }} AS device_platform_id,
 
         -- Page Info
         NULL AS page,
@@ -67,7 +65,7 @@ WITH composer_events AS (
         AND c.event_time::DATE > '2025-06-25'
         AND c.event_name = 'experience.action'
         AND c.event_collection_platform = 'da-composer-vx'
-        AND e.app_type_id = MD5('Mobile App')
+        AND e.app_type = 'Mobile App'
         {% if is_incremental() %}
             AND c.event_time::DATE >= DATEADD(DAY, -1, (SELECT MAX(exposure_time)::DATE FROM {{ this }}))
         {% endif %}

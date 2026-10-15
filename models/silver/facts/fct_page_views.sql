@@ -79,7 +79,7 @@ SELECT
     {{ dbt_utils.generate_surrogate_key(['pv.user_id']) }} AS user_sk,
     {{ dbt_utils.generate_surrogate_key(['pv.visit_id']) }} AS visit_sk,
     {{ dbt_utils.generate_surrogate_key(['pv.geo_country_code_alpha2', 'pv.geo_region', 'pv.geo_city']) }} AS geography_sk,
-    {{ dbt_utils.generate_surrogate_key(['pv.device_type', 'pv.os_group', 'pv.browser_group']) }} AS device_sk,
+    pv.device_platform_id,
     {{ dbt_utils.generate_surrogate_key(['pv.site_id']) }} AS site_sk,
 
     -- natural keys kept for COUNT DISTINCT in the semantic layer
@@ -91,7 +91,7 @@ SELECT
     pv.visitor_is_signed_in,
     pv.user_first_party_id,
     pv.device_first_party_id,
-    pv.app_type,
+    pv.browser_group,
 
     -- campaign source attributes (Piano src_*), as captured on the page view
     pv.src_bbc_team,

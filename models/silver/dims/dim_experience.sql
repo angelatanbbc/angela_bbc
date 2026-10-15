@@ -31,12 +31,13 @@ SELECT
     experience_id,
     -- Piano's experience type: site and template-interaction experiences run
     -- on the web, mobile ones in the app. A new type is Unknown, not guessed.
+    -- Routes events into the web or app exposure and conversion pipelines.
     CASE experience_type
-        WHEN 'site' THEN MD5('Web')
-        WHEN 'template-interaction' THEN MD5('Web')
-        WHEN 'mobile' THEN MD5('Mobile App')
-        ELSE MD5('Unknown')
-    END AS app_type_id,
+        WHEN 'site' THEN 'Web'
+        WHEN 'template-interaction' THEN 'Web'
+        WHEN 'mobile' THEN 'Mobile App'
+        ELSE 'Unknown'
+    END AS app_type,
     experience_name,
     experience_description,
     experience_type,

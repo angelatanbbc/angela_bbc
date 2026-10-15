@@ -11,9 +11,7 @@ WITH first_event AS (
         e.event_time::DATE AS start_date,
         e.term_id,
         e.billing_period,
-        e.conversion_app_type_id,
-        e.conversion_device_type_id,
-        e.conversion_os_group_id
+        e.conversion_device_platform_id
     FROM
         {{ ref('fct_subscription_events') }} e
     LEFT JOIN (SELECT * FROM {{ ref('fct_conversions') }} QUALIFY ROW_NUMBER() OVER (PARTITION BY conversion_id ORDER BY conversion_time) = 1) c
@@ -43,9 +41,7 @@ final_survival_table AS (
         f.experience_type,
         f.term_id,
         f.billing_period,
-        f.conversion_app_type_id,
-        f.conversion_device_type_id,
-        f.conversion_os_group_id,
+        f.conversion_device_platform_id,
         f.start_date,
         c.churn_date,
         -- Today is the "censoring" date for all active subscribers
@@ -63,9 +59,7 @@ SELECT
     experience_type,
     term_id,
     billing_period,
-    conversion_app_type_id,
-    conversion_device_type_id,
-    conversion_os_group_id,
+    conversion_device_platform_id,
     start_date,
     churn_date,
     
