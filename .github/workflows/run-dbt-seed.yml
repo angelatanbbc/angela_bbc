@@ -38,6 +38,7 @@ jobs:
           snowflake_schema: ${{ vars.SNOWFLAKE_SCHEMA }}
           snowflake_warehouse: ${{ vars.SNOWFLAKE_WAREHOUSE }}
           dbt_args: seed
+          dbt_target: live
 
       - name: Trigger Notification
         uses: bbc/sdp-deployment-scripts/actions/trigger-notification@main

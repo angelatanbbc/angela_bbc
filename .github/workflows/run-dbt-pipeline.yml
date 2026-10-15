@@ -117,6 +117,7 @@ jobs:
           snowflake_schema: ${{ vars.SNOWFLAKE_SCHEMA }}
           snowflake_warehouse: ${{ vars.SNOWFLAKE_WAREHOUSE }}
           dbt_args: source freshness --select source:cgm_extract_load.raw_piano_subscription_snapshots
+          dbt_target: live
 
       - name: Run DBT Task
         uses: ./.github/actions/run-dbt-task
@@ -130,6 +131,7 @@ jobs:
           snowflake_schema: ${{ vars.SNOWFLAKE_SCHEMA }}
           snowflake_warehouse: ${{ vars.SNOWFLAKE_WAREHOUSE }}
           dbt_args: run ${{ inputs.full_refresh && '--full-refresh' || '' }}
+          dbt_target: live
 
       - name: Run DBT Tests
         id: dbt_tests
@@ -144,6 +146,7 @@ jobs:
           snowflake_schema: ${{ vars.SNOWFLAKE_SCHEMA }}
           snowflake_warehouse: ${{ vars.SNOWFLAKE_WAREHOUSE }}
           dbt_args: test
+          dbt_target: live
 
       - name: Trigger Test Failure Notification
         uses: bbc/sdp-deployment-scripts/actions/trigger-notification@main
