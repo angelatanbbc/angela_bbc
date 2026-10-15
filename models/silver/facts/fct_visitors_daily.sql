@@ -1,8 +1,8 @@
 {{
     config(
         materialized="incremental",
-        unique_key='visitor_date_key',
-        incremental_strategy='merge',
+        unique_key='date_key',
+        incremental_strategy='delete+insert',
         on_schema_change='sync_all_columns',
         tags=['mart','fct']
     )
@@ -12,6 +12,11 @@
 -- Pre-computes unique visitor-day combinations from page.display events
 -- This table is used by all daily/weekly/monthly aggregation models to avoid
 -- redundant expensive DISTINCT operations on the event-level table
+--
+-- Incremental runs replace whole days: every date_key in the reprocessed window
+-- is deleted and rebuilt. geo_id is the visitor's modal geography for the day,
+-- so it can change as late events arrive, and merging on visitor_date_key
+-- (which includes geo_id) would leave the old row behind as a duplicate.
 WITH multiple_geos AS (
 
     SELECT
