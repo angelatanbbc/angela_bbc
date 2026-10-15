@@ -17,9 +17,7 @@ WITH conversions AS (
         geo_id,
         geo_country,
         geo_region,
-        app_type_id,
-        device_type_id,
-        os_group_id,
+        device_platform_id,
         position_weight
     FROM {{ ref('fct_conversions') }}
 
@@ -38,9 +36,7 @@ aggregated AS (
         geo_id,
         geo_country,
         geo_region,
-        app_type_id,
-        device_type_id,
-        os_group_id,
+        device_platform_id,
         SUM(position_weight)::NUMBER(38, 6) AS n_signups
     FROM conversions
     GROUP BY ALL
@@ -55,9 +51,7 @@ SELECT
         'a.geo_id',
         'a.experience_id',
         'a.template_id',
-        'a.app_type_id',
-        'a.device_type_id',
-        'a.os_group_id'
+        'a.device_platform_id'
     ]) }} AS signup_day_key,
     a.conversion_date,
     a.attribution_source,
@@ -70,21 +64,16 @@ SELECT
     a.geo_id,
     a.geo_country,
     a.geo_region,
-    a.app_type_id,
-    at.app_type,
-    a.device_type_id,
-    dt.device_type,
-    a.os_group_id,
-    og.os_group,
+    a.device_platform_id,
+    dp.platform,
+    dp.app_type,
+    dp.device_type,
+    dp.os_group,
     a.n_signups
 FROM aggregated a
 LEFT JOIN {{ ref('dim_experience') }} e
     ON a.experience_id = e.experience_id
 LEFT JOIN {{ ref('dim_template') }} t
     ON a.template_id = t.template_id
-LEFT JOIN {{ ref('dim_app_type') }} at
-    ON a.app_type_id = at.app_type_id
-LEFT JOIN {{ ref('dim_device_type') }} dt
-    ON a.device_type_id = dt.device_type_id
-LEFT JOIN {{ ref('dim_os_group') }} og
-    ON a.os_group_id = og.os_group_id
+LEFT JOIN {{ ref('dim_device_platform') }} dp
+    ON a.device_platform_id = dp.device_platform_id

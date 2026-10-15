@@ -1,38 +1,75 @@
 version: 2
 
 models:
-  - name: dim_app_type
-    description: App type dimension used by Piano audience and subscription facts.
+  - name: dim_device_platform
+    description: >
+      Conformed device platform dimension used by the Piano audience and subscription facts and the acquisition
+      aggregates. One row per combination of app type, device type and operating system group (180 rows, static).
+      Facts derive device_platform_id from the event's app_type, device_type and os_group with the
+      generate_device_platform_id macro, so every key resolves here.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [app_type, device_type, os_group]
     columns:
-      - name: app_type_id
-        description: Stable hash identifier for the app type.
+      - name: device_platform_id
+        description: Stable hash of the app type, device type and operating system group labels.
         tests:
           - not_null
           - unique
+      - name: platform
+        description: >
+          Reporting label. Mobile App rows split by operating system (iOS App covers iOS and iPadOS, Android App,
+          Other App); Web rows split by device (Mobile Web, Tablet Web, Desktop Web, Other Web); Other and
+          Unknown app types are Unknown.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  [
+                    "iOS App",
+                    "Android App",
+                    "Other App",
+                    "Mobile Web",
+                    "Tablet Web",
+                    "Desktop Web",
+                    "Other Web",
+                    "Unknown",
+                  ]
       - name: app_type
-        description: Normalised app type label.
+        description: Normalised app type label. Web covers Piano's responsive and mobile-responsive; Unknown when the event has no app type.
         tests:
           - not_null
           - accepted_values:
               arguments:
                 values: ["Web", "Mobile App", "Other", "Unknown"]
-
-  - name: dim_device_type
-    description: Device type dimension used by Piano audience and subscription facts.
-    columns:
-      - name: device_type_id
-        description: Stable hash identifier for the device type.
-        tests:
-          - not_null
-          - unique
       - name: device_type
-        description: Normalised device type label.
+        description: Normalised device type label. Piano's long tail (TV, Set Top Box, VR Headset, ...) is Other.
         tests:
           - not_null
           - accepted_values:
               arguments:
                 values:
                   ["Mobile Phone", "Desktop", "Tablet", "Other", "Unknown"]
+      - name: os_group
+        description: Normalised operating system group label. iPadOS is its own group.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  [
+                    "iOS",
+                    "iPadOS",
+                    "macOS",
+                    "Windows",
+                    "Linux",
+                    "Android",
+                    "Chrome OS",
+                    "Other",
+                    "Unknown",
+                  ]
 
   - name: dim_date
     description: Date dimension used by Piano audience and subscription facts.
@@ -218,32 +255,6 @@ models:
         tests:
           - not_null
 
-  - name: dim_os_group
-    description: Operating system group dimension used by Piano audience and subscription facts.
-    columns:
-      - name: os_group_id
-        description: Stable hash identifier for the operating system group.
-        tests:
-          - not_null
-          - unique
-      - name: os_group
-        description: Normalised operating system group label.
-        tests:
-          - not_null
-          - accepted_values:
-              arguments:
-                values:
-                  [
-                    "iOS",
-                    "macOS",
-                    "Windows",
-                    "Linux",
-                    "Android",
-                    "Chrome OS",
-                    "Other",
-                    "Unknown",
-                  ]
-
   - name: dim_experience
     description: >
       Composer experiences. One row per experience, with its latest state in the Piano API snapshots: the nightly
@@ -258,16 +269,16 @@ models:
         description: Experience title in Piano.
         tests:
           - not_null
-      - name: app_type_id
+      - name: app_type
         description: >
           App type of the experience, from Piano's experience type: site and template-interaction are Web, mobile
-          is Mobile App, and any other type is Unknown.
+          is Mobile App, and any other type is Unknown. Routes the experience's events into the web or app
+          exposure and conversion pipelines.
         tests:
           - not_null
-          - relationships:
+          - accepted_values:
               arguments:
-                to: ref('dim_app_type')
-                field: app_type_id
+                values: ["Web", "Mobile App", "Unknown"]
       - name: experience_description
         description: Description entered in Piano.
       - name: experience_type
@@ -478,6 +489,8 @@ models:
           - not_null:
               config:
                 severity: warn
+      - name: conversion_device_platform_id
+        description: Device platform (app type, device type and operating system group) of the conversion that created the subscription.
       - name: subscription_sequence_number
         description: The order of this subscription within the user's observed subscription history.
         tests:

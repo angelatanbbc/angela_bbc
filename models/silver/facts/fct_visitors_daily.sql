@@ -22,9 +22,7 @@ WITH multiple_geos AS (
     SELECT
         event_time::DATE AS date_key,
         site_id,
-        app_type_id,
-        device_type_id,
-        os_group_id,
+        device_platform_id,
         visitor_id,
         geo_id,
         COUNT(DISTINCT visit_id) AS n_visits,
@@ -47,9 +45,7 @@ modal_geo AS (
     SELECT
         date_key,
         site_id,
-        app_type_id,
-        device_type_id,
-        os_group_id,
+        device_platform_id,
         visitor_id,
         MAX_BY(geo_id, n_pageviews) AS geo_id,
         SUM(n_visits) AS n_visits,
@@ -60,12 +56,10 @@ modal_geo AS (
 )
 
 SELECT
-    {{ dbt_utils.generate_surrogate_key(['date_key', 'site_id', 'geo_id', 'device_type_id', 'app_type_id', 'os_group_id', 'visitor_id']) }} AS visitor_date_key,
+    {{ dbt_utils.generate_surrogate_key(['date_key', 'site_id', 'geo_id', 'device_platform_id', 'visitor_id']) }} AS visitor_date_key,
     date_key,
     site_id,
-    app_type_id,
-    device_type_id,
-    os_group_id,
+    device_platform_id,
     geo_id,
     visitor_id,
     n_visits,

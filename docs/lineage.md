@@ -198,15 +198,11 @@ graph LR
     conversions["fct_conversions"]:::mart --> funnel
     template["dim_template"]:::mart --> funnel
     geography["dim_geography"]:::mart --> funnel
-    app["dim_app_type"]:::mart --> funnel
-    device["dim_device_type"]:::mart --> funnel
-    os["dim_os_group"]:::mart --> funnel
+    platform["dim_device_platform"]:::mart --> funnel
     conversions --> signups["agg_acquisition_signups_daily"]:::mart
     experience["dim_experience"]:::mart --> signups
     template --> signups
-    app --> signups
-    device --> signups
-    os --> signups
+    platform --> signups
     activity["fct_subscriber_activity_daily"]:::mart --> bans["agg_subscriber_bans"]:::mart
     events["fct_subscription_events"]:::mart --> bans
     visitors --> bans
@@ -214,8 +210,8 @@ graph LR
     exposures --> bans
     geo_seed["geo_mapping"]:::seed --> geography
     linkStyle 0,1,2 stroke:#eab308,stroke-width:2.5px
-    linkStyle 3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24 stroke:#4169e1,stroke-width:1.5px
-    linkStyle 25 stroke:#f97316,stroke-width:2.5px
+    linkStyle 3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20 stroke:#4169e1,stroke-width:1.5px
+    linkStyle 21 stroke:#f97316,stroke-width:2.5px
 ```
 
 ### Salesforce output
@@ -273,12 +269,10 @@ The following inventory records every project-owned model in the dbt manifest an
 
 | Model | Direct upstream dependencies |
 | --- | --- |
-| `dim_app_type` | None; static reference model |
 | `dim_date` | None; static date spine model |
-| `dim_device_type` | None; static reference model |
+| `dim_device_platform` | None; static reference model (app type x device type x operating system group) |
 | `dim_experience` | `stg_piano__experiences` |
 | `dim_geography` | `seed:geo_mapping` |
-| `dim_os_group` | None; static reference model |
 | `dim_offer` | `stg_piano__offers`, `stg_piano__offer_terms` |
 | `dim_offer_term` | `stg_piano__offer_terms`, `stg_piano__offers` |
 | `dim_subscription` | `int_piano__subscription_current`, `fct_subscription_events` |
@@ -300,8 +294,8 @@ The following inventory records every project-owned model in the dbt manifest an
 
 | Model | Direct upstream dependencies |
 | --- | --- |
-| `agg_acquisition_funnel_daily` | `dim_template`, `fct_exposures`, `fct_conversions`, `fct_visitors_daily`, `dim_geography`, `dim_app_type`, `dim_device_type`, `dim_os_group` |
-| `agg_acquisition_signups_daily` | `fct_conversions`, `dim_experience`, `dim_template`, `dim_app_type`, `dim_device_type`, `dim_os_group` |
+| `agg_acquisition_funnel_daily` | `dim_template`, `fct_exposures`, `fct_conversions`, `fct_visitors_daily`, `dim_geography`, `dim_device_platform` |
+| `agg_acquisition_signups_daily` | `fct_conversions`, `dim_experience`, `dim_template`, `dim_device_platform` |
 | `agg_engaged_subscribers_monthly` | `fct_subscriber_activity_daily`, `dim_date` |
 | `agg_engaged_subscribers_weekly` | `fct_subscriber_activity_daily`, `dim_date` |
 | `agg_facebook_ads_url_report` | `facebook_ads.stg_facebook_ads__basic_ad`, `facebook_ads.int_facebook_ads__conversions`, `int_facebook_ads__creative_history`, `facebook_ads.stg_facebook_ads__account_history`, `facebook_ads.stg_facebook_ads__ad_history`, `facebook_ads.stg_facebook_ads__ad_set_history`, `facebook_ads.stg_facebook_ads__campaign_history` |

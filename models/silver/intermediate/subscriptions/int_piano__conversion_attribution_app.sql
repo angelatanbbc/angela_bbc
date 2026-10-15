@@ -80,9 +80,7 @@ SELECT
     user_first_party_id,
     visit_id,
     visit_time,
-    app_type_id,
-    device_type_id,
-    os_group_id,
+    device_platform_id,
     conversion_time,
     conversion_time::DATE AS conversion_date,
     term_id,
@@ -97,20 +95,20 @@ SELECT
         WHEN term_offer_id = 'OFR1N7V2XJPI' AND billing_period = '1 year' AND LOWER(term_name) ILIKE '%ios%' THEN 49.99 * 0.7  -- Assuming 30% app store fee for iOS
         WHEN term_offer_id = 'OFR1N7V2XJPI' AND billing_period = '1 month' AND LOWER(term_name) ILIKE '%android%' THEN 8.99 * 0.85  -- Assuming 15% app store fee for Android
         WHEN term_offer_id = 'OFR1N7V2XJPI' AND billing_period = '1 year' AND LOWER(term_name) ILIKE '%android%' THEN 49.99 * 0.85  -- Assuming 15% app store fee for Android
-        WHEN term_offer_id = 'OFR1N7V2XJPI' AND billing_period = '1 month' AND os_group_id IN (MD5('iOS'), MD5('macOS')) THEN 8.99 * 0.7  -- Assuming 30% app store fee for iOS
-        WHEN term_offer_id = 'OFR1N7V2XJPI' AND billing_period = '1 year' AND os_group_id IN (MD5('iOS'), MD5('macOS')) THEN 49.99 * 0.7  -- Assuming 30% app store fee for iOS
-        WHEN term_offer_id = 'OFR1N7V2XJPI' AND billing_period = '1 month' AND os_group_id IN (MD5('Android'), MD5('Chrome OS'), MD5('Windows')) THEN 8.99 * 0.85  -- Assuming 15% app store fee for Android
-        WHEN term_offer_id = 'OFR1N7V2XJPI' AND billing_period = '1 year' AND os_group_id IN (MD5('Android'), MD5('Chrome OS'), MD5('Windows')) THEN 49.99 * 0.85  -- Assuming 15% app store fee for Android
+        WHEN term_offer_id = 'OFR1N7V2XJPI' AND billing_period = '1 month' AND os_group IN ('iOS', 'iPadOS', 'macOS') THEN 8.99 * 0.7  -- Assuming 30% app store fee for iOS
+        WHEN term_offer_id = 'OFR1N7V2XJPI' AND billing_period = '1 year' AND os_group IN ('iOS', 'iPadOS', 'macOS') THEN 49.99 * 0.7  -- Assuming 30% app store fee for iOS
+        WHEN term_offer_id = 'OFR1N7V2XJPI' AND billing_period = '1 month' AND os_group IN ('Android', 'Chrome OS', 'Windows') THEN 8.99 * 0.85  -- Assuming 15% app store fee for Android
+        WHEN term_offer_id = 'OFR1N7V2XJPI' AND billing_period = '1 year' AND os_group IN ('Android', 'Chrome OS', 'Windows') THEN 49.99 * 0.85  -- Assuming 15% app store fee for Android
 
         -- Canada
         WHEN term_offer_id = 'OFC29VO25AKU' AND billing_period = '1 month' AND LOWER(term_name) ILIKE '%ios%' THEN 9.1622 * 0.7  -- Assuming 30% app store fee for iOS
         WHEN term_offer_id = 'OFC29VO25AKU' AND billing_period = '1 year' AND LOWER(term_name) ILIKE '%ios%' THEN 49.3659 * 0.7  -- Assuming 30% app store fee for iOS
         WHEN term_offer_id = 'OFC29VO25AKU' AND billing_period = '1 month' AND LOWER(term_name) ILIKE '%android%' THEN 9.1622 * 0.85  -- Assuming 15% app store fee for Android
         WHEN term_offer_id = 'OFC29VO25AKU' AND billing_period = '1 year' AND LOWER(term_name) ILIKE '%android%' THEN 49.3659 * 0.85  -- Assuming 15% app store fee for Android
-        WHEN term_offer_id = 'OFC29VO25AKU' AND billing_period = '1 month' AND os_group_id IN (MD5('iOS'), MD5('macOS')) THEN 9.1622 * 0.7  -- Assuming 30% app store fee for iOS
-        WHEN term_offer_id = 'OFC29VO25AKU' AND billing_period = '1 year' AND os_group_id IN (MD5('iOS'), MD5('macOS')) THEN 49.3659 * 0.7  -- Assuming 30% app store fee for iOS
-        WHEN term_offer_id = 'OFC29VO25AKU' AND billing_period = '1 month' AND os_group_id IN (MD5('Android'), MD5('Chrome OS'), MD5('Windows')) THEN 9.1622 * 0.85  -- Assuming 15% app store fee for Android
-        WHEN term_offer_id = 'OFC29VO25AKU' AND billing_period = '1 year' AND os_group_id IN (MD5('Android'), MD5('Chrome OS'), MD5('Windows')) THEN 49.3659 * 0.85  -- Assuming 15% app store fee for Android
+        WHEN term_offer_id = 'OFC29VO25AKU' AND billing_period = '1 month' AND os_group IN ('iOS', 'iPadOS', 'macOS') THEN 9.1622 * 0.7  -- Assuming 30% app store fee for iOS
+        WHEN term_offer_id = 'OFC29VO25AKU' AND billing_period = '1 year' AND os_group IN ('iOS', 'iPadOS', 'macOS') THEN 49.3659 * 0.7  -- Assuming 30% app store fee for iOS
+        WHEN term_offer_id = 'OFC29VO25AKU' AND billing_period = '1 month' AND os_group IN ('Android', 'Chrome OS', 'Windows') THEN 9.1622 * 0.85  -- Assuming 15% app store fee for Android
+        WHEN term_offer_id = 'OFC29VO25AKU' AND billing_period = '1 year' AND os_group IN ('Android', 'Chrome OS', 'Windows') THEN 49.3659 * 0.85  -- Assuming 15% app store fee for Android
         ELSE NULL
     END AS cart_turnovertaxfree,
     subscription_period_number,

@@ -191,25 +191,14 @@ SELECT
     geo_metro,
     geo_id,
 
-    -- dimension keys (computed in staging from the raw values, so unaffected by the normalization below)
-    app_type,
-    app_type_id,
-    device_type_id,
-    os_group_id,
+    -- platform key (computed in staging from the raw app_type, device_type and os_group)
+    device_platform_id,
 
-    -- device / browser / OS (normalized: consistent casing, blanks to 'Unknown')
-    COALESCE(NULLIF(TRIM(device_type), ''), 'Unknown') AS device_type,
-    CASE LOWER(TRIM(os_group))
-        WHEN 'ios' THEN 'iOS'
-        WHEN 'ipados' THEN 'iPadOS'
-        WHEN 'android' THEN 'Android'
-        WHEN 'windows' THEN 'Windows'
-        WHEN 'macos' THEN 'macOS'
-        WHEN 'linux' THEN 'Linux'
-        WHEN 'chrome os' THEN 'Chrome OS'
-        WHEN '' THEN 'Unknown'
-        ELSE COALESCE(os_group, 'Unknown')
-    END AS os_group,
+    -- device / OS as Piano sends them, for pipelines that rebuild the platform
+    -- key with a forced app type (the clean_* macros normalise them)
+    app_type,
+    device_type,
+    os_group,
     COALESCE(NULLIF(TRIM(browser_group), ''), 'Unknown') AS browser_group,
 
     -- site
