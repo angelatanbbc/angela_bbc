@@ -23,20 +23,18 @@ on:
         default: false
         required: true
 
+# Extract/load and dbt run in separate jobs because each runner is capped at
+# one hour (IT policy) and the two together take longer than that.
 jobs:
-  run_dbt_pipeline:
-    name: Run DBT Pipeline
+  # Loads raw source tables (e.g. Piano subscriptions) into DNS_TRANSFORMATIONS.
+  extract_load:
+    name: Run Extract Load
+    if: ${{ !inputs.skip_extract_load }}
     runs-on:
       - codebuild-dns-transformations-project-${{ github.run_id }}-${{ github.run_attempt }}
     environment: ${{ inputs.environment || 'live' }}
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      # Loads raw source tables (e.g. Piano subscriptions) into DNS_TRANSFORMATIONS.
-      # Checked out after this repo, whose checkout would otherwise clean it away.
       - name: Checkout cgm-extract-load
-        if: ${{ !inputs.skip_extract_load }}
         uses: actions/checkout@v4
         with:
           repository: bbc/cgm-extract-load
@@ -47,7 +45,6 @@ jobs:
       # sends its own failure notification below.
       - name: Run Extract Load
         id: extract_load
-        if: ${{ !inputs.skip_extract_load }}
         continue-on-error: true
         uses: ./cgm-extract-load/.github/actions/run-extract-load
         with:
@@ -74,6 +71,33 @@ jobs:
           TRIGGERED_BY_USERNAME: ${{ github.actor }}
           STATUS: "failure"
           DEPLOYMENTS_API_KEY: ${{ secrets.DEPLOYMENTS_API_KEY }}
+
+  run_dbt_pipeline:
+    name: Run DBT Pipeline
+    needs: extract_load
+    # Runs whether the extract/load job succeeded, failed or was skipped; the
+    # freshness check below guards against building on stale data.
+    if: ${{ !cancelled() }}
+    runs-on:
+      - codebuild-dns-transformations-project-${{ github.run_id }}-${{ github.run_attempt }}
+    environment: ${{ inputs.environment || 'live' }}
+    steps:
+      # The extract/load job notifies its own step failures. This covers the
+      # job dying outright (e.g. hitting the runner timeout), when it can't.
+      - name: Trigger Extract Load Job Failure Notification
+        uses: bbc/sdp-deployment-scripts/actions/trigger-notification@main
+        if: ${{ needs.extract_load.result == 'failure' }}
+        with:
+          TYPE: "transformation-executed"
+          ENVIRONMENT: ${{ inputs.environment || 'live' }}
+          SERVICE_NAME: "dns-transformations-project-transformations"
+          TRANSFORMATION_NAME: "extract load (cgm-extract-load)"
+          TRIGGERED_BY_USERNAME: ${{ github.actor }}
+          STATUS: "failure"
+          DEPLOYMENTS_API_KEY: ${{ secrets.DEPLOYMENTS_API_KEY }}
+
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
       # Stops the run if the raw sources the extract/load fills are more than
       # 26 hours old (i.e. it has missed two nights), rather than building on

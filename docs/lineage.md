@@ -260,7 +260,7 @@ These sources are configured in `models/bronze/<source>/_<source>__sources.yml` 
 
 ## Scheduling order
 
-1. Load the declared source tables. [cgm-extract-load](https://github.com/bbc/cgm-extract-load) runs as the first step of the same scheduled workflow and appends the day's snapshot to `raw_piano_subscription_snapshots`. Then `dbt source freshness` checks it, and stops the run if it is more than 26 hours old.
+1. Load the declared source tables. [cgm-extract-load](https://github.com/bbc/cgm-extract-load) runs as the first job of the same scheduled workflow and appends the day's snapshot to `raw_piano_subscription_snapshots`. Then `dbt source freshness` checks it, and stops the run if it is more than 26 hours old.
 2. Build bronze staging models.
 3. Build silver intermediate models and the `facebook_ads` package models.
 4. Build silver facts and dimensions (subscription, attribution, engagement, and core).
