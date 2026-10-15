@@ -26,7 +26,7 @@ models:
       (max page_duration; page_view_time is the first event's timestamp; latest event wins
       for attributes). Piano populates pageview_id for web (js) traffic only, so native app
       page views are excluded. Incremental: merges on pageview_id, reprocessing from the day
-      before the latest loaded date; dev builds only the last 3 days.
+      before the latest loaded date; dev builds only the last 30 days.
     columns:
       - name: pageview_id
         description: Unique identifier for the page view. Primary key.
