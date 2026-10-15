@@ -221,10 +221,24 @@ models:
         description: Name of the subscription term offer associated with the conversion.
       - name: billing_period
         description: Billing period for the subscription (e.g., monthly, annual).
+      - name: payment_provider
+        description: >
+          Where the subscription is billed, observed on the conversion event: Stripe Elements or Braintree Credit
+          Card for web checkouts (payment_provider on vx.conversion), Apple App Store or Google Play for app store
+          conversions (external_api_source on vx.conversion.offsite). Independent of device_platform_id: a Stripe
+          checkout can happen in the app. dim_term.billing_channel gives the term's expected channel.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["Stripe Elements", "Braintree Credit Card", "Apple App Store", "Google Play"]
       - name: vx_promo_code
         description: Promo code used during the conversion event, if any.
       - name: cart_turnovertaxfree
-        description: Total revenue amount excluding tax at the time of conversion.
+        description: >
+          Revenue excluding tax at the time of conversion. The value Piano recorded for Stripe and Braintree
+          checkouts; for app store conversions an estimate of the list price less the store fee (30% Apple App
+          Store, 15% Google Play) keyed on payment_provider.
         tests:
           - not_null
       - name: subscription_period_number

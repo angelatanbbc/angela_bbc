@@ -269,16 +269,14 @@ models:
         description: Experience title in Piano.
         tests:
           - not_null
-      - name: app_type
+      - name: is_app_experience
         description: >
-          App type of the experience, from Piano's experience type: site and template-interaction are Web, mobile
-          is Mobile App, and any other type is Unknown. Routes the experience's events into the web or app
-          exposure and conversion pipelines.
+          Whether the experience runs in the mobile app, from Piano's experience type: TRUE for mobile, FALSE for
+          site and template-interaction. Routes the experience's events into the app or web exposure and
+          conversion pipelines. This is the experience surface, not the device platform of an event
+          (dim_device_platform) or where a subscription is billed (dim_term.billing_channel).
         tests:
           - not_null
-          - accepted_values:
-              arguments:
-                values: ["Web", "Mobile App", "Unknown"]
       - name: experience_description
         description: Description entered in Piano.
       - name: experience_type
@@ -389,7 +387,21 @@ models:
       - name: is_trial_new_customers_only
         description: Whether the trial or introductory price is restricted to new customers.
       - name: external_api_name
-        description: App store integration for external terms.
+        description: App store integration for external terms (BBC iOS Integration or BBC Google Integration).
+      - name: billing_channel
+        description: >
+          Where subscriptions on the term are billed: Web checkout for payment terms (Stripe or Braintree),
+          Apple App Store or Google Play for external terms, from external_api_name. NULL for terms that are not
+          paid for, such as registration or granted access. Distinct from the device platform of a conversion:
+          a web checkout can happen in the app, and fct_conversions.payment_provider records the channel
+          observed on each conversion.
+        tests:
+          - not_null:
+              config:
+                where: "term_type IN ('payment', 'external')"
+          - accepted_values:
+              arguments:
+                values: ["Web checkout", "Apple App Store", "Google Play"]
       - name: is_listed_in_piano
         description: Whether the term is in the latest nightly Piano list.
         tests:

@@ -65,7 +65,7 @@ WITH composer_events AS (
         AND c.event_time::DATE > '2025-06-25'
         AND c.event_name = 'experience.action'
         AND c.event_collection_platform = 'da-composer-vx'
-        AND e.app_type = 'Mobile App'
+        AND e.is_app_experience
         {% if is_incremental() %}
             AND c.event_time::DATE >= DATEADD(DAY, -1, (SELECT MAX(exposure_time)::DATE FROM {{ this }}))
         {% endif %}

@@ -52,6 +52,14 @@ SELECT
     t.has_free_trial,
     t.is_trial_new_customers_only,
     t.external_api_name,
+    -- Where the subscription is billed. Payment terms are checked out on the
+    -- web (Stripe or Braintree); external terms are billed by the app store
+    -- named in Piano's external API integration.
+    CASE
+        WHEN t.term_type = 'payment' THEN 'Web checkout'
+        WHEN t.term_type = 'external' AND t.external_api_name ILIKE '%ios%' THEN 'Apple App Store'
+        WHEN t.term_type = 'external' AND t.external_api_name ILIKE '%google%' THEN 'Google Play'
+    END AS billing_channel,
     t.is_listed_in_piano,
     t.created_at,
     t.updated_at
