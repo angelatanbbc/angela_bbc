@@ -98,6 +98,8 @@ SELECT
     content_format,
     content_collection,
     content_licence,
+    date_published,
+    article_word_count,
 
     -- user / visitor
     visitor_new_return,
@@ -128,6 +130,7 @@ SELECT
     src_organic,
     src_organic_detail,
     src_referrer_url,
+    src_url,
     src_bbc_team,
     src_creative_id,
     src_creation,
@@ -169,6 +172,8 @@ SELECT
     -- platform / browser
     device_platform_id,
     browser_group,
+    os_version,
+    app_name,
 
     -- site
     site_level2,
@@ -177,5 +182,21 @@ SELECT
 
     -- Composer template (populated on experience events only, so normally NULL on page.display)
     template_display_mode,
-    template_closable
+    template_closable,
+
+    -- C1X propensity segments
+    c1x_brand_relationship,
+    c1x_checkout_abandonment,
+    c1x_content_likely_to_convert,
+    c1x_expiring_subscribers,
+    c1x_likelihood_to_register,
+    c1x_likelihood_to_return,
+    c1x_ltc,
+    c1x_lts,
+    c1x_revenue_auto_optimization,
+    c1x_subscription_length,
+    c1x_subscription_tenure,
+    c1x_visitor_frequency,
+    c1x_visitor_interest,
+    c1x_visitor_recency
 FROM pageview_grain
