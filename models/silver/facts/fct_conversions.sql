@@ -37,12 +37,24 @@ attribution AS (
         position_weight
     FROM {{ ref('fct_subscription_attribution') }}
 
+),
+
+terms AS (
+
+    SELECT
+        term_id,
+        subscription_weight
+    FROM {{ ref('dim_term') }}
+
 )
 
 SELECT
     c.*,
-    IFNULL(IFF(a.attribution_source != 'Paid', 'Organic', a.attribution_source), 'Organic') AS attribution_source,
+    COALESCE(IFF(a.attribution_source != 'Paid', 'Organic', a.attribution_source), 'Organic') AS attribution_source,
     a.attribution_source AS attribution_source_detail,
-    IFNULL(a.position_weight, 1) AS position_weight
+    COALESCE(a.position_weight, 1) AS position_weight,
+    COALESCE(t.subscription_weight, 1) AS subscription_weight
 FROM unioned c
 LEFT JOIN attribution a USING (subscription_id)
+LEFT JOIN terms t
+    ON c.term_id = t.term_id

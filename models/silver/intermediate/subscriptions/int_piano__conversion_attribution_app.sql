@@ -70,6 +70,23 @@ last_fix AS (
         END AS template_id
     FROM fill_forward_ids
 
+),
+
+list_prices AS (
+
+    -- App store list prices by offer and billing period
+    SELECT
+        *,
+        CASE
+            -- United States
+            WHEN term_offer_id = 'OFR1N7V2XJPI' AND billing_period = '1 month' THEN 8.99
+            WHEN term_offer_id = 'OFR1N7V2XJPI' AND billing_period = '1 year' THEN 49.99
+            -- Canada
+            WHEN term_offer_id = 'OFC29VO25AKU' AND billing_period = '1 month' THEN 9.1622
+            WHEN term_offer_id = 'OFC29VO25AKU' AND billing_period = '1 year' THEN 49.3659
+        END AS app_store_list_price
+    FROM last_fix
+
 )
 
 SELECT
@@ -88,28 +105,16 @@ SELECT
     term_offer_id,
     term_offer_name,
     billing_period,
+    payment_provider,
     NULL AS vx_promo_code,
-    CASE
-        -- United States
-        WHEN term_offer_id = 'OFR1N7V2XJPI' AND billing_period = '1 month' AND LOWER(term_name) ILIKE '%ios%' THEN 8.99 * 0.7  -- Assuming 30% app store fee for iOS
-        WHEN term_offer_id = 'OFR1N7V2XJPI' AND billing_period = '1 year' AND LOWER(term_name) ILIKE '%ios%' THEN 49.99 * 0.7  -- Assuming 30% app store fee for iOS
-        WHEN term_offer_id = 'OFR1N7V2XJPI' AND billing_period = '1 month' AND LOWER(term_name) ILIKE '%android%' THEN 8.99 * 0.85  -- Assuming 15% app store fee for Android
-        WHEN term_offer_id = 'OFR1N7V2XJPI' AND billing_period = '1 year' AND LOWER(term_name) ILIKE '%android%' THEN 49.99 * 0.85  -- Assuming 15% app store fee for Android
-        WHEN term_offer_id = 'OFR1N7V2XJPI' AND billing_period = '1 month' AND os_group IN ('iOS', 'iPadOS', 'macOS') THEN 8.99 * 0.7  -- Assuming 30% app store fee for iOS
-        WHEN term_offer_id = 'OFR1N7V2XJPI' AND billing_period = '1 year' AND os_group IN ('iOS', 'iPadOS', 'macOS') THEN 49.99 * 0.7  -- Assuming 30% app store fee for iOS
-        WHEN term_offer_id = 'OFR1N7V2XJPI' AND billing_period = '1 month' AND os_group IN ('Android', 'Chrome OS', 'Windows') THEN 8.99 * 0.85  -- Assuming 15% app store fee for Android
-        WHEN term_offer_id = 'OFR1N7V2XJPI' AND billing_period = '1 year' AND os_group IN ('Android', 'Chrome OS', 'Windows') THEN 49.99 * 0.85  -- Assuming 15% app store fee for Android
-
-        -- Canada
-        WHEN term_offer_id = 'OFC29VO25AKU' AND billing_period = '1 month' AND LOWER(term_name) ILIKE '%ios%' THEN 9.1622 * 0.7  -- Assuming 30% app store fee for iOS
-        WHEN term_offer_id = 'OFC29VO25AKU' AND billing_period = '1 year' AND LOWER(term_name) ILIKE '%ios%' THEN 49.3659 * 0.7  -- Assuming 30% app store fee for iOS
-        WHEN term_offer_id = 'OFC29VO25AKU' AND billing_period = '1 month' AND LOWER(term_name) ILIKE '%android%' THEN 9.1622 * 0.85  -- Assuming 15% app store fee for Android
-        WHEN term_offer_id = 'OFC29VO25AKU' AND billing_period = '1 year' AND LOWER(term_name) ILIKE '%android%' THEN 49.3659 * 0.85  -- Assuming 15% app store fee for Android
-        WHEN term_offer_id = 'OFC29VO25AKU' AND billing_period = '1 month' AND os_group IN ('iOS', 'iPadOS', 'macOS') THEN 9.1622 * 0.7  -- Assuming 30% app store fee for iOS
-        WHEN term_offer_id = 'OFC29VO25AKU' AND billing_period = '1 year' AND os_group IN ('iOS', 'iPadOS', 'macOS') THEN 49.3659 * 0.7  -- Assuming 30% app store fee for iOS
-        WHEN term_offer_id = 'OFC29VO25AKU' AND billing_period = '1 month' AND os_group IN ('Android', 'Chrome OS', 'Windows') THEN 9.1622 * 0.85  -- Assuming 15% app store fee for Android
-        WHEN term_offer_id = 'OFC29VO25AKU' AND billing_period = '1 year' AND os_group IN ('Android', 'Chrome OS', 'Windows') THEN 49.3659 * 0.85  -- Assuming 15% app store fee for Android
-        ELSE NULL
+    -- App store conversions carry no value, so revenue is the list price less
+    -- the store's fee, keyed on where the subscription is billed. Stripe and
+    -- Braintree checkouts that Piano reports offsite carry the charge Piano
+    -- recorded and pay no store fee.
+    CASE payment_provider
+        WHEN 'Apple App Store' THEN app_store_list_price * 0.7  -- Assuming 30% Apple App Store fee
+        WHEN 'Google Play' THEN app_store_list_price * 0.85  -- Assuming 15% Google Play fee
+        ELSE cart_turnovertaxfree
     END AS cart_turnovertaxfree,
     subscription_period_number,
     COALESCE(created_via_upgrade, FALSE) AS created_via_upgrade,
@@ -130,5 +135,5 @@ SELECT
     NULL AS c1x_likelihood_to_register,
     NULL AS c1x_likelihood_to_return,
     NULL AS c1x_revenue_auto_optimization
-FROM last_fix
+FROM list_prices
 QUALIFY ROW_NUMBER() OVER (PARTITION BY conversion_id ORDER BY event_time DESC) = 1

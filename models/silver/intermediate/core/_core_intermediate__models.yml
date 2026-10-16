@@ -18,6 +18,10 @@ models:
         description: >
           First-party user identifier aka FED_ID (24, 44 or 64 characters). Taken from whichever
           of the raw user_first_party_id / user_id columns holds a value of that length; NULL otherwise.
+      - name: payment_provider
+        description: Payment provider on vx.conversion events (Stripe Elements, Braintree Credit Card).
+      - name: external_api_source
+        description: App store on vx.conversion.offsite events (APPLE_ITUNES, GOOGLE_PLAY); NULL for web checkouts reported offsite.
 
   - name: int_piano__page_views
     description: >

@@ -79,8 +79,21 @@ models:
         description: Term offer name for the conversion.
       - name: billing_period
         description: Billing period for the conversion.
+      - name: payment_provider
+        description: >
+          Where the subscription is billed, observed on the conversion event: Apple App Store or Google Play from
+          the offsite event's external_api_source, or the payment provider (Stripe Elements) for web checkouts
+          that Piano reports offsite.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["Apple App Store", "Google Play", "Stripe Elements", "Braintree Credit Card"]
       - name: cart_turnovertaxfree
-        description: Net revenue for the conversion after adjusting for app store fees.
+        description: >
+          Net revenue for the conversion. App store conversions carry no value, so it is the list price less the
+          store fee for the observed payment_provider (30% Apple App Store, 15% Google Play). Web checkouts
+          reported offsite keep the charge Piano recorded, with no store fee.
       - name: subscription_period_number
         description: Number of the subscription period associated with the conversion.
       - name: created_via_upgrade
@@ -166,8 +179,15 @@ models:
         description: Term offer name for the conversion.
       - name: billing_period
         description: Billing period for the conversion.
+      - name: payment_provider
+        description: Payment provider on the conversion event (Stripe Elements or Braintree Credit Card).
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["Stripe Elements", "Braintree Credit Card"]
       - name: cart_turnovertaxfree
-        description: Net revenue for the conversion after adjusting for app store fees.
+        description: Revenue excluding tax recorded by Piano on the conversion event.
       - name: subscription_period_number
         description: Number of the subscription period associated with the conversion.
       - name: created_via_upgrade
@@ -319,10 +339,8 @@ models:
               arguments:
                 to: ref('dim_device_platform')
                 field: device_platform_id
-      - name: os_group
-        description: Normalised operating system group of the matched onsite conversion event, used to pick the app store fee.
       - name: conversion_time
-        description: Timestamp of the consolidated conv ersion event.
+        description: Timestamp of the consolidated conversion event.
         tests:
           - not_null
       - name: term_id
@@ -340,6 +358,17 @@ models:
         description: Offer identifier associated with the subscription term.
       - name: billing_period
         description: Billing period for the subscription term.
+      - name: payment_provider
+        description: >
+          Where the subscription is billed: Apple App Store or Google Play from the offsite event's
+          external_api_source, otherwise the event's payment_provider (Stripe Elements for web checkouts that
+          Piano reports offsite).
+        tests:
+          - not_null
+      - name: cart_turnovertaxfree
+        description: >
+          Revenue excluding tax recorded on the offsite event. Present only for web checkouts reported offsite;
+          app store conversions carry no value.
       - name: subscription_period_number
         description: Number of the subscription period associated with the conversion.
       - name: created_via_upgrade

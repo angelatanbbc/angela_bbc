@@ -3,7 +3,9 @@
     tags=["piano", "intermediate"]
 ) }}
 
--- Get offsite conversions, these are processed on app stores rather than onsite (Braintree/Spripe)
+-- Get offsite conversions. Most are billed by an app store (external_api_source),
+-- but Piano also reports some Stripe checkouts made from the app as offsite
+-- (payment_provider); those carry the charge in cart_turnovertaxfree.
 WITH offsite_conversions AS (
 
     SELECT
@@ -17,6 +19,14 @@ WITH offsite_conversions AS (
         -- COALESCE(term_offer_id, 'OFR1N7V2XJPI') AS term_offer_id,
         -- COALESCE(term_offer_name, 'BBC Subscription') AS term_offer_name,
         IFF(term_name ILIKE '%monthly%', '1 month', '1 year') AS billing_period,
+        COALESCE(
+            CASE external_api_source
+                WHEN 'APPLE_ITUNES' THEN 'Apple App Store'
+                WHEN 'GOOGLE_PLAY' THEN 'Google Play'
+            END,
+            payment_provider
+        ) AS payment_provider,
+        cart_turnovertaxfree,
         subscription_period_number,
         created_via_upgrade
     FROM {{ ref('int_piano__events_cleaned') }}
@@ -36,7 +46,6 @@ onsite_conversions AS (
         visit_id,
         visit_time,
         {{ generate_device_platform_id("'Mobile App'", 'device_type', 'os_group') }} AS device_platform_id,
-        {{ clean_os_group('os_group') }} AS os_group,
         src,
         src_detail,
         geo_id,
@@ -76,7 +85,6 @@ SELECT
     visit_id,
     visit_time,
     device_platform_id,
-    os_group,
     conversion_time,
     term_id,
     term_name,
@@ -86,6 +94,8 @@ SELECT
     END AS term_offer_id,
     'BBC Subscription' AS term_offer_name,
     billing_period,
+    payment_provider,
+    cart_turnovertaxfree,
     subscription_period_number,
     created_via_upgrade,
     src,

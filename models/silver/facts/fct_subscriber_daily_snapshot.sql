@@ -25,6 +25,15 @@ dim_subscription AS (
 
 ),
 
+dim_term AS (
+
+    SELECT
+        term_id,
+        subscription_weight
+    FROM {{ ref('dim_term') }}
+
+),
+
 date_spine AS (
 
     SELECT
@@ -42,6 +51,7 @@ subscription_state_periods AS (
     SELECT
         subscription_id,
         conversion_device_platform_id,
+        conversion_payment_provider,
         subscription_action AS last_subscription_action,
         term_id AS event_term_id,
         term_name AS event_term_name,
@@ -74,10 +84,12 @@ subscription_days AS (
         NULL AS user_id,
         ds.user_first_party_id,
         sp.conversion_device_platform_id,
+        sp.conversion_payment_provider,
         sp.last_subscription_action,
         COALESCE(ds.term_id, 'N/A') AS term_id,
         COALESCE(ds.term_name, 'N/A') AS term_name,
         COALESCE(ds.billing_period, 'N/A') AS billing_period,
+        COALESCE(dt.subscription_weight, 1) AS subscription_weight,
         COALESCE(sp.event_subscription_period_number, 1) AS subscription_period_number,
         {{ generate_geo_id('sp.geo_country', 'sp.geo_region') }} AS geo_id,
         COALESCE(sp.geo_country, 'Unknown') AS geo_country,
@@ -99,6 +111,8 @@ subscription_days AS (
         AND (d.day_end_timestamp < sp.valid_to_time OR sp.valid_to_time IS NULL)
     LEFT JOIN dim_subscription ds
         ON s.subscription_id = ds.subscription_id
+    LEFT JOIN dim_term dt
+        ON ds.term_id = dt.term_id
 
 ),
 
@@ -121,10 +135,12 @@ final AS (
         sd.user_first_party_id,
         sd.subscription_id,
         sd.conversion_device_platform_id,
+        sd.conversion_payment_provider,
         sd.last_subscription_action,
         sd.term_id,
         sd.term_name,
         sd.billing_period,
+        sd.subscription_weight,
         sd.subscription_period_number,
         sd.geo_id,
         sd.geo_country,

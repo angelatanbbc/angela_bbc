@@ -93,7 +93,7 @@ graph LR
 
 ### Piano catalogue dimensions
 
-`dim_experience`, `dim_template`, `dim_term`, `dim_offer` and `dim_offer_term` are built only from daily snapshots of the Piano API, loaded by the `piano_catalog` job in [cgm-extract-load](https://github.com/bbc/cgm-extract-load), and the `app_store_term_billing_period` seed. Records the Piano list endpoints leave out (archived experiences, system templates) are backfilled by id into the same raw tables with `cgm-extract-load backfill-piano-catalog`.
+`dim_experience`, `dim_template`, `dim_term`, `dim_offer` and `dim_offer_term` are built only from daily snapshots of the Piano API, loaded by the `piano_catalog` job in [cgm-extract-load](https://github.com/bbc/cgm-extract-load), and the `app_store_term_billing_period` and `term_subscription_weight` seeds. Records the Piano list endpoints leave out (archived experiences, system templates) are backfilled by id into the same raw tables with `cgm-extract-load backfill-piano-catalog`.
 
 ```mermaid
 graph LR
@@ -114,6 +114,7 @@ graph LR
     stg_ot --> offer_term["dim_offer_term"]:::mart
     stg_offer --> offer_term
     billing_seed["app_store_term_billing_period"]:::seed --> term
+    weight_seed["term_subscription_weight"]:::seed --> term
     linkStyle 0,1,2,3,4 stroke:#eab308,stroke-width:2.5px
     linkStyle 5,6,7,8,9,10,11 stroke:#4169e1,stroke-width:1.5px
     linkStyle 12 stroke:#f97316,stroke-width:2.5px
@@ -380,11 +381,11 @@ The following inventory records every project-owned model in the dbt manifest an
 | `dim_offer_term` | `stg_piano__offer_terms`, `stg_piano__offers` |
 | `dim_subscription` | `int_piano__subscription_current`, `fct_subscription_events` |
 | `dim_template` | `stg_piano__offer_templates` |
-| `dim_term` | `stg_piano__terms`, `seed:app_store_term_billing_period` |
-| `fct_conversions` | `int_piano__conversion_attribution_web`, `int_piano__conversion_attribution_app`, `fct_subscription_attribution` |
+| `dim_term` | `stg_piano__terms`, `seed:app_store_term_billing_period`, `seed:term_subscription_weight` |
+| `fct_conversions` | `int_piano__conversion_attribution_web`, `int_piano__conversion_attribution_app`, `fct_subscription_attribution`, `dim_term` |
 | `fct_exposures` | `int_piano__exposures_web`, `int_piano__exposures_app` |
 | `fct_subscription_events` | `fct_conversions`, `stg_piano__studios_events` |
-| `fct_subscriber_daily_snapshot` | `fct_subscription_events`, `dim_subscription`, `dim_date` |
+| `fct_subscriber_daily_snapshot` | `fct_subscription_events`, `dim_subscription`, `dim_term`, `dim_date` |
 | `fct_subscriber_activity_daily` | `fct_subscriber_daily_snapshot`, `stg_piano__studios_events` |
 | `fct_cohort_retention` | `fct_subscriber_daily_snapshot` |
 | `fct_visitors_daily` | `stg_piano__studios_events` |

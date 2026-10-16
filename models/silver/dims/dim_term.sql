@@ -48,13 +48,26 @@ SELECT
     t.currency_code,
     t.first_price_amount,
     t.recurring_step:priceValue::FLOAT AS recurring_price_amount,
+    -- Group and business plans cover several people, so count as several
+    -- subscriptions; weights come from a seed.
+    COALESCE(w.subscription_weight, 1) AS subscription_weight,
     t.is_subscription,
     t.has_free_trial,
     t.is_trial_new_customers_only,
     t.external_api_name,
+    -- Where the subscription is billed. Payment terms are checked out on the
+    -- web (Stripe or Braintree); external terms are billed by the app store
+    -- named in Piano's external API integration.
+    CASE
+        WHEN t.term_type = 'payment' THEN 'Web checkout'
+        WHEN t.term_type = 'external' AND t.external_api_name ILIKE '%ios%' THEN 'Apple App Store'
+        WHEN t.term_type = 'external' AND t.external_api_name ILIKE '%google%' THEN 'Google Play'
+    END AS billing_channel,
     t.is_listed_in_piano,
     t.created_at,
     t.updated_at
 FROM terms t
 LEFT JOIN {{ ref('app_store_term_billing_period') }} s
     ON t.term_id = s.term_id
+LEFT JOIN {{ ref('term_subscription_weight') }} w
+    ON t.term_id = w.term_id
