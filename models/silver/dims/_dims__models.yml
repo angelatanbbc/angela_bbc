@@ -516,6 +516,16 @@ models:
                 severity: warn
       - name: conversion_device_platform_id
         description: Device platform (app type, device type and operating system group) of the conversion that created the subscription.
+      - name: conversion_payment_provider
+        description: >
+          Billing channel of the conversion that created the subscription, from fct_conversions.payment_provider:
+          Stripe Elements or Braintree Credit Card for web checkouts, Apple App Store or Google Play for app store
+          subscriptions. Independent of conversion_device_platform_id: a Stripe checkout can happen in the app.
+          Null when the subscription has no events in fct_subscription_events.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["Stripe Elements", "Braintree Credit Card", "Apple App Store", "Google Play"]
       - name: subscription_sequence_number
         description: The order of this subscription within the user's observed subscription history.
         tests:

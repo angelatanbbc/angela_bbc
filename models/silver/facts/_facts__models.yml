@@ -419,6 +419,17 @@ models:
           - not_null
       - name: conversion_device_platform_id
         description: Device platform (app type, device type and operating system group) of the conversion that created the subscription.
+      - name: conversion_payment_provider
+        description: >
+          Billing channel of the conversion that created the subscription, from fct_conversions.payment_provider:
+          Stripe Elements or Braintree Credit Card for web checkouts, Apple App Store or Google Play for app store
+          subscriptions. Independent of conversion_device_platform_id: a Stripe checkout can happen in the app.
+          Carried from the subscription's events.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["Stripe Elements", "Braintree Credit Card", "Apple App Store", "Google Play"]
       - name: last_subscription_action
         description: Latest observed subscription action or event type.
         tests:
@@ -494,6 +505,17 @@ models:
         description: Indicates if the subscription was created via an upgrade.
       - name: conversion_device_platform_id
         description: Device platform (app type, device type and operating system group) of the conversion that created the subscription.
+      - name: conversion_payment_provider
+        description: >
+          Billing channel of the conversion that created the subscription, from fct_conversions.payment_provider:
+          Stripe Elements or Braintree Credit Card for web checkouts, Apple App Store or Google Play for app store
+          subscriptions. Independent of conversion_device_platform_id: a Stripe checkout can happen in the app.
+          Lifecycle events inherit it from the conversion.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["Stripe Elements", "Braintree Credit Card", "Apple App Store", "Google Play"]
       - name: term_id
         description: Identifier for the subscription term associated with the event.
       - name: term_name
