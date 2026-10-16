@@ -51,6 +51,7 @@ subscription_state_periods AS (
     SELECT
         subscription_id,
         conversion_device_platform_id,
+        conversion_payment_provider,
         subscription_action AS last_subscription_action,
         term_id AS event_term_id,
         term_name AS event_term_name,
@@ -83,6 +84,7 @@ subscription_days AS (
         NULL AS user_id,
         ds.user_first_party_id,
         sp.conversion_device_platform_id,
+        sp.conversion_payment_provider,
         sp.last_subscription_action,
         COALESCE(ds.term_id, 'N/A') AS term_id,
         COALESCE(ds.term_name, 'N/A') AS term_name,
@@ -133,6 +135,7 @@ final AS (
         sd.user_first_party_id,
         sd.subscription_id,
         sd.conversion_device_platform_id,
+        sd.conversion_payment_provider,
         sd.last_subscription_action,
         sd.term_id,
         sd.term_name,
