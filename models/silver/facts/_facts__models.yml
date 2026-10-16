@@ -780,6 +780,32 @@ models:
         description: Piano first-party device identifier.
       - name: browser_group
         description: Browser family as Piano reports it (Chrome, Safari, ...). Unknown when blank. For native app page views this is the webview engine.
+      - name: os_version
+        description: Operating system version as Piano reports it. Taken from the page view's latest page.display event.
+      - name: app_name
+        description: Application or property name as Piano reports it (e.g. bbc_web, top-gear). Taken from the page view's latest page.display event.
+      - name: page
+        description: Piano page name. Taken from the page view's latest page.display event.
+      - name: url
+        description: Page URL. Taken from the page view's latest page.display event.
+      - name: content_section
+        description: Content section of the page. Taken from the page view's latest page.display event.
+      - name: content_pillar
+        description: Content pillar of the page. Taken from the page view's latest page.display event.
+      - name: content_type
+        description: Content type of the page (article, video, ...). Taken from the page view's latest page.display event.
+      - name: date_published
+        description: Publication date of the content, as Piano receives it. Taken from the page view's latest page.display event.
+      - name: article_word_count
+        description: Word count of the article, as Piano receives it. Taken from the page view's latest page.display event.
+      - name: src
+        description: Piano traffic source (e.g. Direct traffic, Search engines). Piano attributes the source at visit level. Taken from the page view's latest page.display event.
+      - name: src_campaign
+        description: Piano source campaign. Piano attributes the source at visit level. Taken from the page view's latest page.display event.
+      - name: src_detail
+        description: Piano source detail. Piano attributes the source at visit level. Taken from the page view's latest page.display event.
+      - name: src_url
+        description: Piano source URL. Piano attributes the source at visit level. Taken from the page view's latest page.display event.
       - name: src_bbc_team
         description: Piano source attribute, BBC team that owns the campaign. Piano attributes the source at visit level.
       - name: src_creative_id
@@ -830,6 +856,34 @@ models:
         description: Composer template display mode. Only sent on Composer events (experience.action, experience.interaction, vx.conversion), so NULL on page views.
       - name: template_closable
         description: Whether the Composer template can be closed. Only sent on Composer events, so NULL on page views.
+      - name: c1x_brand_relationship
+        description: C1X brand relationship segment, as Piano sends it. Taken from the page view's latest page.display event.
+      - name: c1x_checkout_abandonment
+        description: C1X checkout abandonment segment, as Piano sends it. Taken from the page view's latest page.display event.
+      - name: c1x_content_likely_to_convert
+        description: C1X content likely to convert segment, as Piano sends it. Taken from the page view's latest page.display event.
+      - name: c1x_expiring_subscribers
+        description: C1X expiring subscribers segment, as Piano sends it. Taken from the page view's latest page.display event.
+      - name: c1x_likelihood_to_register
+        description: C1X likelihood to register segment, as Piano sends it. Taken from the page view's latest page.display event.
+      - name: c1x_likelihood_to_return
+        description: C1X likelihood to return segment, as Piano sends it. Taken from the page view's latest page.display event.
+      - name: c1x_ltc
+        description: C1X ltc segment, as Piano sends it. Taken from the page view's latest page.display event.
+      - name: c1x_lts
+        description: C1X lts segment, as Piano sends it. Taken from the page view's latest page.display event.
+      - name: c1x_revenue_auto_optimization
+        description: C1X revenue auto optimization segment, as Piano sends it. Taken from the page view's latest page.display event.
+      - name: c1x_subscription_length
+        description: C1X subscription length segment, as Piano sends it. Taken from the page view's latest page.display event.
+      - name: c1x_subscription_tenure
+        description: C1X subscription tenure segment, as Piano sends it. Taken from the page view's latest page.display event.
+      - name: c1x_visitor_frequency
+        description: C1X visitor frequency segment, as Piano sends it. Taken from the page view's latest page.display event.
+      - name: c1x_visitor_interest
+        description: C1X visitor interest segment, as Piano sends it (an array). Taken from the page view's latest page.display event.
+      - name: c1x_visitor_recency
+        description: C1X visitor recency segment, as Piano sends it. Taken from the page view's latest page.display event.
       - name: page_view_time
         description: Timestamp of the page view (first page.display event), local time.
         tests:

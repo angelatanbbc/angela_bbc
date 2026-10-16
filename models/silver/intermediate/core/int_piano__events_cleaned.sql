@@ -121,6 +121,7 @@ SELECT
     content_collection,
     content_licence,
     date_published,
+    article_word_count,
 
     -- user / visitor
     visitor_new_return,
@@ -150,6 +151,7 @@ SELECT
     src_organic,
     src_organic_detail,
     src_referrer_url,
+    src_url,
     src_bbc_team,
     src_creative_id,
     src_creation,
@@ -199,6 +201,8 @@ SELECT
     app_type,
     device_type,
     os_group,
+    os_version,
+    app_name,
     COALESCE(NULLIF(TRIM(browser_group), ''), 'Unknown') AS browser_group,
 
     -- site
@@ -220,12 +224,21 @@ SELECT
     ab_test_card_title,
     ab_test_variant_name,
 
-    -- C1X propensity segments
-    c1x_lts,
+    -- C1X propensity segments (every C1X_* column Piano sends)
+    c1x_brand_relationship,
+    c1x_checkout_abandonment,
     c1x_content_likely_to_convert,
+    c1x_expiring_subscribers,
     c1x_likelihood_to_register,
     c1x_likelihood_to_return,
+    c1x_ltc,
+    c1x_lts,
     c1x_revenue_auto_optimization,
+    c1x_subscription_length,
+    c1x_subscription_tenure,
+    c1x_visitor_frequency,
+    c1x_visitor_interest,
+    c1x_visitor_recency,
 
     -- conversions / subscriptions
     conversion_id,
