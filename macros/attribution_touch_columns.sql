@@ -12,7 +12,7 @@
         'url_at_adset_name', 'url_at_adset_id', 'url_at_objective', 'url_at_medium', 'url_at_matchtype',
         'url_at_keyword', 'url_at_creation', 'url_at_campaign_name',
         'geo_country', 'geo_region',
-        'device_type', 'os_group', 'browser_group',
+        'device_platform_id', 'browser_group',
         'content_id', 'content_pillar', 'content_section', 'content_type'
     ]) }}
 {% endmacro %}

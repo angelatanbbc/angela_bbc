@@ -22,22 +22,17 @@ TABLES(
         PRIMARY KEY (ad_sk)
         WITH SYNONYMS = ('ads', 'creatives')
         COMMENT = 'Meta, Google and Microsoft ads with their ad set, campaign and agency',
-    device_types AS {{ ref('dim_device_type') }}
-        PRIMARY KEY (device_type_id)
-        WITH SYNONYMS = ('devices')
-        COMMENT = 'Device type of the touch',
-    os_groups AS {{ ref('dim_os_group') }}
-        PRIMARY KEY (os_group_id)
-        WITH SYNONYMS = ('operating systems')
-        COMMENT = 'Operating system group of the touch'
+    device_platforms AS {{ ref('dim_device_platform') }}
+        PRIMARY KEY (device_platform_id)
+        WITH SYNONYMS = ('devices', 'platforms')
+        COMMENT = 'App type, device type and operating system group of the touch'
 )
 
 RELATIONSHIPS(
     touchpoints_to_channels AS touchpoints (channel_sk) REFERENCES channels (channel_sk),
     touchpoints_to_campaign_tags AS touchpoints (campaign_tracking_sk) REFERENCES campaign_tags (campaign_tracking_sk),
     touchpoints_to_ads AS touchpoints (ad_sk) REFERENCES ads (ad_sk),
-    touchpoints_to_device_types AS touchpoints (device_type_id) REFERENCES device_types (device_type_id),
-    touchpoints_to_os_groups AS touchpoints (os_group_id) REFERENCES os_groups (os_group_id)
+    touchpoints_to_device_platforms AS touchpoints (device_platform_id) REFERENCES device_platforms (device_platform_id)
 )
 
 FACTS(
@@ -120,10 +115,13 @@ DIMENSIONS(
     ads.platform_campaign_name AS campaign_name
         WITH SYNONYMS = ('platform campaign', 'meta campaign')
         COMMENT = 'Campaign name as the ad platform reports it (Meta only; the Google upload has no campaign)',
-    device_types.device_type AS device_type
+    device_platforms.device_platform AS platform
+        WITH SYNONYMS = ('platform', 'device platform')
+        COMMENT = 'Reporting platform of the touch: Mobile Web, Desktop Web, iOS App ...',
+    device_platforms.device_type AS device_type
         WITH SYNONYMS = ('device')
         COMMENT = 'Device type of the touch',
-    os_groups.os_group AS os_group
+    device_platforms.os_group AS os_group
         WITH SYNONYMS = ('operating system', 'os')
         COMMENT = 'Operating system group of the touch'
 )

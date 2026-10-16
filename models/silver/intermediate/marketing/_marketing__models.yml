@@ -123,8 +123,8 @@ models:
       attribution_site_scope is on), plus the purchase itself when it was recorded on the checkout
       cookie. Drops the sign-in return from account.bbc.com unless a journey would be empty (var
       attribution_skip_signin_return), and fills a lost agency tag from the ad id or campaign name (var
-      attribution_fill_agency). Carries the campaign tags, the conformed geography, device type and OS
-      group ids, and the content labels. Incremental on conversion_date.
+      attribution_fill_agency). Carries the campaign tags, the conformed geography and device
+      platform ids, and the content labels. Incremental on conversion_date.
     columns:
       - name: touchpoint_type
         description: page_view, or conversion for the purchase itself.

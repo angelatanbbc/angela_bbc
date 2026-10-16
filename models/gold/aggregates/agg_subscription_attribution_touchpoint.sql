@@ -63,8 +63,10 @@ SELECT
     {{ classify_funnel_stage_v2('a.campaign_name') }}::VARCHAR(16) AS funnel_stage_v2,
 
     -- device, location and content of the touch
-    LEFT(dt.device_type, 512)::VARCHAR(512) AS device_type,
-    LEFT(og.os_group, 512)::VARCHAR(512) AS os_group,
+    LEFT(dp.platform, 512)::VARCHAR(512) AS device_platform,
+    LEFT(dp.app_type, 512)::VARCHAR(512) AS app_type,
+    LEFT(dp.device_type, 512)::VARCHAR(512) AS device_type,
+    LEFT(dp.os_group, 512)::VARCHAR(512) AS os_group,
     LEFT(f.browser_group, 512)::VARCHAR(512) AS browser_group,
     LEFT(f.geo_country, 512)::VARCHAR(512) AS geo_country,
     LEFT(f.geo_region, 512)::VARCHAR(512) AS geo_region,
@@ -81,5 +83,4 @@ FROM {{ ref('fct_attribution_touchpoints') }} f
 LEFT JOIN {{ ref('dim_channel') }} ch ON f.channel_sk = ch.channel_sk
 LEFT JOIN {{ ref('dim_campaign_tracking') }} ct ON f.campaign_tracking_sk = ct.campaign_tracking_sk
 LEFT JOIN {{ ref('dim_ad') }} a ON f.ad_sk = a.ad_sk
-LEFT JOIN {{ ref('dim_device_type') }} dt ON f.device_type_id = dt.device_type_id
-LEFT JOIN {{ ref('dim_os_group') }} og ON f.os_group_id = og.os_group_id
+LEFT JOIN {{ ref('dim_device_platform') }} dp ON f.device_platform_id = dp.device_platform_id

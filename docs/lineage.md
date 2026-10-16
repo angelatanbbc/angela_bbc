@@ -217,7 +217,7 @@ graph LR
     channel --> agg
     tracking --> agg
     ad --> agg
-    device["dim_device_type, dim_os_group"]:::mart --> agg
+    device["dim_device_platform"]:::mart --> agg
     fact --> sv["sv_marketing_attribution"]:::mart
     channel --> sv
     tracking --> sv
@@ -413,9 +413,9 @@ The following inventory records every project-owned model in the dbt manifest an
 | `agg_subs_pillar_views_l30d_snapshot` | `source:studios_piano.studios_piano_events`, `dim_subscription` |
 | `agg_subs_product_usage_30d_snapshot` | `source:studios_piano.studios_piano_events`, `dim_subscription` |
 | `agg_subscriber_bans` | `fct_subscriber_activity_daily`, `fct_subscription_events`, `fct_visitors_daily`, `fct_conversions`, `fct_exposures` |
-| `agg_subscription_attribution_touchpoint` | `fct_attribution_touchpoints`, `dim_channel`, `dim_campaign_tracking`, `dim_ad`, `dim_device_type`, `dim_os_group` |
-| `sv_marketing_attribution` | `fct_attribution_touchpoints`, `dim_channel`, `dim_campaign_tracking`, `dim_ad`, `dim_device_type`, `dim_os_group` |
-| `agg_marketing_paid_page_views` | `fct_ad_performance_daily`, `fct_paid_page_views`, `dim_ad` |
+| `agg_subscription_attribution_touchpoint` | `fct_attribution_touchpoints`, `dim_channel`, `dim_campaign_tracking`, `dim_ad`, `dim_device_platform` |
+| `sv_marketing_attribution` | `fct_attribution_touchpoints`, `dim_channel`, `dim_campaign_tracking`, `dim_ad`, `dim_device_platform` |
+| `agg_marketing_paid_page_views` | `fct_ad_performance_daily`, `fct_paid_page_views`, `dim_ad`, `dim_device_platform` |
 | `agg_marketing_visitor_funnel` | `fct_paid_visitor_funnel` |
 | `agg_marketing_campaign_daily` | `agg_marketing_paid_page_views`, `agg_marketing_visitor_funnel`, `fct_attribution_touchpoints`, `dim_channel`, `dim_campaign_tracking` |
 

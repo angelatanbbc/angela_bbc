@@ -885,20 +885,13 @@ models:
                 field: geo_id
               config:
                 severity: warn
-      - name: device_type_id
-        description: Key to dim_device_type.
+      - name: device_platform_id
+        description: Key to dim_device_platform (app type, device type and OS group).
         tests:
           - relationships:
               arguments:
-                to: ref('dim_device_type')
-                field: device_type_id
-      - name: os_group_id
-        description: Key to dim_os_group.
-        tests:
-          - relationships:
-              arguments:
-                to: ref('dim_os_group')
-                field: os_group_id
+                to: ref('dim_device_platform')
+                field: device_platform_id
       - name: visitor_id
         description: The journey's checkout cookie.
       - name: touchpoint_visitor_id
@@ -1018,20 +1011,13 @@ models:
               arguments:
                 to: ref('dim_ad')
                 field: ad_sk
-      - name: device_type_id
-        description: Key to dim_device_type.
+      - name: device_platform_id
+        description: Key to dim_device_platform (app type, device type and OS group).
         tests:
           - relationships:
               arguments:
-                to: ref('dim_device_type')
-                field: device_type_id
-      - name: os_group_id
-        description: Key to dim_os_group.
-        tests:
-          - relationships:
-              arguments:
-                to: ref('dim_os_group')
-                field: os_group_id
+                to: ref('dim_device_platform')
+                field: device_platform_id
       - name: agency
         description: Paid-media agency of the visit.
         tests:
