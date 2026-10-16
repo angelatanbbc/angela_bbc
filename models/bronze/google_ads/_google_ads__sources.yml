@@ -3,7 +3,9 @@ version: 2
 sources:
   - name: GOOGLE_ADS
     database: sdp_project_sandbox
-    schema: DNS_TRANSFORMATIONS
+    # Each environment's own schema (DNS_DS in dev, DNS_TRANSFORMATIONS in live):
+    # the dev role can't read live.
+    schema: "{{ target.schema }}"
     description: Source data from google ads.
     tables:
       - name: STG_GOOGLE_ADS
