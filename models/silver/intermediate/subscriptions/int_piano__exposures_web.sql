@@ -18,7 +18,7 @@ WITH composer_events AS (
         AND event_name IN ('experience.action', 'experience.interaction', 'vx.conversion')
         AND experience_id IN (SELECT DISTINCT dim_experience.experience_id
                               FROM {{ ref('dim_experience') }}
-                              WHERE dim_experience.app_type = 'Web')
+                              WHERE NOT dim_experience.is_app_experience)
         AND template_name != 'Outside Region Error Message'
         {% if is_incremental() %}
             AND event_time::DATE >= DATEADD(DAY, -1, (SELECT MAX(exposure_time)::DATE FROM {{ this }}))

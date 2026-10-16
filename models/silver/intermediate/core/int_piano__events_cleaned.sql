@@ -239,7 +239,12 @@ SELECT
     term_offer_name,
     billing_period,
     vx_promo_code,
-    cart_turnovertaxfree
+    cart_turnovertaxfree,
+    -- billing channel: payment_provider on vx.conversion (Stripe Elements,
+    -- Braintree Credit Card), external_api_source on vx.conversion.offsite
+    -- (APPLE_ITUNES, GOOGLE_PLAY, or Stripe for web checkouts Piano reports offsite)
+    payment_provider,
+    external_api_source
 
 FROM {{ ref('stg_piano__studios_events') }}
 WHERE

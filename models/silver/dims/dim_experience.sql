@@ -29,15 +29,12 @@ WITH experiences AS (
 
 SELECT
     experience_id,
-    -- Piano's experience type: site and template-interaction experiences run
-    -- on the web, mobile ones in the app. A new type is Unknown, not guessed.
-    -- Routes events into the web or app exposure and conversion pipelines.
-    CASE experience_type
-        WHEN 'site' THEN 'Web'
-        WHEN 'template-interaction' THEN 'Web'
-        WHEN 'mobile' THEN 'Mobile App'
-        ELSE 'Unknown'
-    END AS app_type,
+    -- Piano's experience type: mobile experiences run in the app, site and
+    -- template-interaction ones on the web. Routes events into the web or app
+    -- exposure and conversion pipelines. This is the experience surface, not
+    -- the device platform (dim_device_platform) or the billing channel
+    -- (dim_term.billing_channel).
+    experience_type = 'mobile' AS is_app_experience,
     experience_name,
     experience_description,
     experience_type,
