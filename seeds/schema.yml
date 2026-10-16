@@ -21,3 +21,19 @@ seeds:
           - accepted_values:
               arguments:
                 values: ["1 month", "1 year"]
+  - name: term_subscription_weight
+    description: >
+      Number of subscriptions a multi-seat Piano term counts as: 2 for group plans, 10 for Business 10 and 25 for
+      Business 25. Terms not listed here count as 1. dim_term takes subscription_weight from here. term_name is for
+      reference only. Add a row whenever a new group or business term is created; dim_term warns until you do.
+    columns:
+      - name: term_id
+        tests:
+          - not_null
+          - unique
+      - name: subscription_weight
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [2, 10, 25]

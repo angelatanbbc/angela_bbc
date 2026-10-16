@@ -382,6 +382,19 @@ models:
         description: Price of the first billing period, in currency_code. Lower than recurring_price_amount for introductory offers.
       - name: recurring_price_amount
         description: Price the term renews at, in currency_code.
+      - name: subscription_weight
+        description: >
+          Number of subscriptions one sale of this term counts as: 2 for group plans, 10 for Business 10, 25 for
+          Business 25, otherwise 1. Set in the term_subscription_weight seed. Sum it instead of counting rows to get
+          weighted subscription counts.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [2, 10, 25]
+              config:
+                severity: warn
+                where: "term_name ILIKE '%group plan%' OR term_name ILIKE '%business%'"
       - name: is_subscription
         description: Whether the term is a recurring subscription.
       - name: has_free_trial
