@@ -662,14 +662,5 @@ SELECT
     CONTENT_WINDOW_IS_ENABLED AS content_window_is_enabled,
     AD_IS_COMPLIMENTARY AS ad_is_complimentary,
     EARLY_ACCESS_START_DATE AS early_access_start_date,
-    EARLY_ACCESS_END_DATE AS early_access_end_date,
-
-    -- Derived: Term (flattened from the TERM array)
-    TERM[0]['term_id2']::STRING AS term_id,
-    TERM[0]['term_name']::STRING AS term_name,
-
-    -- Derived: Dimension Keys
-    {{ generate_device_platform_id('APP_TYPE', 'DEVICE_TYPE', 'OS_GROUP') }} AS device_platform_id,
-    {{ generate_geo_id('GEO_COUNTRY', 'GEO_REGION') }} AS geo_id
-
+    EARLY_ACCESS_END_DATE AS early_access_end_date
 FROM {{ source('studios_piano', 'studios_piano_events') }}

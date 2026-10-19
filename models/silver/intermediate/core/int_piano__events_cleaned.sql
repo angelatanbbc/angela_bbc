@@ -104,6 +104,7 @@ SELECT
     referrer_url,
     event_url,
     event_collection_platform,
+    newsletter_title,
 
     -- content metadata
     content_type,
@@ -183,19 +184,17 @@ SELECT
     {{ extract_url_param('event_url_full', 'at_campaign_name') }} AS url_at_campaign_name,
 
     -- geography
+    {{ generate_geo_id('geo_country', 'geo_region') }} AS geo_id,
     geo_continent,
     geo_country,
     geo_country_code_alpha2,
     geo_region,
     geo_city,
     geo_metro,
-    geo_id,
-
-    -- platform key (computed in staging from the raw app_type, device_type and os_group)
-    device_platform_id,
 
     -- device / OS as Piano sends them, for pipelines that rebuild the platform
     -- key with a forced app type (the clean_* macros normalise them)
+    {{ generate_device_platform_id('app_type', 'device_type', 'os_group') }} AS device_platform_id,
     app_type,
     device_type,
     os_group,
@@ -244,8 +243,9 @@ SELECT
     subscription_action,
     subscription_period_number,
     created_via_upgrade,
-    term_id,
-    term_name,
+    -- Derived: Term (flattened from the TERM array)
+    TERM[0]['term_id2']::STRING AS term_id,
+    TERM[0]['term_name']::STRING AS term_name,
     term_offer_id,
     term_offer_name,
     billing_period,
