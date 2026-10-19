@@ -5,6 +5,7 @@
         incremental_strategy="merge",
         incremental_predicates=piano_page_view_merge_predicates('page_view_time', 'page_view_time'),
         on_schema_change="sync_all_columns",
+        full_refresh=false,
         tags=["piano", "fct", "page_views"]
     )
 }}
@@ -15,6 +16,10 @@ Scroll, click, ad impression and event duration measures are pre-aggregated to t
 same grain in their intermediate models, so the left joins below cannot fan out.
 
 Web page views only: Piano populates pageview_id for web (js) traffic only.
+
+full_refresh=false makes dbt ignore --full-refresh here, as in int_piano__page_views:
+history is built in date chunks (see "Backfilling the Piano page view models" in the
+DNS Transformations Runbook). To rebuild, drop the table and backfill in chunks.
 */
 
 WITH page_views AS (

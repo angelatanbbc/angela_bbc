@@ -5,6 +5,7 @@
         incremental_strategy="merge",
         incremental_predicates=piano_page_view_merge_predicates('page_view_time', 'last_event_time'),
         on_schema_change="sync_all_columns",
+        full_refresh=false,
         tags=["piano", "intermediate"]
     )
 }}
@@ -34,6 +35,9 @@ month) resolve to an arbitrary event, as before.
 
 History is built in date chunks with the piano_backfill_start/end vars; see
 "Backfilling the Piano page view models" in the DNS Transformations Runbook.
+full_refresh=false makes dbt ignore --full-refresh here: a full refresh would
+build all history in one statement, which can't finish. To rebuild, drop the
+table and backfill in chunks.
 */
 
 {#- the page.display rows in the window; rendered once per branch below rather than

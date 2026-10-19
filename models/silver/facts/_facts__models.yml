@@ -734,7 +734,8 @@ models:
       the MERGE limited to recent target rows by incremental_predicates; dev builds only the
       last 30 days. History is built in date chunks with the piano_backfill_start /
       piano_backfill_end vars, together with int_piano__page_views (see the DNS
-      Transformations Runbook).
+      Transformations Runbook). full_refresh is false, so --full-refresh is ignored; to
+      rebuild, drop the table and backfill in chunks.
     columns:
       - name: pageview_id
         description: Primary key. Unique page view identifier.
