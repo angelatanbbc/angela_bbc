@@ -26,8 +26,8 @@ on:
 permissions:
   contents: read
 
-# Extract/load and dbt run in separate jobs because each runner is capped at
-# one hour (IT policy) and the two together take longer than that.
+# Extract/load, dbt run and dbt test each get their own job because each runner
+# is capped at one hour (IT policy) and together they take longer than that.
 jobs:
   # Loads raw source tables (e.g. Piano subscriptions) into DNS_TRANSFORMATIONS.
   extract_load:
@@ -85,20 +85,6 @@ jobs:
       - codebuild-dns-transformations-project-${{ github.run_id }}-${{ github.run_attempt }}
     environment: ${{ inputs.environment || 'live' }}
     steps:
-      # The extract/load job notifies its own step failures. This covers the
-      # job dying outright (e.g. hitting the runner timeout), when it can't.
-      - name: Trigger Extract Load Job Failure Notification
-        uses: bbc/sdp-deployment-scripts/actions/trigger-notification@main
-        if: ${{ needs.extract_load.result == 'failure' }}
-        with:
-          TYPE: "transformation-executed"
-          ENVIRONMENT: ${{ inputs.environment || 'live' }}
-          SERVICE_NAME: "dns-transformations-project-transformations"
-          TRANSFORMATION_NAME: "extract load (cgm-extract-load)"
-          TRIGGERED_BY_USERNAME: ${{ github.actor }}
-          STATUS: "failure"
-          DEPLOYMENTS_API_KEY: ${{ secrets.DEPLOYMENTS_API_KEY }}
-
       - name: Checkout repo
         uses: actions/checkout@v4
 
@@ -133,6 +119,19 @@ jobs:
           dbt_args: run ${{ inputs.full_refresh && '--full-refresh' || '' }}
           dbt_target: live
 
+  run_dbt_tests:
+    name: Run DBT Tests
+    needs: run_dbt_pipeline
+    # Explicit, because the default success() would also skip this job when
+    # the extract/load job failed.
+    if: ${{ !cancelled() && needs.run_dbt_pipeline.result == 'success' }}
+    runs-on:
+      - codebuild-dns-transformations-project-${{ github.run_id }}-${{ github.run_attempt }}
+    environment: ${{ inputs.environment || 'live' }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
       - name: Run DBT Tests
         id: dbt_tests
         uses: ./.github/actions/run-dbt-task
@@ -160,14 +159,37 @@ jobs:
           STATUS: "failure"
           DEPLOYMENTS_API_KEY: ${{ secrets.DEPLOYMENTS_API_KEY }}
 
+  # Sends the overall result from its own short job, so it still goes out when
+  # an earlier job dies outright (e.g. hitting the runner timeout).
+  notify:
+    name: Notify
+    needs: [extract_load, run_dbt_pipeline, run_dbt_tests]
+    if: always()
+    runs-on:
+      - codebuild-dns-transformations-project-${{ github.run_id }}-${{ github.run_attempt }}
+    environment: ${{ inputs.environment || 'live' }}
+    steps:
+      # The extract/load job notifies its own step failures. This covers the
+      # job dying outright, when it can't.
+      - name: Trigger Extract Load Job Failure Notification
+        uses: bbc/sdp-deployment-scripts/actions/trigger-notification@main
+        if: ${{ needs.extract_load.result == 'failure' }}
+        with:
+          TYPE: "transformation-executed"
+          ENVIRONMENT: ${{ inputs.environment || 'live' }}
+          SERVICE_NAME: "dns-transformations-project-transformations"
+          TRANSFORMATION_NAME: "extract load (cgm-extract-load)"
+          TRIGGERED_BY_USERNAME: ${{ github.actor }}
+          STATUS: "failure"
+          DEPLOYMENTS_API_KEY: ${{ secrets.DEPLOYMENTS_API_KEY }}
+
       - name: Trigger Notification
         uses: bbc/sdp-deployment-scripts/actions/trigger-notification@main
-        if: always()
         with:
           TYPE: "transformation-executed"
           ENVIRONMENT: ${{ inputs.environment || 'live' }}
           SERVICE_NAME: "dns-transformations-project-transformations"
           TRANSFORMATION_NAME: ${{ (inputs.full_refresh == true) && 'full DAG (full-refresh)' || 'full DAG' }}
           TRIGGERED_BY_USERNAME: ${{ github.actor }}
-          STATUS: ${{ job.status }}
+          STATUS: ${{ (needs.run_dbt_pipeline.result == 'success' && needs.run_dbt_tests.result == 'success') && 'success' || (contains(needs.*.result, 'cancelled') && 'cancelled' || 'failure') }}
           DEPLOYMENTS_API_KEY: ${{ secrets.DEPLOYMENTS_API_KEY }}
