@@ -183,7 +183,7 @@ graph LR
 
 ### Click-based subscription attribution flow
 
-The corrected subscription attribution, built from the page view chain beside the attribution chain above. These models are disabled unless `var('enable_marketing_models')` is true; the semantic view also needs `var('build_semantic_views')`. In dev, `stg_google_ads__spend` is empty unless `var('read_google_ads_upload')` is true, because dev roles can't read the live schema the Google upload sits in.
+The corrected subscription attribution, built from the page view chain beside the attribution chain above. These models are disabled unless `var('enable_marketing_models')` is true; the semantic view also needs `var('build_semantic_views')`.
 
 ```mermaid
 graph LR
