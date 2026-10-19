@@ -1098,9 +1098,7 @@ models:
   - name: fct_paid_page_views
     description: >
       Page views from paid media. One row per page view of a paid visit (int_marketing__paid_page_views),
-      with the visit's agency and ad, and the page's content, device and geography. Limitation:
-      ro_lower_bound_pct (the RevOps score) is NULL until int_piano__page_views carries
-      c1x_revenue_auto_optimization.
+      with the visit's agency and ad, and the page's content, device and geography.
     columns:
       - name: pageview_id
         description: Primary key.

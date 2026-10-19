@@ -59,7 +59,8 @@ labels AS (
         device_platform_id,
         browser_group,
         geo_country,
-        geo_region
+        geo_region,
+        c1x_revenue_auto_optimization
     FROM {{ ref('int_piano__page_views') }}
     WHERE visit_id IN (SELECT pv.visit_id FROM paid_visits pv)
 
@@ -93,9 +94,7 @@ SELECT
     v.src_campaign,
     p.visitor_new_return,
     v.visit_bounce AS is_visit_bounce,
-    -- NULL until int_piano__page_views carries c1x_revenue_auto_optimization (asked of its owner);
-    -- then: parse_ro_lower_bound('l.c1x_revenue_auto_optimization')
-    NULL::NUMBER AS ro_lower_bound_pct,
+    {{ parse_ro_lower_bound('l.c1x_revenue_auto_optimization') }} AS ro_lower_bound_pct,
     l.content_id,
     l.content_pillar,
     l.content_section,
