@@ -3,6 +3,7 @@
         materialized="incremental",
         unique_key="pageview_id",
         incremental_strategy="merge",
+        incremental_predicates=piano_page_view_merge_predicates('page_view_time', 'page_view_time'),
         on_schema_change="sync_all_columns",
         tags=["piano", "fct", "page_views"]
     )
@@ -32,8 +33,9 @@ scrolls AS (
         scroll_depth_pct
     FROM {{ ref('int_piano__scroll_events') }}
     WHERE 1 = 1
-        -- a page view in the window always has its last event in the window too
-        {{ piano_page_view_event_window('last_event_time', 'page_view_time') }}
+        -- a page view in the window always has its last event in the window too;
+        -- on a backfill chunk the last event can fall after the chunk, so no upper bound
+        {{ piano_page_view_event_window('last_event_time', 'page_view_time', backfill_upper_bound=false) }}
 
 ),
 
@@ -42,8 +44,9 @@ clicks AS (
     SELECT *
     FROM {{ ref('int_piano__click_events') }}
     WHERE 1 = 1
-        -- a page view in the window always has its last event in the window too
-        {{ piano_page_view_event_window('last_event_time', 'page_view_time') }}
+        -- a page view in the window always has its last event in the window too;
+        -- on a backfill chunk the last event can fall after the chunk, so no upper bound
+        {{ piano_page_view_event_window('last_event_time', 'page_view_time', backfill_upper_bound=false) }}
 
 ),
 
@@ -52,8 +55,9 @@ ad_impressions AS (
     SELECT *
     FROM {{ ref('int_piano__ad_impressions') }}
     WHERE 1 = 1
-        -- a page view in the window always has its last event in the window too
-        {{ piano_page_view_event_window('last_event_time', 'page_view_time') }}
+        -- a page view in the window always has its last event in the window too;
+        -- on a backfill chunk the last event can fall after the chunk, so no upper bound
+        {{ piano_page_view_event_window('last_event_time', 'page_view_time', backfill_upper_bound=false) }}
 
 ),
 
@@ -65,8 +69,9 @@ event_durations AS (
         events_with_duration_count
     FROM {{ ref('int_piano__event_durations') }}
     WHERE 1 = 1
-        -- a page view in the window always has its last event in the window too
-        {{ piano_page_view_event_window('last_event_time', 'page_view_time') }}
+        -- a page view in the window always has its last event in the window too;
+        -- on a backfill chunk the last event can fall after the chunk, so no upper bound
+        {{ piano_page_view_event_window('last_event_time', 'page_view_time', backfill_upper_bound=false) }}
 
 )
 

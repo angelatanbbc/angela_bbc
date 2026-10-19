@@ -3,6 +3,7 @@
         materialized="incremental",
         unique_key="pageview_id",
         incremental_strategy="merge",
+        incremental_predicates=piano_page_view_merge_predicates('page_view_time', 'last_event_time'),
         on_schema_change="sync_all_columns",
         tags=["piano", "intermediate"]
     )
@@ -22,11 +23,38 @@ int_piano__scroll_events.
 
 Only page.display events with a pageview_id are kept. Piano populates pageview_id
 for web (js) traffic only, so native app page views are not in this model.
+
+Built without sorting or windowing wide rows, which spilled terabytes on the full
+history: a narrow GROUP BY computes the measures and picks the latest event_id, then
+the latest event's row is joined back for the descriptive attributes. Page views
+with a repeated or NULL event_id (none seen in practice) would make that join fan
+out, so they take a separate path that picks the latest row with ROW_NUMBER, as the
+original model did. Ties on the latest event_time (a few hundred page views a
+month) resolve to an arbitrary event, as before.
+
+History is built in date chunks with the piano_backfill_start/end vars; see
+"Backfilling the Piano page view models" in the DNS Transformations Runbook.
 */
 
-WITH page_display_events AS (
-
+{#- the page.display rows in the window; rendered once per branch below rather than
+    shared as a CTE, because Snowflake materialises (and spills) a CTE that is read twice -#}
+{%- set page_display_events -%}
     SELECT *
+    FROM {{ ref('int_piano__events_cleaned') }}
+    WHERE
+        event_name = 'page.display'
+        AND pageview_id IS NOT NULL
+        {{ piano_page_view_event_window() }}
+{%- endset -%}
+
+WITH page_display_keys AS (
+
+    SELECT
+        pageview_id,
+        event_id,
+        event_time,
+        event_time_utc,
+        page_duration
     FROM {{ ref('int_piano__events_cleaned') }}
     WHERE
         event_name = 'page.display'
@@ -35,19 +63,73 @@ WITH page_display_events AS (
 
 ),
 
-pageview_grain AS (
+-- one row per event_id, so repeated events can be detected without a window
+event_keys AS (
 
     SELECT
-        *,
-        MAX(page_duration) OVER (PARTITION BY pageview_id) AS page_duration_agg,
-        MIN(event_time) OVER (PARTITION BY pageview_id) AS page_view_time,
-        MIN(event_time_utc) OVER (PARTITION BY pageview_id) AS page_view_time_utc,
-        MAX(event_time) OVER (PARTITION BY pageview_id) AS last_event_time,
+        pageview_id,
+        event_id,
+        COUNT(*) AS event_rows,
+        MAX(page_duration) AS page_duration,
+        MIN(event_time) AS first_event_time,
+        MIN(event_time_utc) AS first_event_time_utc,
+        MAX(event_time) AS last_event_time
+    FROM page_display_keys
+    GROUP BY pageview_id, event_id
+
+),
+
+pageview_measures AS (
+
+    SELECT
+        pageview_id,
+        MAX(page_duration) AS page_duration,
+        MIN(first_event_time) AS page_view_time,
+        MIN(first_event_time_utc) AS page_view_time_utc,
+        MAX(last_event_time) AS last_event_time,
         -- Piano's Pageviews definition counts distinct page.display event_ids,
         -- so duplicate events for one pageview_id each count
-        COUNT(DISTINCT event_id) OVER (PARTITION BY pageview_id) AS page_display_event_count
-    FROM page_display_events
-    QUALIFY ROW_NUMBER() OVER (PARTITION BY pageview_id ORDER BY event_time DESC) = 1
+        COUNT(event_id) AS page_display_event_count,
+        MAX_BY(event_id, last_event_time) AS latest_event_id,
+        -- a repeated or NULL event_id would fan out the join on latest_event_id
+        MAX(event_rows) > 1 OR COUNT(*) > COUNT(event_id) AS needs_row_pick
+    FROM event_keys
+    GROUP BY pageview_id
+
+),
+
+pageview_grain AS (
+
+    -- the latest event's row, joined 1:1
+    SELECT
+        e.*,
+        m.page_duration AS page_duration_agg,
+        m.page_view_time,
+        m.page_view_time_utc,
+        m.last_event_time,
+        m.page_display_event_count
+    FROM ({{ page_display_events }}) e
+    INNER JOIN pageview_measures m
+        ON
+            e.pageview_id = m.pageview_id
+            AND e.event_id = m.latest_event_id
+    WHERE NOT m.needs_row_pick
+
+    UNION ALL
+
+    -- page views with a repeated or NULL event_id: pick the latest row
+    SELECT
+        e.*,
+        m.page_duration AS page_duration_agg,
+        m.page_view_time,
+        m.page_view_time_utc,
+        m.last_event_time,
+        m.page_display_event_count
+    FROM ({{ page_display_events }}) e
+    INNER JOIN pageview_measures m
+        ON e.pageview_id = m.pageview_id
+    WHERE m.needs_row_pick
+    QUALIFY ROW_NUMBER() OVER (PARTITION BY e.pageview_id ORDER BY e.event_time DESC) = 1
 
 )
 

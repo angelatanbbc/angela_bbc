@@ -124,6 +124,8 @@ graph LR
 
 Only events with a `pageview_id` reach these models, which in practice means web (js) traffic. Each intermediate aggregates to one row per `pageview_id`.
 
+`int_piano__events_cleaned` and `stg_piano__studios_events` are views, so each intermediate reads the Piano source directly with its own event-time window. The scheduled run only processes recent days. The history of `int_piano__page_views` and `fct_page_views` is built outside the scheduled run, in date chunks, with the `piano_backfill_start` and `piano_backfill_end` vars (see "Backfilling the Piano page view models" in the DNS Transformations Runbook).
+
 ```mermaid
 graph LR
     classDef source fill:#fff3b0,stroke:#eab308,color:#713f12
