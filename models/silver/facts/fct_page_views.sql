@@ -92,6 +92,23 @@ SELECT
     pv.user_first_party_id,
     pv.device_first_party_id,
     pv.browser_group,
+    pv.os_version,
+    pv.app_name,
+
+    -- page and content attributes, as captured on the page view
+    pv.page,
+    pv.url,
+    pv.content_section,
+    pv.content_pillar,
+    pv.content_type,
+    pv.date_published,
+    pv.article_word_count,
+
+    -- traffic source attributes (Piano src_*), as captured on the page view
+    pv.src,
+    pv.src_campaign,
+    pv.src_detail,
+    pv.src_url,
 
     -- campaign source attributes (Piano src_*), as captured on the page view
     pv.src_bbc_team,
@@ -123,6 +140,22 @@ SELECT
     -- Composer template attributes
     pv.template_display_mode,
     pv.template_closable,
+
+    -- C1X propensity segments
+    pv.c1x_brand_relationship,
+    pv.c1x_checkout_abandonment,
+    pv.c1x_content_likely_to_convert,
+    pv.c1x_expiring_subscribers,
+    pv.c1x_likelihood_to_register,
+    pv.c1x_likelihood_to_return,
+    pv.c1x_ltc,
+    pv.c1x_lts,
+    pv.c1x_revenue_auto_optimization,
+    pv.c1x_subscription_length,
+    pv.c1x_subscription_tenure,
+    pv.c1x_visitor_frequency,
+    pv.c1x_visitor_interest,
+    pv.c1x_visitor_recency,
 
     -- timestamps (page view grain: first page.display event of the page view)
     pv.page_view_time,
