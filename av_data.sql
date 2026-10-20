@@ -24,12 +24,12 @@ with base_av_events as (
         bbc.av_content_duration_range,
 
         -- ENRICHMENT PROPERTIES
-        -- vmb.av_clip_title,
-        -- vmb.av_show,
-        -- vmb.av_episode,
-        -- vmb.av_brand_title,
-        -- vmb.av_master_brand_name,
-        -- vmb.av_pips_genre_level_1_names,
+        vmb.av_clip_title,
+        vmb.av_show,
+        vmb.av_episode,
+        vmb.av_brand_title,
+        vmb.av_master_brand_name,
+        vmb.av_pips_genre_level_1_names,
 
 
         -- METRICS
@@ -40,11 +40,10 @@ with base_av_events as (
 
 
 	FROM SDP_SILVER.STUDIOS_PIANO.STUDIOS_PIANO_EVENTS bbc
-    --LEFT JOIN sdp_silver.vmb.av_enrichment vmb on (bbc.av_content_id = vmb.av_content_id)
+    LEFT JOIN sdp_silver.vmb.av_enrichment vmb on (bbc.av_content_id = vmb.av_content_id)
 	WHERE event_time >= '2026-09-20T00:00:00' AND event_time < '2026-10-01T00:00:00'
     AND bbc.av_session_id is not null
     AND page NOT IN ('keepalive','page.view.page','onboarding.page','error.page','notification.page')
-    --and startswith(page, 'news')
     AND geo_country != 'United kingdom'
     AND NOT (app_name like any ('%uk%','%chrysalis%'))
     AND site_id IN (638823,638824,644937,644938,646752) 
@@ -62,14 +61,14 @@ with base_av_events as (
         bbc.av_content_type,
         bbc.av_broadcasting_type,
         bbc.av_content_genre,
-        bbc.av_content_duration_range
+        bbc.av_content_duration_range,
 
-        -- , vmb.av_clip_title,
-        -- vmb.av_show,
-        -- vmb.av_episode,
-        -- vmb.av_brand_title,
-        -- vmb.av_master_brand_name,
-        -- vmb.av_pips_genre_level_1_names
+        vmb.av_clip_title,
+        vmb.av_show,
+        vmb.av_episode,
+        vmb.av_brand_title,
+        vmb.av_master_brand_name,
+        vmb.av_pips_genre_level_1_names
 )
 , av_properties_ranked as (
     SELECT
@@ -134,12 +133,12 @@ SELECT
     a.visit_id,
 
     -- enrichment av info
-    -- a.av_clip_title,
-    -- a.av_show,
-    -- a.av_episode,
-    -- a.av_brand_title,
-    -- a.av_master_brand_name,
-    -- a.av_pips_genre_level_1_names,
+    a.av_clip_title,
+    a.av_show,
+    a.av_episode,
+    a.av_brand_title,
+    a.av_master_brand_name,
+    a.av_pips_genre_level_1_names,
 
     -- piano av info 
     b.av_session_content_duration, -- duration of the content 
