@@ -59,7 +59,7 @@ Every run appends to `ops/logs/backfill_page_views.log` (git-ignored): the targe
 
 ### Cost and limits
 
-- **12-hour statement timeout.** A full-history build in one statement hit it, which is why the backfill is chunked. Monthly chunks took under an hour in dev on a Medium warehouse.
+- **12-hour statement timeout.** A full-history build in one statement hit it, which is why the backfill is chunked. In dev on a Medium warehouse, the 20 days from 1 October 2026 took 58 minutes (29 for each model) when merged into a table that already held them; allow about an hour per month.
 - **Daily resource monitor.** The live Medium warehouse (`DNS_TRANSFORMATIONS_PROJECT_TRANSFORMATIONS_GENERAL_MD_WH`) has a daily credit limit, and it also runs the 03:00 UTC pipeline. Spread the backfill over several days with `--max-chunks`, and resume each day with the printed command. If the monitor suspends the warehouse mid-chunk, the chunk fails; resume from it the next day.
 - **Larger warehouse.** If the platform team grants a time-boxed larger warehouse for the backfill, point the `warehouse` of your local `live` profile at it while you run the script, then change it back. The scheduled run stays on the Medium warehouse.
 - **Remote spill.** If a month starts spilling to remote storage, stop and run it by hand as two half-month chunks, then resume the script from the month before.
