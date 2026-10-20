@@ -1,0 +1,15 @@
+version: 2
+
+models:
+  - name: sv_bbc_com
+    description: >
+      Snowflake semantic view over the BBC.com subscription and audience facts and dims, for
+      Cortex Analyst and SEMANTIC_VIEW() queries. Covers CTA exposures, sign-ups with
+      fractional multi-touch attribution and first-period revenue, subscriber stock, MRR
+      movements, churn and renewals, US/Canada daily visitors and worldwide web page views.
+      Every dimension, fact and metric name is unique across the view, so queries need no
+      logical-table prefix; shared attributes are exposed from the dims only. Includes
+      AI_SQL_GENERATION guidance and verified queries for Cortex Analyst. Built with the
+      Snowflake-Labs/dbt_semantic_view semantic_view materialization; comments and synonyms
+      live inline in the DDL because the package does not support persist_docs. Replaces the
+      hand-built BBC_COM_SEMANTIC_VIEW.

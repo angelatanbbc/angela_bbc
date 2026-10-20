@@ -22,11 +22,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Semantic views are CREATE SEMANTIC VIEW bodies, not SELECTs, so dbt lint cannot parse them
       - name: Find changed models
         id: changed
         run: |
           git diff --name-only --diff-filter=ACMR \
-            "origin/${{ github.base_ref }}...HEAD" -- 'models/*.sql' > changed_models.txt
+            "origin/${{ github.base_ref }}...HEAD" -- 'models/*.sql' ':!models/gold/semantic_views/*' > changed_models.txt
           echo "Changed models:"
           cat changed_models.txt
           echo "count=$(wc -l < changed_models.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"

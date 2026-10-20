@@ -44,7 +44,17 @@ date_dimension AS (
         EXTRACT(DAY FROM date_day) AS day_of_month,
         EXTRACT(DOY FROM date_day) AS day_of_year,
         EXTRACT(DOW FROM date_day) AS day_of_week,
-        TO_CHAR(date_day, 'Day') AS day_name,
+        -- Snowflake's TO_CHAR has no full day-name format ('Day' renders as day number, 'a' and year)
+        DECODE(
+            DAYNAME(date_day),
+            'Mon', 'Monday',
+            'Tue', 'Tuesday',
+            'Wed', 'Wednesday',
+            'Thu', 'Thursday',
+            'Fri', 'Friday',
+            'Sat', 'Saturday',
+            'Sun', 'Sunday'
+        ) AS day_name,
         TO_CHAR(date_day, 'Dy') AS day_name_short,
         DATEADD('second', -1, DATEADD('day', 1, DATE_TRUNC('day', date_day))) AS day_end_timestamp,
 
@@ -55,7 +65,7 @@ date_dimension AS (
 
         -- Month attributes
         EXTRACT(MONTH FROM date_day) AS month_of_year,
-        TO_CHAR(date_day, 'Month') AS month_name,
+        TO_CHAR(date_day, 'MMMM') AS month_name,
         TO_CHAR(date_day, 'Mon') AS month_name_short,
         DATE_TRUNC('month', date_day) AS month_start_date,
         LAST_DAY(date_day) AS month_end_date,
@@ -86,25 +96,25 @@ date_dimension AS (
         END AS fiscal_quarter,
 
         -- Boolean flags
-        CASE WHEN EXTRACT(DOW FROM date_day) IN (0, 6) THEN TRUE ELSE FALSE END AS is_weekend,
-        CASE WHEN EXTRACT(DOW FROM date_day) BETWEEN 1 AND 5 THEN TRUE ELSE FALSE END AS is_weekday,
-        CASE WHEN EXTRACT(DAY FROM date_day) = 1 THEN TRUE ELSE FALSE END AS is_first_day_of_month,
-        CASE WHEN date_day = LAST_DAY(date_day) THEN TRUE ELSE FALSE END AS is_last_day_of_month,
-        CASE WHEN date_day = DATE_TRUNC('quarter', date_day) THEN TRUE ELSE FALSE END AS is_first_day_of_quarter,
-        CASE WHEN date_day = LAST_DAY(DATE_TRUNC('quarter', date_day) + INTERVAL '2 months') THEN TRUE ELSE FALSE END AS is_last_day_of_quarter,
+        COALESCE(EXTRACT(DOW FROM date_day) IN (0, 6), FALSE) AS is_weekend,
+        COALESCE(EXTRACT(DOW FROM date_day) BETWEEN 1 AND 5, FALSE) AS is_weekday,
+        COALESCE(EXTRACT(DAY FROM date_day) = 1, FALSE) AS is_first_day_of_month,
+        COALESCE(date_day = LAST_DAY(date_day), FALSE) AS is_last_day_of_month,
+        COALESCE(date_day = DATE_TRUNC('quarter', date_day), FALSE) AS is_first_day_of_quarter,
+        COALESCE(date_day = LAST_DAY(DATE_TRUNC('quarter', date_day) + INTERVAL '2 months'), FALSE) AS is_last_day_of_quarter,
 
         -- Relative date helpers
-        CASE WHEN date_day = CURRENT_DATE THEN TRUE ELSE FALSE END AS is_today,
-        CASE WHEN date_day = CURRENT_DATE - 1 THEN TRUE ELSE FALSE END AS is_yesterday,
-        CASE WHEN date_day BETWEEN DATE_TRUNC('week', CURRENT_DATE) AND CURRENT_DATE THEN TRUE ELSE FALSE END AS is_current_week,
-        CASE WHEN date_day BETWEEN DATE_TRUNC('month', CURRENT_DATE) AND CURRENT_DATE THEN TRUE ELSE FALSE END AS is_current_month,
-        CASE WHEN date_day BETWEEN DATE_TRUNC('quarter', CURRENT_DATE) AND CURRENT_DATE THEN TRUE ELSE FALSE END AS is_current_quarter,
-        CASE WHEN date_day BETWEEN DATE_TRUNC('year', CURRENT_DATE) AND CURRENT_DATE THEN TRUE ELSE FALSE END AS is_current_year,
-        CASE WHEN fiscal_year = current_fiscal_year THEN TRUE ELSE FALSE END AS is_current_fiscal_year,
+        COALESCE(date_day = CURRENT_DATE, FALSE) AS is_today,
+        COALESCE(date_day = CURRENT_DATE - 1, FALSE) AS is_yesterday,
+        COALESCE(date_day BETWEEN DATE_TRUNC('week', CURRENT_DATE) AND CURRENT_DATE, FALSE) AS is_current_week,
+        COALESCE(date_day BETWEEN DATE_TRUNC('month', CURRENT_DATE) AND CURRENT_DATE, FALSE) AS is_current_month,
+        COALESCE(date_day BETWEEN DATE_TRUNC('quarter', CURRENT_DATE) AND CURRENT_DATE, FALSE) AS is_current_quarter,
+        COALESCE(date_day BETWEEN DATE_TRUNC('year', CURRENT_DATE) AND CURRENT_DATE, FALSE) AS is_current_year,
+        COALESCE(fiscal_year = current_fiscal_year, FALSE) AS is_current_fiscal_year,
 
         -- Cumulative cut-off for like-for-like comparisons: every date up to and including the
         -- same day of the previous month (DATEADD clamps to month end, so 31 Mar -> 28/29 Feb)
-        CASE WHEN date_day <= DATEADD('month', -1, CURRENT_DATE) THEN TRUE ELSE FALSE END AS is_on_or_before_prior_month_to_date,
+        COALESCE(date_day <= DATEADD('month', -1, CURRENT_DATE), FALSE) AS is_on_or_before_prior_month_to_date,
 
         -- Days from today
         DATEDIFF(DAY, date_day, CURRENT_DATE) AS days_from_today
