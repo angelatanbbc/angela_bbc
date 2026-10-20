@@ -44,7 +44,17 @@ date_dimension AS (
         EXTRACT(DAY FROM date_day) AS day_of_month,
         EXTRACT(DOY FROM date_day) AS day_of_year,
         EXTRACT(DOW FROM date_day) AS day_of_week,
-        TO_CHAR(date_day, 'Day') AS day_name,
+        -- Snowflake's TO_CHAR has no full day-name format ('Day' renders as day number, 'a' and year)
+        DECODE(
+            DAYNAME(date_day),
+            'Mon', 'Monday',
+            'Tue', 'Tuesday',
+            'Wed', 'Wednesday',
+            'Thu', 'Thursday',
+            'Fri', 'Friday',
+            'Sat', 'Saturday',
+            'Sun', 'Sunday'
+        ) AS day_name,
         TO_CHAR(date_day, 'Dy') AS day_name_short,
         DATEADD('second', -1, DATEADD('day', 1, DATE_TRUNC('day', date_day))) AS day_end_timestamp,
 
@@ -55,7 +65,7 @@ date_dimension AS (
 
         -- Month attributes
         EXTRACT(MONTH FROM date_day) AS month_of_year,
-        TO_CHAR(date_day, 'Month') AS month_name,
+        TO_CHAR(date_day, 'MMMM') AS month_name,
         TO_CHAR(date_day, 'Mon') AS month_name_short,
         DATE_TRUNC('month', date_day) AS month_start_date,
         LAST_DAY(date_day) AS month_end_date,

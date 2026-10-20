@@ -275,7 +275,7 @@ The following inventory records every project-owned model in the dbt manifest an
 | `dim_date` | None; static date spine model |
 | `dim_device_platform` | None; static reference model (app type x device type x operating system group) |
 | `dim_experience` | `stg_piano__experiences` |
-| `dim_geography` | `seed:geo_mapping` |
+| `dim_geography` | `seed:geo_mapping`, `fct_exposures`, `fct_conversions`, `fct_subscription_events`, `int_piano__page_views` |
 | `dim_offer` | `stg_piano__offers`, `stg_piano__offer_terms` |
 | `dim_offer_term` | `stg_piano__offer_terms`, `stg_piano__offers` |
 | `dim_subscription` | `int_piano__subscription_current`, `fct_subscription_events` |
@@ -306,6 +306,7 @@ The following inventory records every project-owned model in the dbt manifest an
 | `agg_subs_pillar_views_l30d_snapshot` | `source:studios_piano.studios_piano_events`, `dim_subscription` |
 | `agg_subs_product_usage_30d_snapshot` | `source:studios_piano.studios_piano_events`, `dim_subscription` |
 | `agg_subscriber_bans` | `fct_subscriber_activity_daily`, `fct_subscription_events`, `fct_visitors_daily`, `fct_conversions`, `fct_exposures` |
+| `sv_bbc_com` (semantic view) | `fct_conversions`, `fct_exposures`, `fct_page_views`, `fct_subscriber_daily_snapshot`, `fct_subscription_events`, `fct_visitors_daily`, `dim_date`, `dim_device_platform`, `dim_experience`, `dim_geography`, `dim_offer`, `dim_subscription`, `dim_template`, `dim_term` |
 
 ### Declared sources without a current downstream model
 
@@ -322,6 +323,8 @@ These sources are configured in `models/bronze/<source>/_<source>__sources.yml` 
 - `int_subscription__attribution_src_corrected`, `fct_subscription_attribution` and the `agg_subs_*` content, pillar and usage models read `studios_piano.studios_piano_events` directly in addition to local models.
 - `stg_piano__subscription_snapshots` depends on the daily [cgm-extract-load](https://github.com/bbc/cgm-extract-load) load into `raw_piano_subscription_snapshots`, which has a source freshness check (warn after 20 hours, error after 26).
 - The `stg_piano__experiences`, `stg_piano__offers`, `stg_piano__offer_terms`, `stg_piano__offer_templates` and `stg_piano__terms` staging models depend on the same daily load (job `piano_catalog`), with the same freshness checks.
+- `dim_geography` is built after the facts it covers: it takes the US and Canada regions from `geo_mapping` and adds every other country and region found on exposures, conversions, subscription events and page views, so every fact `geo_id` resolves. The facts compute `geo_id` with the `generate_geo_id` macro and do not reference the dim.
+- `sv_bbc_com` uses the `semantic_view` materialization from the installed `Snowflake-Labs/dbt_semantic_view` package. It is excluded from `dbt lint` in CI because its body is semantic view DDL, not a SELECT.
 - No direct `ref()` to a mart in a sibling repository is present in this project's model SQL. The explicit dbt project boundary is the installed `facebook_ads` package.
 
 ## Scheduling order
