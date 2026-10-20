@@ -555,6 +555,10 @@ models:
           - not_null
       - name: subscription_ended_at
         description: Timestamp when the subscription ended, if inactive.
+      - name: next_billing_at
+        description: >
+          End of the current paid period, from Piano's next bill date: the next renewal charge, or the expiry
+          when auto-renew is off. Null when the subscription is not active.
       - name: latest_action_at
         description: Timestamp of the latest observed subscription event.
         tests:

@@ -6,7 +6,11 @@ models:
       Snowflake semantic view over the BBC.com subscription and audience facts and dims, for
       Cortex Analyst and SEMANTIC_VIEW() queries. Covers CTA exposures, sign-ups with
       fractional multi-touch attribution and first-period revenue, subscriber stock, MRR
-      movements, churn and renewals, US/Canada daily visitors and worldwide web page views.
+      movements (new, churned and other), billed revenue and earned revenue per subscription,
+      churn and renewals, cohort retention with the Piano retention benchmark (from the
+      piano_retention_curves seed), US/Canada daily visitors and worldwide web page views.
+      Supports every chart on the Overview, Acquisition and Retention pages of the BBC.com
+      Subscriptions dashboard.
       Every dimension, fact and metric name is unique across the view, so queries need no
       logical-table prefix; shared attributes are exposed from the dims only. Includes
       AI_SQL_GENERATION guidance and verified queries for Cortex Analyst. Built with the
