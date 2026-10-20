@@ -54,6 +54,12 @@ TABLES (
         WITH SYNONYMS = ('composer_terms', 'piano_terms', 'subscription_terms', 'vx_terms', 'plans')
         COMMENT = 'Piano terms, the plans a subscription is bought on. One row per term, with billing period, price and billing channel.',
 
+    -- Reference
+    PIANO_RETENTION_BENCHMARK AS {{ ref('piano_retention_curves') }}
+        PRIMARY KEY (MONTH)
+        WITH SYNONYMS = ('retention_benchmark', 'piano_benchmark', 'industry_retention')
+        COMMENT = 'Piano''s benchmark retention curves across its publishers: share of subscriptions still active by months since sign-up, at the 5th to 95th percentile, for monthly and annual plans. One row per month since sign-up. Not related to the other tables; compare it with retained_subscriptions by months_since_conversion.',
+
     -- Facts
     CONVERSION_TOUCHPOINTS AS {{ ref('fct_conversions') }}
         WITH SYNONYMS = ('cta_touchpoints', 'marketing_touchpoints', 'touchpoints', 'conversions', 'sign_ups')
@@ -130,6 +136,9 @@ FACTS (
         COMMENT = 'Monthly recurring revenue of the subscription now. Zero when ended or superseded by an upgrade.',
 
     -- Subscription events
+    PRIVATE SUBSCRIPTION_EVENTS.CHARGED_AMOUNT
+        AS IFF(subscription_action IN ('New subscription', 'Renewed', 'Upgraded subscription'), COALESCE(transaction_value, previous_transaction_value), NULL)
+        COMMENT = 'Amount charged on a new subscription, renewal or upgrade, excluding tax. App store renewals carry no value from Piano, so they take the last known charge of the subscription.',
     SUBSCRIPTION_EVENTS.MRR_AFTER_EVENT AS current_mrr
         COMMENT = 'Monthly recurring revenue of the subscription after the event.',
     SUBSCRIPTION_EVENTS.MRR_BEFORE_EVENT AS previous_mrr
@@ -137,7 +146,15 @@ FACTS (
     SUBSCRIPTION_EVENTS.MRR_CHANGE_AMOUNT AS mrr_change_amount
         COMMENT = 'Change in monthly recurring revenue caused by the event (mrr_after_event minus mrr_before_event).',
     SUBSCRIPTION_EVENTS.TRANSACTION_VALUE AS transaction_value
-        COMMENT = 'Amount charged on the event, when the event is a charge.'
+        COMMENT = 'Amount charged on the event, when the event is a charge.',
+
+    -- Piano retention benchmark (shares from 0 to 1)
+    PRIVATE PIANO_RETENTION_BENCHMARK.MONTHLY_P25 AS monthly_25,
+    PRIVATE PIANO_RETENTION_BENCHMARK.MONTHLY_P50 AS monthly_50,
+    PRIVATE PIANO_RETENTION_BENCHMARK.MONTHLY_P75 AS monthly_75,
+    PRIVATE PIANO_RETENTION_BENCHMARK.ANNUAL_P25 AS annual_25,
+    PRIVATE PIANO_RETENTION_BENCHMARK.ANNUAL_P50 AS annual_50,
+    PRIVATE PIANO_RETENTION_BENCHMARK.ANNUAL_P75 AS annual_75
 )
 
 DIMENSIONS (
@@ -283,6 +300,9 @@ DIMENSIONS (
         COMMENT = 'Date and time of the latest subscription action.',
     SUBSCRIPTIONS.LATEST_SUBSCRIPTION_PERIOD_NUMBER AS subscription_period_number
         COMMENT = 'Latest billing period number of the subscription (1 for the first period).',
+    SUBSCRIPTIONS.NEXT_BILLING_DATE AS next_billing_at::DATE
+        WITH SYNONYMS = ('renewal_date', 'next_bill_date', 'paid_through_date')
+        COMMENT = 'Date the current paid period ends: the next renewal charge, or the expiry date when auto-renew is off. Null once the subscription has ended.',
     SUBSCRIPTIONS.SUBSCRIPTION_END_TYPE AS subscription_end_type
         COMMENT = 'How the subscription ended: Expired, Canceled, Renewal failed, will not retry, Upgraded or Unknown; null while active.',
     SUBSCRIPTIONS.SUBSCRIPTION_ENDED_AT AS subscription_ended_at
@@ -442,6 +462,10 @@ DIMENSIONS (
         WITH SYNONYMS = ('new_or_returning')
         COMMENT = 'Whether the visitor was New or Returning at the time of the page view.',
 
+    -- Piano retention benchmark
+    PIANO_RETENTION_BENCHMARK.BENCHMARK_MONTH AS month
+        COMMENT = 'Months since sign-up on the Piano benchmark curve, 0 to 59. Matches months_since_conversion.',
+
     -- Subscriber daily snapshot
     SUBSCRIBER_DAILY_SNAPSHOT.DAYS_SINCE_CHURNED AS days_since_churned
         COMMENT = 'Days since the subscription churned (0 on the churn day).',
@@ -505,6 +529,10 @@ METRICS (
     EXPOSURES.EXPOSED_VISITORS_RIBBON AS COUNT(DISTINCT IFF(templates.template_type = 'Ribbon', visitor_id, NULL))
         WITH SYNONYMS = ('ribbon_displays', 'ribbon_exposures', 'ribbon_hits', 'ribbon_views')
         COMMENT = 'Distinct visitors exposed to a Ribbon template.',
+    PRIVATE EXPOSURES.EXPOSED_VISITORS_RIBBON_US_CANADA AS COUNT(DISTINCT IFF(templates.template_type = 'Ribbon' AND geo_country IN ('United states', 'Canada'), visitor_id, NULL))
+        COMMENT = 'Distinct US and Canada visitors exposed to a Ribbon template; numerator of exposure_rate_ribbon.',
+    PRIVATE EXPOSURES.EXPOSED_VISITORS_LANDING_PAGE_US_CANADA AS COUNT(DISTINCT IFF(templates.template_type = 'Subscription Landing Page' AND geo_country IN ('United states', 'Canada'), visitor_id, NULL))
+        COMMENT = 'Distinct US and Canada visitors exposed to a Subscription Landing Page template; numerator of exposure_rate_landing_page.',
 
     -- Daily visitors (US and Canada, web and app)
     DAILY_VISITORS.DISTINCT_VISITORS AS COUNT(DISTINCT visitor_id)
@@ -566,6 +594,13 @@ METRICS (
         NON ADDITIVE BY (SUBSCRIBER_DAILY_SNAPSHOT.SNAPSHOT_DATE DESC NULLS LAST)
         AS SUM(mrr_amount)
         COMMENT = 'Monthly recurring revenue at the beginning of the selected period.',
+    -- Cohort retention. Unlike active_subscribers this is not a stock taken on one day: it counts every
+    -- subscription active at any point in the group, which is what a months_since_conversion cohort needs
+    -- (subscriptions in one cohort month reach each tenure month on different dates).
+    SUBSCRIBER_DAILY_SNAPSHOT.RETAINED_SUBSCRIPTIONS
+        AS COUNT(DISTINCT IFF(subscriber_status = 'Active', subscription_id, NULL))
+        WITH SYNONYMS = ('cohort_active_subscriptions', 'surviving_subscriptions')
+        COMMENT = 'Distinct subscriptions active at any point in the selected group. Group by subscriptions.cohort_month and months_since_conversion for cohort retention: month 0 is the cohort size, and each later month divided by month 0 is the share retained. Do not filter by date for this; for the subscriber count on a date use active_subscribers.',
 
     -- Subscription events
     SUBSCRIPTION_EVENTS.CHURNED_SUBSCRIPTIONS
@@ -589,11 +624,42 @@ METRICS (
     SUBSCRIPTION_EVENTS.CHURNED_MRR AS -SUM(IFF(subscription_action IN ('Expired', 'Renewal failed, will not retry', 'Canceled'), mrr_change_amount, 0))
         WITH SYNONYMS = ('lost_mrr')
         COMMENT = 'Monthly recurring revenue lost to churn in the period, as a positive amount.',
+    SUBSCRIPTION_EVENTS.OTHER_MRR_CHANGE AS SUM(IFF(subscription_action NOT IN ('New subscription', 'Expired', 'Renewal failed, will not retry', 'Canceled'), mrr_change_amount, 0))
+        WITH SYNONYMS = ('expansion_mrr', 'contraction_mrr', 'upgrade_mrr')
+        COMMENT = 'Change in monthly recurring revenue from everything other than new subscriptions and churn: upgrades and price changes at renewal. new_mrr minus churned_mrr plus other_mrr_change equals net_mrr_change.',
     SUBSCRIPTION_EVENTS.NET_MRR_CHANGE AS SUM(mrr_change_amount)
         WITH SYNONYMS = ('mrr_movement')
         COMMENT = 'Net change in monthly recurring revenue from all subscription events in the period: new, churned, price changes at renewal and upgrades. Equals closing MRR minus the MRR at the end of the previous period.',
+    SUBSCRIPTION_EVENTS.BILLED_REVENUE AS SUM(subscription_events.charged_amount)
+        WITH SYNONYMS = ('billings', 'subscription_revenue', 'total_value', 'gross_revenue')
+        COMMENT = 'Revenue charged in the period from new subscriptions, renewals and upgrades, excluding tax. App store charges are an estimate of list price less store fee, and app store renewals use the last known charge. Refunds are not deducted.',
+    SUBSCRIPTION_EVENTS.CHARGED_SUBSCRIPTIONS AS COUNT(DISTINCT IFF(subscription_events.charged_amount IS NOT NULL, subscription_id, NULL))
+        COMMENT = 'Distinct subscriptions charged at least once in the period.',
+
+    -- Piano retention benchmark. One row per month, so AVG returns the curve value at each benchmark_month.
+    PIANO_RETENTION_BENCHMARK.BENCHMARK_RETENTION_MONTHLY_MEDIAN AS AVG(piano_retention_benchmark.monthly_p50)
+        COMMENT = 'Piano benchmark: median share (0 to 1) of monthly-plan subscriptions still active, by benchmark_month.',
+    PIANO_RETENTION_BENCHMARK.BENCHMARK_RETENTION_MONTHLY_P25 AS AVG(piano_retention_benchmark.monthly_p25)
+        COMMENT = 'Piano benchmark: 25th percentile share (0 to 1) of monthly-plan subscriptions still active, by benchmark_month.',
+    PIANO_RETENTION_BENCHMARK.BENCHMARK_RETENTION_MONTHLY_P75 AS AVG(piano_retention_benchmark.monthly_p75)
+        COMMENT = 'Piano benchmark: 75th percentile share (0 to 1) of monthly-plan subscriptions still active, by benchmark_month.',
+    PIANO_RETENTION_BENCHMARK.BENCHMARK_RETENTION_ANNUAL_MEDIAN AS AVG(piano_retention_benchmark.annual_p50)
+        COMMENT = 'Piano benchmark: median share (0 to 1) of annual-plan subscriptions still active, by benchmark_month.',
+    PIANO_RETENTION_BENCHMARK.BENCHMARK_RETENTION_ANNUAL_P25 AS AVG(piano_retention_benchmark.annual_p25)
+        COMMENT = 'Piano benchmark: 25th percentile share (0 to 1) of annual-plan subscriptions still active, by benchmark_month.',
+    PIANO_RETENTION_BENCHMARK.BENCHMARK_RETENTION_ANNUAL_P75 AS AVG(piano_retention_benchmark.annual_p75)
+        COMMENT = 'Piano benchmark: 75th percentile share (0 to 1) of annual-plan subscriptions still active, by benchmark_month.',
 
     -- Derived
+    AVERAGE_REVENUE_PER_SUBSCRIPTION AS subscription_events.billed_revenue / NULLIFZERO(subscription_events.charged_subscriptions)
+        WITH SYNONYMS = ('earned_ltv', 'lifetime_value', 'ltv', 'revenue_per_subscription')
+        COMMENT = 'Revenue charged per subscription charged. With no start date (all time up to a date) it is the average earned lifetime value to that date; with a period filter it is the average charged per subscription in that period.',
+    EXPOSURE_RATE_LANDING_PAGE AS exposures.exposed_visitors_landing_page_us_canada / NULLIFZERO(daily_visitors.distinct_visitors)
+        WITH SYNONYMS = ('landing_page_reach', 'landing_page_exposure_rate')
+        COMMENT = 'Share of US and Canada visitors who saw a Subscription Landing Page: distinct US and Canada visitors exposed to one divided by distinct US and Canada visitors. Reliable for Web only.',
+    EXPOSURE_RATE_RIBBON AS exposures.exposed_visitors_ribbon_us_canada / NULLIFZERO(daily_visitors.distinct_visitors)
+        WITH SYNONYMS = ('ribbon_reach', 'ribbon_exposure_rate')
+        COMMENT = 'Share of US and Canada visitors who saw a Ribbon: distinct US and Canada visitors exposed to one divided by distinct US and Canada visitors. Reliable for Web only.',
     AVERAGE_CONVERSION_VALUE AS conversion_touchpoints.conversion_revenue / NULLIFZERO(conversion_touchpoints.conversions)
         WITH SYNONYMS = ('average_order_value', 'aov')
         COMMENT = 'First-period revenue per sign-up, excluding tax.',
@@ -623,7 +689,7 @@ METRICS (
 
 COMMENT = 'BBC.com subscriptions and audience: CTA exposures, sign-ups with multi-touch attribution, subscriber stock, MRR, churn and renewals, US/Canada visitors and worldwide web page views. Built by dbt (model sv_bbc_com).'
 
-AI_SQL_GENERATION 'Filter and group by dates, geographies, device_platforms, experiences, templates, terms, offers and subscriptions columns rather than fact columns; every fact joins to those tables. For a period such as "last month", filter dates.year_month or dates.date_day; today is partial, so use dates up to yesterday. Subscriber metrics (active_subscribers, mrr, opening_*) are stock measures: never sum them across days; the metric already takes the first or last day of the period. Device platform on subscription facts is the platform of the original conversion. Web and Mobile App experiences and templates are separate: an experience runs on one app type only (experiences.is_app_experience), so filter rate denominators to the same app type. On the mobile app, exposure visitor_id is not a stable visitor identifier (iOS gives a new one per exposure), so do not compute app exposure rates or app conversion rates per exposed visitor; report app exposures with exposure_events and explain why. distinct_visitors covers web and app in the United States and Canada only; page view metrics cover web only, worldwide. Ad revenue is not available. Country names are sentence case, for example ''United states'' and ''United kingdom''.'
+AI_SQL_GENERATION 'Filter and group by dates, geographies, device_platforms, experiences, templates, terms, offers and subscriptions columns rather than fact columns; every fact joins to those tables. For a period such as "last month", filter dates.year_month or dates.date_day; today is partial, so use dates up to yesterday. Subscriber metrics (active_subscribers, mrr, opening_*) are stock measures: never sum them across days; the metric already takes the first or last day of the period. For cohort retention use retained_subscriptions grouped by subscriptions.cohort_month and months_since_conversion, without a date filter, and divide each month by month 0; compare with the piano_retention_benchmark metrics by benchmark_month, which are shares from 0 to 1. Device platform on subscription facts is the platform of the original conversion. Web and Mobile App experiences and templates are separate: an experience runs on one app type only (experiences.is_app_experience), so filter rate denominators to the same app type. On the mobile app, exposure visitor_id is not a stable visitor identifier (iOS gives a new one per exposure), so do not compute app exposure rates or app conversion rates per exposed visitor; report app exposures with exposure_events and explain why. distinct_visitors covers web and app in the United States and Canada only; page view metrics cover web only, worldwide. Ad revenue is not available. Country names are sentence case, for example ''United states'' and ''United kingdom''.'
 
 AI_VERIFIED_QUERIES (
     subscribers_and_mrr_by_month AS (
@@ -640,6 +706,10 @@ AI_VERIFIED_QUERIES (
         QUESTION 'How many sign-ups did each marketing channel drive last month?'
         ONBOARDING_QUESTION TRUE
         SQL 'SELECT * FROM SEMANTIC_VIEW({{ this }} DIMENSIONS conversion_touchpoints.attribution_source, conversion_touchpoints.attribution_source_detail METRICS conversion_touchpoints.conversions WHERE dates.year_month = TO_CHAR(DATEADD(MONTH, -1, CURRENT_DATE), ''YYYY-MM'')) ORDER BY conversions DESC'
+    ),
+    monthly_plan_cohort_retention AS (
+        QUESTION 'How many monthly-plan subscriptions from each sign-up month were still active in each month after sign-up?'
+        SQL 'SELECT * FROM SEMANTIC_VIEW({{ this }} DIMENSIONS subscriptions.cohort_month, subscriber_daily_snapshot.months_since_conversion METRICS subscriber_daily_snapshot.retained_subscriptions WHERE terms.billing_period = ''1 month'' AND subscriptions.cohort_month >= TO_CHAR(DATEADD(MONTH, -12, CURRENT_DATE), ''YYYY-MM'')) ORDER BY cohort_month, months_since_conversion'
     ),
     signups_by_billing_channel AS (
         QUESTION 'How many sign-ups came through web checkout versus the app stores last month?'

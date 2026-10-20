@@ -306,11 +306,11 @@ The following inventory records every project-owned model in the dbt manifest an
 | `agg_subs_pillar_views_l30d_snapshot` | `source:studios_piano.studios_piano_events`, `dim_subscription` |
 | `agg_subs_product_usage_30d_snapshot` | `source:studios_piano.studios_piano_events`, `dim_subscription` |
 | `agg_subscriber_bans` | `fct_subscriber_activity_daily`, `fct_subscription_events`, `fct_visitors_daily`, `fct_conversions`, `fct_exposures` |
-| `sv_bbc_com` (semantic view) | `fct_conversions`, `fct_exposures`, `fct_page_views`, `fct_subscriber_daily_snapshot`, `fct_subscription_events`, `fct_visitors_daily`, `dim_date`, `dim_device_platform`, `dim_experience`, `dim_geography`, `dim_offer`, `dim_subscription`, `dim_template`, `dim_term` |
+| `sv_bbc_com` (semantic view) | `fct_conversions`, `fct_exposures`, `fct_page_views`, `fct_subscriber_daily_snapshot`, `fct_subscription_events`, `fct_visitors_daily`, `dim_date`, `dim_device_platform`, `dim_experience`, `dim_geography`, `dim_offer`, `dim_subscription`, `dim_template`, `dim_term`, `seed:piano_retention_curves` |
 
 ### Declared sources without a current downstream model
 
-These sources are configured in `models/bronze/<source>/_<source>__sources.yml` but do not appear in a current model `source()` call: `source:ps_piano.ps_piano_events` and `source:sfmc.not_sent`. They are retained as declared inputs for future use, but are not part of the active source-to-mart flow. The `piano_retention_curves` seed is likewise not referenced by any current model or analysis.
+These sources are configured in `models/bronze/<source>/_<source>__sources.yml` but do not appear in a current model `source()` call: `source:ps_piano.ps_piano_events` and `source:sfmc.not_sent`. They are retained as declared inputs for future use, but are not part of the active source-to-mart flow.
 
 ### Intermediate models without a current downstream model
 

@@ -23,7 +23,7 @@ WITH subscription_latest_snapshot AS (
         resource_name AS resource_name,
         start_date,
         end_date,
-        next_bill_date,
+        next_bill_date AS next_billing_at,
         is_in_trial,
         trial_period_end_date,
         trial_amount,
@@ -140,6 +140,7 @@ classified AS (
         created_via_upgrade,
 
         end_date AS subscription_ended_at,
+        IFF(status = 'active', next_billing_at, NULL) AS next_billing_at,
         COALESCE(next_created_via_upgrade, FALSE) AS is_ended_by_upgrade,
         IFF(COALESCE(next_created_via_upgrade, FALSE), next_subscription_id, NULL) AS ended_by_upgrade_subscription_id,
         IFF(COALESCE(next_created_via_upgrade, FALSE), next_conversion_id, NULL) AS ended_by_upgrade_conversion_id,
