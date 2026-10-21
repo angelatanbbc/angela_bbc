@@ -524,14 +524,14 @@ METRICS (
     EXPOSURES.EXPOSED_VISITORS_PAYWALL AS COUNT(DISTINCT IFF(templates.template_type = 'Paywall', visitor_id, NULL))
         WITH SYNONYMS = ('paywall_displays', 'paywall_exposures', 'paywall_views')
         COMMENT = 'Distinct visitors exposed to a Paywall template.',
-    PRIVATE EXPOSURES.EXPOSED_VISITORS_PAYWALL_US_CANADA AS COUNT(DISTINCT IFF(templates.template_type = 'Paywall' AND geo_country IN ('United states', 'Canada'), visitor_id, NULL))
+    PRIVATE EXPOSURES.EXPOSED_VISITORS_PAYWALL_US_CANADA AS COUNT(DISTINCT IFF(templates.template_type = 'Paywall' AND geographies.geo_country IN ('United states', 'Canada'), visitor_id, NULL))
         COMMENT = 'Distinct US and Canada visitors exposed to a Paywall template; numerator of exposure_rate_paywall.',
     EXPOSURES.EXPOSED_VISITORS_RIBBON AS COUNT(DISTINCT IFF(templates.template_type = 'Ribbon', visitor_id, NULL))
         WITH SYNONYMS = ('ribbon_displays', 'ribbon_exposures', 'ribbon_hits', 'ribbon_views')
         COMMENT = 'Distinct visitors exposed to a Ribbon template.',
-    PRIVATE EXPOSURES.EXPOSED_VISITORS_RIBBON_US_CANADA AS COUNT(DISTINCT IFF(templates.template_type = 'Ribbon' AND geo_country IN ('United states', 'Canada'), visitor_id, NULL))
+    PRIVATE EXPOSURES.EXPOSED_VISITORS_RIBBON_US_CANADA AS COUNT(DISTINCT IFF(templates.template_type = 'Ribbon' AND geographies.geo_country IN ('United states', 'Canada'), visitor_id, NULL))
         COMMENT = 'Distinct US and Canada visitors exposed to a Ribbon template; numerator of exposure_rate_ribbon.',
-    PRIVATE EXPOSURES.EXPOSED_VISITORS_LANDING_PAGE_US_CANADA AS COUNT(DISTINCT IFF(templates.template_type = 'Subscription Landing Page' AND geo_country IN ('United states', 'Canada'), visitor_id, NULL))
+    PRIVATE EXPOSURES.EXPOSED_VISITORS_LANDING_PAGE_US_CANADA AS COUNT(DISTINCT IFF(templates.template_type = 'Subscription Landing Page' AND geographies.geo_country IN ('United states', 'Canada'), visitor_id, NULL))
         COMMENT = 'Distinct US and Canada visitors exposed to a Subscription Landing Page template; numerator of exposure_rate_landing_page.',
 
     -- Daily visitors (US and Canada, web and app)
