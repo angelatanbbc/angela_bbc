@@ -30,22 +30,28 @@ WITH templates AS (
 )
 
 SELECT
-    template_id,
-    template_name,
-    CASE
-        WHEN template_name ILIKE '%gate%' THEN 'Paywall'
-        WHEN template_name ILIKE '%ribbon%' THEN 'Ribbon'
-        WHEN template_name ILIKE '%landing%page%' THEN 'Subscription Landing Page'
-        ELSE 'Other'
-    END AS template_type,
-    template_description,
-    template_piano_type_id,
-    template_category_id,
-    template_status,
-    is_published,
-    is_deleted,
-    is_listed_in_piano,
-    created_at,
-    updated_at,
-    archived_at
-FROM templates
+    t.template_id,
+    t.template_name,
+    -- Overrides first, for templates whose name does not say what they are.
+    COALESCE(
+        o.template_type,
+        CASE
+            WHEN t.template_name ILIKE '%gate%' THEN 'Paywall'
+            WHEN t.template_name ILIKE '%ribbon%' THEN 'Ribbon'
+            WHEN t.template_name ILIKE '%landing%page%' THEN 'Subscription Landing Page'
+            ELSE 'Other'
+        END
+    ) AS template_type,
+    t.template_description,
+    t.template_piano_type_id,
+    t.template_category_id,
+    t.template_status,
+    t.is_published,
+    t.is_deleted,
+    t.is_listed_in_piano,
+    t.created_at,
+    t.updated_at,
+    t.archived_at
+FROM templates t
+LEFT JOIN {{ ref('template_type_override') }} o
+    ON t.template_id = o.template_id
