@@ -9,15 +9,16 @@
 Single cleaning pass over the raw Piano events table.
 
 At production scale the events table is tens of billions of rows, so this model
-exists to do the expensive work exactly once: filter to the event families used
-for page view and subscription analysis, prune ~600 columns down to the curated
-set, and normalize dirty dimension values. Every downstream model reads from here
-instead of re-scanning staging.
+defines the cleaning once: filter to the event families used for page view and
+subscription analysis, prune ~600 columns down to the curated set, and normalize
+dirty dimension values. Every downstream model reads from here instead of
+re-implementing it.
 
-Incremental* (append-only, same pattern as the staging model): each run processes
-only events newer than the max event_time already loaded. Events are immutable,
-so no merge key is needed; late-arriving events with an event_time at or before
-the watermark are picked up by a --full-refresh.
+Materialised as a view on purpose (reviewed Oct 2026). Filters on event_time and
+event_name push through this view and staging to the source's micro-partitions
+(one day of page.display events reads ~230 of ~2,500 partitions), so downstream
+incremental models already scan only their window and event families. A table
+would add a full-history build and several TB of storage for little scan saving.
 
 Event families kept (page view analysis):
 - page.display                  page views
@@ -52,9 +53,6 @@ id present in the wrong column. The id formats are distinguishable by length:
 column takes the correctly-shaped value from whichever raw column it was found in,
 and is NULL if neither raw column holds a value of that shape. Raw values remain
 available in stg_piano__studios_events.
-
-* NOTE: intended to be incremental, but using a view for now because there are petabytes
-of data and the incremental logic is not yet implemented.
 
 */
 
@@ -106,6 +104,7 @@ SELECT
     referrer_url,
     event_url,
     event_collection_platform,
+    newsletter_title,
 
     -- content metadata
     content_type,
@@ -185,19 +184,17 @@ SELECT
     {{ extract_url_param('event_url_full', 'at_campaign_name') }} AS url_at_campaign_name,
 
     -- geography
+    {{ generate_geo_id('geo_country', 'geo_region') }} AS geo_id,
     geo_continent,
     geo_country,
     geo_country_code_alpha2,
     geo_region,
     geo_city,
     geo_metro,
-    geo_id,
-
-    -- platform key (computed in staging from the raw app_type, device_type and os_group)
-    device_platform_id,
 
     -- device / OS as Piano sends them, for pipelines that rebuild the platform
     -- key with a forced app type (the clean_* macros normalise them)
+    {{ generate_device_platform_id('app_type', 'device_type', 'os_group') }} AS device_platform_id,
     app_type,
     device_type,
     os_group,
@@ -246,8 +243,9 @@ SELECT
     subscription_action,
     subscription_period_number,
     created_via_upgrade,
-    term_id,
-    term_name,
+    -- Derived: Term (flattened from the TERM array)
+    TERM[0]['term_id2']::STRING AS term_id,
+    TERM[0]['term_name']::STRING AS term_name,
     term_offer_id,
     term_offer_name,
     billing_period,
@@ -289,7 +287,3 @@ WHERE
         )
         OR event_name LIKE 'click.%'
     )
-
-    {% if is_incremental() %}
-        AND event_time > (SELECT MAX(event_time) FROM {{ this }})
-    {% endif %}

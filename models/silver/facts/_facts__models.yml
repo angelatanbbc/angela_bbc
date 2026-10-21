@@ -413,6 +413,8 @@ models:
           - not_null:
               config: 
                 severity: warn
+      - name: user_first_party_id
+        description: First-party identifier for the subscribed user aka FED_ID.
       - name: subscription_id
         description: Unique identifier for the subscription.
         tests:
@@ -487,6 +489,8 @@ models:
         description: Timestamp of the subscription event.
         tests:
           - not_null
+      - name: event_date
+        description: Date of the subscription event.
       - name: subscription_action
         description: The type of subscription action.
         tests:
@@ -730,8 +734,12 @@ models:
       event duration measures (all already at page view grain, so no fan-out) and carries
       surrogate keys for content, user, visit, geography, device and site. Web page views
       only: Piano populates pageview_id for web (js) traffic only. Incremental: merges on
-      pageview_id, reprocessing from the day before the latest loaded page view date; dev
-      builds only the last 30 days.
+      pageview_id, reprocessing from the day before the latest loaded page view date, with
+      the MERGE limited to recent target rows by incremental_predicates; dev builds only the
+      last 30 days. History is built in date chunks with the piano_backfill_start /
+      piano_backfill_end vars, together with int_piano__page_views (see the DNS
+      Transformations Runbook). full_refresh is false, so --full-refresh is ignored; to
+      rebuild, drop the table and backfill in chunks.
     columns:
       - name: pageview_id
         description: Primary key. Unique page view identifier.
@@ -746,6 +754,15 @@ models:
         description: Surrogate key of visit_id.
       - name: geography_sk
         description: Surrogate key of (geo_country_code_alpha2, geo_region, geo_city).
+      - name: geo_id
+        description: Country and region of the page view (see dim_geography), from generate_geo_id like the other Piano facts. Not the same key as geography_sk, which also includes the city.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_geography')
+                field: geo_id
+              config:
+                severity: warn
       - name: device_platform_id
         description: Device platform (app type, device type and operating system group) of the page view, from its latest page.display event.
         tests:

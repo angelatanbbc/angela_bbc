@@ -13,6 +13,7 @@ The `dns_transformations` dbt project (dbt Fusion, Snowflake) that builds the BB
 | `models/silver/facts/` | Facts (`fct_`) | `silver.facts` |
 | `models/silver/dims/` | Dimensions (`dim_`) | `silver.dims` |
 | `models/gold/aggregates/` | Aggregates (`agg_`) | `gold.aggregates` |
+| `models/gold/semantic_views/` | Snowflake semantic views (`sv_`), built with the `dbt_semantic_view` package | `gold.semantic_views` |
 
 Model YAML sits next to the models as `_<folder>__models.yml`.
 

@@ -1,7 +1,9 @@
 {{
     config(
         materialized="semantic_view",
-        tags=["attribution"]
+        copy_grants=true,
+        static_analysis="off",
+        tags=["attribution", "semantic_view"]
     )
 }}
 

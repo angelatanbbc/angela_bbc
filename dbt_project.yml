@@ -44,9 +44,10 @@ models:
           +enabled: "{{ var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') }}"
         agg_marketing_campaign_daily:
           +enabled: "{{ var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') }}"
-      # also needs the CREATE SEMANTIC VIEW privilege: --vars '{build_semantic_views: true}'
       semantic_views:
-        +enabled: "{{ var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') and var('build_semantic_views', false) }}"
+        # also needs the CREATE SEMANTIC VIEW privilege: --vars '{build_semantic_views: true}'
+        sv_marketing_attribution:
+          +enabled: "{{ var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') and var('build_semantic_views', false) }}"
   facebook_ads:
     intermediate:
       int_facebook_ads__creative_history:

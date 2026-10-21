@@ -29,8 +29,13 @@ models:
       events with a pageview_id, then collapses duplicate events for the same page view
       (max page_duration; page_view_time is the first event's timestamp; latest event wins
       for attributes). Piano populates pageview_id for web (js) traffic only, so native app
-      page views are excluded. Incremental: merges on pageview_id, reprocessing from the day
-      before the latest loaded date; dev builds only the last 30 days.
+      page views are excluded. Built with a narrow GROUP BY plus a join back to the latest
+      event (no window over wide rows). Incremental: merges on pageview_id, reprocessing from
+      the day before the latest loaded date, with the MERGE limited to recent target rows by
+      incremental_predicates; dev builds only the last 30 days. History is built in date
+      chunks with the piano_backfill_start / piano_backfill_end vars (see the DNS
+      Transformations Runbook). full_refresh is false, so --full-refresh is ignored; to
+      rebuild, drop the table and backfill in chunks.
     columns:
       - name: pageview_id
         description: Unique identifier for the page view. Primary key.

@@ -80,7 +80,7 @@ models:
           - not_null
           - unique
       - name: date_day
-        description: The day of the month.
+        description: The calendar date.
         tests:
           - not_null
           - unique
@@ -102,9 +102,12 @@ models:
         tests:
           - not_null
       - name: day_name
-        description: The name of the day of the week.
+        description: The full name of the day of the week, such as Monday.
         tests:
           - not_null
+          - accepted_values:
+              arguments:
+                values: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
       - name: day_name_short
         description: The short name of the day of the week.
         tests:
@@ -130,9 +133,12 @@ models:
         tests:
           - not_null
       - name: month_name
-        description: The name of the month.
+        description: The full name of the month, such as October.
         tests:
           - not_null
+          - accepted_values:
+              arguments:
+                values: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
       - name: month_name_short
         description: The short name of the month.
         tests:
@@ -239,7 +245,10 @@ models:
           - not_null
 
   - name: dim_geography
-    description: Geography dimension covering known US/Canada country-region combinations plus a dedicated Unknown row, used by Piano audience and subscription facts.
+    description: >
+      Geography dimension. One row per normalised country and region combination: the US and Canada regions in
+      the geo_mapping seed, an Unknown row, and every other combination found on exposures, conversions,
+      subscription events and page views, so every fact geo_id resolves here.
     columns:
       - name: geo_id
         description: Stable hash identifier for the geo_country/geo_region combination.
@@ -311,7 +320,7 @@ models:
         tests:
           - not_null
       - name: template_type
-        description: Classification from the template name (Paywall, Ribbon, Subscription Landing Page or Other).
+        description: Classification from the template name (Paywall, Ribbon, Subscription Landing Page or Other), or from the template_type_override seed where the name is misleading.
         tests:
           - not_null
           - accepted_values:
@@ -526,6 +535,8 @@ models:
           - accepted_values:
               arguments:
                 values: ["Stripe Elements", "Braintree Credit Card", "Apple App Store", "Google Play"]
+      - name: cohort_month
+        description: Month of the conversion that created the subscription, as YYYY-MM. Same value as cohort_month on the subscription facts.
       - name: subscription_sequence_number
         description: The order of this subscription within the user's observed subscription history.
         tests:
@@ -544,6 +555,10 @@ models:
           - not_null
       - name: subscription_ended_at
         description: Timestamp when the subscription ended, if inactive.
+      - name: next_billing_at
+        description: >
+          End of the current paid period, from Piano's next bill date: the next renewal charge, or the expiry
+          when auto-renew is off. Null when the subscription is not active.
       - name: latest_action_at
         description: Timestamp of the latest observed subscription event.
         tests:
@@ -574,6 +589,8 @@ models:
         description: Term name attached to the subscription.
       - name: billing_plan
         description: Billing plan attached to the subscription.
+      - name: billing_period
+        description: Billing period of the subscription, such as 1 month or 1 year, from its subscription events.
       - name: subscription_period_number
         description: Latest observed subscription period number.
       - name: mrr_amount

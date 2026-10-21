@@ -3,7 +3,9 @@
         materialized="incremental",
         unique_key="pageview_id",
         incremental_strategy="merge",
+        incremental_predicates=piano_page_view_merge_predicates('page_view_time', 'page_view_time'),
         on_schema_change="sync_all_columns",
+        full_refresh=false,
         tags=["piano", "fct", "page_views"]
     )
 }}
@@ -14,6 +16,10 @@ Scroll, click, ad impression and event duration measures are pre-aggregated to t
 same grain in their intermediate models, so the left joins below cannot fan out.
 
 Web page views only: Piano populates pageview_id for web (js) traffic only.
+
+full_refresh=false makes dbt ignore --full-refresh here, as in int_piano__page_views:
+history is built in date chunks (see "Backfilling the Piano page view models" in the
+DNS Transformations Runbook). To rebuild, drop the table and backfill in chunks.
 */
 
 WITH page_views AS (
@@ -32,8 +38,9 @@ scrolls AS (
         scroll_depth_pct
     FROM {{ ref('int_piano__scroll_events') }}
     WHERE 1 = 1
-        -- a page view in the window always has its last event in the window too
-        {{ piano_page_view_event_window('last_event_time', 'page_view_time') }}
+        -- a page view in the window always has its last event in the window too;
+        -- on a backfill chunk the last event can fall after the chunk, so no upper bound
+        {{ piano_page_view_event_window('last_event_time', 'page_view_time', backfill_upper_bound=false) }}
 
 ),
 
@@ -42,8 +49,9 @@ clicks AS (
     SELECT *
     FROM {{ ref('int_piano__click_events') }}
     WHERE 1 = 1
-        -- a page view in the window always has its last event in the window too
-        {{ piano_page_view_event_window('last_event_time', 'page_view_time') }}
+        -- a page view in the window always has its last event in the window too;
+        -- on a backfill chunk the last event can fall after the chunk, so no upper bound
+        {{ piano_page_view_event_window('last_event_time', 'page_view_time', backfill_upper_bound=false) }}
 
 ),
 
@@ -52,8 +60,9 @@ ad_impressions AS (
     SELECT *
     FROM {{ ref('int_piano__ad_impressions') }}
     WHERE 1 = 1
-        -- a page view in the window always has its last event in the window too
-        {{ piano_page_view_event_window('last_event_time', 'page_view_time') }}
+        -- a page view in the window always has its last event in the window too;
+        -- on a backfill chunk the last event can fall after the chunk, so no upper bound
+        {{ piano_page_view_event_window('last_event_time', 'page_view_time', backfill_upper_bound=false) }}
 
 ),
 
@@ -65,8 +74,9 @@ event_durations AS (
         events_with_duration_count
     FROM {{ ref('int_piano__event_durations') }}
     WHERE 1 = 1
-        -- a page view in the window always has its last event in the window too
-        {{ piano_page_view_event_window('last_event_time', 'page_view_time') }}
+        -- a page view in the window always has its last event in the window too;
+        -- on a backfill chunk the last event can fall after the chunk, so no upper bound
+        {{ piano_page_view_event_window('last_event_time', 'page_view_time', backfill_upper_bound=false) }}
 
 )
 
@@ -79,6 +89,7 @@ SELECT
     {{ dbt_utils.generate_surrogate_key(['pv.user_id']) }} AS user_sk,
     {{ dbt_utils.generate_surrogate_key(['pv.visit_id']) }} AS visit_sk,
     {{ dbt_utils.generate_surrogate_key(['pv.geo_country_code_alpha2', 'pv.geo_region', 'pv.geo_city']) }} AS geography_sk,
+    {{ generate_geo_id('pv.geo_country', 'pv.geo_region') }} AS geo_id,
     pv.device_platform_id,
     {{ dbt_utils.generate_surrogate_key(['pv.site_id']) }} AS site_sk,
 

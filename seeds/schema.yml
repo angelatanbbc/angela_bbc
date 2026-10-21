@@ -96,3 +96,19 @@ seeds:
           - accepted_values:
               arguments:
                 values: ["subscriptions", "app_installs", "other"]
+  - name: template_type_override
+    description: >
+      Template type of Piano offer templates whose name does not classify them correctly, such as paywalls without
+      "gate" in the name. dim_template takes template_type from here before falling back to the name rules.
+      template_name is for reference only. Add a row whenever a new template is misclassified.
+    columns:
+      - name: template_id
+        tests:
+          - not_null
+          - unique
+      - name: template_type
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["Paywall", "Ribbon", "Subscription Landing Page", "Other"]

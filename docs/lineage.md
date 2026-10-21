@@ -93,7 +93,7 @@ graph LR
 
 ### Piano catalogue dimensions
 
-`dim_experience`, `dim_template`, `dim_term`, `dim_offer` and `dim_offer_term` are built only from daily snapshots of the Piano API, loaded by the `piano_catalog` job in [cgm-extract-load](https://github.com/bbc/cgm-extract-load), and the `app_store_term_billing_period` and `term_subscription_weight` seeds. Records the Piano list endpoints leave out (archived experiences, system templates) are backfilled by id into the same raw tables with `cgm-extract-load backfill-piano-catalog`.
+`dim_experience`, `dim_template`, `dim_term`, `dim_offer` and `dim_offer_term` are built only from daily snapshots of the Piano API, loaded by the `piano_catalog` job in [cgm-extract-load](https://github.com/bbc/cgm-extract-load), and the `app_store_term_billing_period`, `term_subscription_weight` and `template_type_override` seeds. Records the Piano list endpoints leave out (archived experiences, system templates) are backfilled by id into the same raw tables with `cgm-extract-load backfill-piano-catalog`.
 
 ```mermaid
 graph LR
@@ -115,14 +115,17 @@ graph LR
     stg_offer --> offer_term
     billing_seed["app_store_term_billing_period"]:::seed --> term
     weight_seed["term_subscription_weight"]:::seed --> term
+    override_seed["template_type_override"]:::seed --> template
     linkStyle 0,1,2,3,4 stroke:#eab308,stroke-width:2.5px
     linkStyle 5,6,7,8,9,10,11 stroke:#4169e1,stroke-width:1.5px
-    linkStyle 12 stroke:#f97316,stroke-width:2.5px
+    linkStyle 12,13,14 stroke:#f97316,stroke-width:2.5px
 ```
 
 ### Page view flow
 
 Only events with a `pageview_id` reach these models, which in practice means web (js) traffic. Each intermediate aggregates to one row per `pageview_id`.
+
+`int_piano__events_cleaned` and `stg_piano__studios_events` are views, so each intermediate reads the Piano source directly with its own event-time window. The scheduled run only processes recent days. The history of `int_piano__page_views` and `fct_page_views` is built outside the scheduled run, in date chunks, with the `piano_backfill_start` and `piano_backfill_end` vars (see "Backfilling the Piano page view models" in the DNS Transformations Runbook).
 
 ```mermaid
 graph LR
@@ -376,11 +379,11 @@ The following inventory records every project-owned model in the dbt manifest an
 | `dim_date` | None; static date spine model |
 | `dim_device_platform` | None; static reference model (app type x device type x operating system group) |
 | `dim_experience` | `stg_piano__experiences` |
-| `dim_geography` | `seed:geo_mapping` |
+| `dim_geography` | `seed:geo_mapping`, `fct_exposures`, `fct_conversions`, `fct_subscription_events`, `int_piano__page_views` |
 | `dim_offer` | `stg_piano__offers`, `stg_piano__offer_terms` |
 | `dim_offer_term` | `stg_piano__offer_terms`, `stg_piano__offers` |
 | `dim_subscription` | `int_piano__subscription_current`, `fct_subscription_events` |
-| `dim_template` | `stg_piano__offer_templates` |
+| `dim_template` | `stg_piano__offer_templates`, `seed:template_type_override` |
 | `dim_term` | `stg_piano__terms`, `seed:app_store_term_billing_period`, `seed:term_subscription_weight` |
 | `fct_conversions` | `int_piano__conversion_attribution_web`, `int_piano__conversion_attribution_app`, `fct_subscription_attribution`, `dim_term` |
 | `fct_exposures` | `int_piano__exposures_web`, `int_piano__exposures_app` |
@@ -415,14 +418,15 @@ The following inventory records every project-owned model in the dbt manifest an
 | `agg_subs_product_usage_30d_snapshot` | `source:studios_piano.studios_piano_events`, `dim_subscription` |
 | `agg_subscriber_bans` | `fct_subscriber_activity_daily`, `fct_subscription_events`, `fct_visitors_daily`, `fct_conversions`, `fct_exposures` |
 | `agg_subscription_attribution_touchpoint` | `fct_attribution_touchpoints`, `dim_channel`, `dim_campaign_tracking`, `dim_ad`, `dim_device_platform` |
-| `sv_marketing_attribution` | `fct_attribution_touchpoints`, `dim_channel`, `dim_campaign_tracking`, `dim_ad`, `dim_device_platform` |
+| `sv_marketing_attribution` (semantic view) | `fct_attribution_touchpoints`, `dim_channel`, `dim_campaign_tracking`, `dim_ad`, `dim_device_platform` |
 | `agg_marketing_paid_page_views` | `fct_ad_performance_daily`, `fct_paid_page_views`, `dim_ad`, `dim_device_platform` |
 | `agg_marketing_visitor_funnel` | `fct_paid_visitor_funnel` |
 | `agg_marketing_campaign_daily` | `agg_marketing_paid_page_views`, `agg_marketing_visitor_funnel`, `fct_attribution_touchpoints`, `dim_channel`, `dim_campaign_tracking` |
+| `sv_bbc_com` (semantic view) | `fct_conversions`, `fct_exposures`, `fct_page_views`, `fct_subscriber_daily_snapshot`, `fct_subscription_events`, `fct_visitors_daily`, `dim_date`, `dim_device_platform`, `dim_experience`, `dim_geography`, `dim_offer`, `dim_subscription`, `dim_template`, `dim_term`, `seed:piano_retention_curves` |
 
 ### Declared sources without a current downstream model
 
-These sources are configured in `models/bronze/<source>/_<source>__sources.yml` but do not appear in a current model `source()` call: `source:ps_piano.ps_piano_events` and `source:sfmc.not_sent`. They are retained as declared inputs for future use, but are not part of the active source-to-mart flow. The `piano_retention_curves` seed is likewise not referenced by any current model or analysis.
+These sources are configured in `models/bronze/<source>/_<source>__sources.yml` but do not appear in a current model `source()` call: `source:ps_piano.ps_piano_events` and `source:sfmc.not_sent`. They are retained as declared inputs for future use, but are not part of the active source-to-mart flow.
 
 ### Intermediate models without a current downstream model
 
@@ -435,6 +439,8 @@ These sources are configured in `models/bronze/<source>/_<source>__sources.yml` 
 - `int_subscription__attribution_src_corrected`, `fct_subscription_attribution` and the `agg_subs_*` content, pillar and usage models read `studios_piano.studios_piano_events` directly in addition to local models.
 - `stg_piano__subscription_snapshots` depends on the daily [cgm-extract-load](https://github.com/bbc/cgm-extract-load) load into `raw_piano_subscription_snapshots`, which has a source freshness check (warn after 20 hours, error after 26).
 - The `stg_piano__experiences`, `stg_piano__offers`, `stg_piano__offer_terms`, `stg_piano__offer_templates` and `stg_piano__terms` staging models depend on the same daily load (job `piano_catalog`), with the same freshness checks.
+- `dim_geography` is built after the facts it covers: it takes the US and Canada regions from `geo_mapping` and adds every other country and region found on exposures, conversions, subscription events and page views, so every fact `geo_id` resolves. The facts compute `geo_id` with the `generate_geo_id` macro and do not reference the dim.
+- `sv_bbc_com` uses the `semantic_view` materialization from the installed `Snowflake-Labs/dbt_semantic_view` package. It is excluded from `dbt lint` in CI because its body is semantic view DDL, not a SELECT.
 - No direct `ref()` to a mart in a sibling repository is present in this project's model SQL. The explicit dbt project boundary is the installed `facebook_ads` package.
 
 ## Scheduling order
