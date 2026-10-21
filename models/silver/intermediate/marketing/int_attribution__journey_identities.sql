@@ -126,7 +126,7 @@ device_links AS (
         AND e.visitor_id != e.checkout_visitor_id
         AND b.browser_cookie_count <= {{ var('attribution_max_cookies_per_browser') }}
     GROUP BY e.conversion_id, e.visitor_id, e.buyer_user_id
-    -- a cookie that carries a different real account belongs to someone else
+    -- skip a cookie signed in to any account other than the buyer's (e.g. someone else on a shared device)
     HAVING COUNT_IF(e.user_id IS NOT NULL AND e.user_id != COALESCE(e.buyer_user_id, '')) = 0
 
 ),

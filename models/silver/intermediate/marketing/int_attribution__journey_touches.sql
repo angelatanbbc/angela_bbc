@@ -11,11 +11,15 @@
 /*
 Every touch in each purchase's journey: one row per conversion x pageview_id x touchpoint_type.
 
-A touch is a page view on any of the buyer's cookies inside the journey window, or the purchase
-itself. The purchase is a touch only when Piano recorded it on the checkout cookie, as in today's
-model. Corrections, each behind a var: the return from account.bbc.com after sign-in is not a touch,
-and a visit that lost its agency tag takes it from its Meta ad (dim_ad), else from an 8ms_ / dbs_
-campaign name on a Facebook or Instagram visit (agency_resolved_from).
+Touches are:
+- page views on any of the buyer's cookies in the 30 days before the purchase (and after their previous purchase)
+- the purchase itself, only when Piano recorded it on the checkout cookie (as today)
+
+Corrections (each can be switched off with a var):
+- the page you return to from account.bbc.com after signing in is dropped
+- a visit missing its DBS / 8MS tag gets it from its Meta ad (dim_ad), else from a dbs_ / 8ms_
+  campaign name on a Facebook or Instagram visit; agency_resolved_from says which
+A dropped purchase or sign-in page is kept if it would otherwise be the journey's only touch.
 */
 
 {%- set batch_floor = attribution_batch_floor() %}

@@ -931,9 +931,8 @@ models:
     description: >
       Click-based subscription attribution. One row per attributable web subscription x credited
       touchpoint in the var attribution_lookback_days days before it. Four credit models side by side:
-      position_weight (the dashboard's), first_touch_weight and last_touch_weight each sum to 1 per
-      conversion; signup_touch_weight (40 / 40 / 20) sums to 1 only when the purchase itself is a
-      touch, 0.6 otherwise. No revenue. Limitations: the browser link only reaches cookies that carry
+      position_weight (the dashboard's), signup_touch_weight, first_touch_weight and last_touch_weight,
+      each summing to 1 per conversion. No revenue. Limitations: the browser link only reaches cookies that carry
       device_first_party_id, so paid credit is a floor; journeys are incomplete where
       is_lookback_complete is FALSE. Incremental: rebuilds the last var attribution_reprocess_days
       conversion dates.
@@ -1043,13 +1042,13 @@ models:
               arguments:
                 group_by: conversion_id
       - name: signup_touch_weight
-        description: 40 / 40 / 20 first / purchase / middle credit.
+        description: >
+          40 / 40 / 20 first / sign-up / middle credit. The sign-up touch is the purchase, or the last
+          touch when the purchase is not a touch.
         tests:
           - sums_to_one:
               arguments:
                 group_by: conversion_id
-              config:
-                severity: warn
       - name: first_touch_weight
         description: 1 on the journey's first touch.
         tests:

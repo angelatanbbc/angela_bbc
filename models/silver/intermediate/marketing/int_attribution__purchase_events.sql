@@ -10,8 +10,7 @@
 
 /*
 Purchase events: one row per conversion_id, its first vx.conversion event with a
-pageview_id, on any site. Incremental so the Piano events are scanned a day at a time; a purchase
-already loaded keeps its first event.
+pageview_id, on any site. Incremental so the Piano events are scanned a day at a time.
 */
 
 {%- set floor = incremental_date_floor('event_time') %}

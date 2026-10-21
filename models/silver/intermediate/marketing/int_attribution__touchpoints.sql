@@ -9,13 +9,19 @@
 }}
 
 /*
-The credited touchpoints of each purchase and their four weights: one row per conversion x
-pageview_id x touchpoint_type, a subset of int_attribution__journey_touches.
+The touches that get credit, and how much: one row per conversion x pageview_id x touchpoint_type.
+It keeps only some of the touches in int_attribution__journey_touches.
 
-The keep rules, position weight and attribution source are today's (int_subscription__attribution)
-step for step, keyed by conversion_id instead of cookie and sign-up time. The sign-up touch weight is
-counted per purchase (today per cookie). Ties on touchpoint_at are broken by touchpoint_type and
-pageview_id so a rebuild gives the same weights.
+For each touch it decides:
+- whether it is kept (the keep rules)
+- whether it is paid (DBS / 8MS) and its attribution source
+- its credit under four models: position (reported), sign-up touch, first touch and last touch
+
+These rules are copied step for step from today's model (int_subscription__attribution). Differences:
+- journeys are grouped by purchase (conversion_id), not by cookie and sign-up time
+- the sign-up touch weight is counted per purchase (today: per cookie); when the purchase is not a
+  touch, the last touch takes the purchase's 40%, so it always sums to 1 (today it can sum to 0.4)
+- touches at the same time are ordered by touchpoint_type then pageview_id, so a rebuild gives the same credit
 */
 
 {%- set batch_floor = attribution_batch_floor() %}
@@ -214,6 +220,8 @@ journey_stats AS (
         MAX(IFF(touchpoint_type = 'conversion', promo_code, NULL)) OVER (PARTITION BY conversion_id) AS promo_code_from_conversion,
         MIN(IFF(is_paid_event = 1, touchpoint_at, NULL)) OVER (PARTITION BY conversion_id) AS first_paid_event,
         MAX(IFF(is_paid_event = 1, touchpoint_at, NULL)) OVER (PARTITION BY conversion_id) AS last_paid_event,
+        -- the sign-up touch: the purchase, else the last touch when the purchase is not a touch
+        MAX(touchpoint_at) OVER (PARTITION BY conversion_id) AS signup_at,
         ROW_NUMBER() OVER (
             PARTITION BY conversion_id
             ORDER BY touchpoint_at ASC, touchpoint_type DESC, pageview_id ASC
@@ -260,6 +268,7 @@ positioned AS (
         promo_code_from_conversion,
         first_paid_event,
         last_paid_event,
+        signup_at,
         total_paid_events,
         CASE
             WHEN rn = 1 THEN 'first'
@@ -358,9 +367,9 @@ weighted AS (
         END AS position_weight,
         CASE
             WHEN total_events = 1 THEN 1
-            WHEN first_event = last_event THEN 0.5
+            WHEN total_events = 2 OR first_event = last_event THEN 0.5
             WHEN touchpoint_at = first_event THEN 0.4
-            WHEN touchpoint_at = conversion_at THEN 0.4
+            WHEN touchpoint_at = signup_at THEN 0.4
             WHEN total_events > 2 THEN 0.2 / (total_events - 2)
             ELSE 0
         END AS signup_touch_weight,
