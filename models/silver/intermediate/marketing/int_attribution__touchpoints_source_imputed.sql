@@ -9,14 +9,14 @@
 }}
 
 /*
-The credited touchpoints with every touch given a source: one row per conversion x pageview_id x
-touchpoint_type.
+The credited touches with tidied source labels: one row per conversion x pageview_id x touchpoint_type.
+Credit is not changed here.
 
-As today (int_subscription__attribution_src_corrected): a touch with no source is assigned one at
-random in proportion to the known non-paid sources' credit (is_source_imputed), the generic
-'Search engines' detail is split across the named engines, and owned banners become 'House Ad'.
-The proportions come from the last var('attribution_imputation_window_days') days rather than the
-whole table, so the model can stay incremental.
+Same rules as today (int_subscription__attribution_src_corrected):
+- a touch with no source gets a non-paid source, picked in proportion to the non-paid sources'
+  credit over the last var('attribution_imputation_window_days') days (flagged is_source_imputed)
+- a generic 'Search engines' touch gets a named engine, in the same way
+- owned banners are labelled 'House Ad'
 */
 
 {%- set batch_floor = attribution_batch_floor() %}

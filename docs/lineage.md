@@ -186,7 +186,7 @@ graph LR
 
 ### Click-based subscription attribution flow
 
-The corrected subscription attribution, built from the page view chain beside the attribution chain above. These models are disabled unless `var('enable_marketing_models')` is true; the semantic view also needs `var('build_semantic_views')`.
+The corrected subscription attribution, built from the page view chain beside the attribution chain above. These models are disabled unless `var('enable_attribution_models')` (or `var('enable_marketing_models')`) is true; the semantic view also needs `var('build_semantic_views')`.
 
 ```mermaid
 graph LR
@@ -237,7 +237,7 @@ graph LR
 
 ### Marketing reporting flow
 
-The Marketing Measurement Dashboard's tables, built on the page view chain, the ad side and the attribution above. Disabled unless `var('enable_marketing_models')` is true.
+The Marketing Measurement Dashboard's tables, built on the page view chain, the ad side and the attribution above. Disabled unless `var('enable_marketing_models')` is true, which also turns on the attribution above.
 
 ```mermaid
 graph LR
