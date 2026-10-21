@@ -41,7 +41,7 @@ with base_av_events as (
 
 	FROM SDP_SILVER.STUDIOS_PIANO.STUDIOS_PIANO_EVENTS bbc
     LEFT JOIN sdp_silver.vmb.av_enrichment vmb on (bbc.av_content_id = vmb.av_content_id)
-	WHERE event_time >= '2026-09-20T00:00:00' AND event_time < '2026-10-01T00:00:00'
+	WHERE event_time >= '2026-09-01T00:00:00' AND event_time < '2026-10-01T00:00:00'
     AND bbc.av_session_id is not null
     AND page NOT IN ('keepalive','page.view.page','onboarding.page','error.page','notification.page')
     AND geo_country != 'United kingdom'
@@ -84,7 +84,6 @@ with base_av_events as (
                      (av_content_type is null),
                      (av_broadcasting_type is null), 
                      (av_content_genre is null),
-                     --(av_content_duration_range is NULL), 
                      COUNT(distinct av_session_id) DESC -- orders by descending page views 
         ) AS rn
     FROM base_av_events
@@ -159,7 +158,11 @@ LEFT JOIN av_properties_ranked b on a.av_content_id = b.av_content_id
 LEFT JOIN av_content_duration_range_ranked c on a.av_content_id = c.av_content_id
 )
 
-SELECT av_content_id,     
+-- should match piano query: 
+-- https://analytics.piano.io/workspaces/#/report/6ad7b1ff436df6c6eb02b1ce
+SELECT 
+    av_clip_title,
+    av_content_id,     
     av_session_content_duration,
     av_content_type,
     av_broadcasting_type, 
@@ -172,6 +175,6 @@ SELECT av_content_id,
     COALESCE (AVG(av_full_consumption), 0) AS m_av_full_consumption_rate,
     LEAST(1, COALESCE (AVG(case when av_playback_completion_rate > 0 then av_playback_completion_rate end), 0)) AS m_av_completion_rate
 FROM final_av_session_table
-GROUP BY 1, 2, 3, 4, 5, 6
+GROUP BY 1, 2, 3, 4, 5, 6, 7
 ORDER BY m_av_playbacks desc
-LIMIT 20
+LIMIT 50
