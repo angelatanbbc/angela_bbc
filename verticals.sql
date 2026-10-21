@@ -112,12 +112,19 @@ WITH base_events AS (
         CASE
             WHEN page = 'home.page' THEN 'Home page'
             WHEN page = 'news.page' THEN 'News front'
+            WHEN startswith(b.page, 'sport') THEN 'Sport'
+            WHEN startswith(b.page, 'audio') THEN 'Audio' 
+            WHEN startswith(b.page, 'video.doc') THEN 'Docs' 
             
-            WHEN ((content_section in ('Travel', 'The Travel Show', 'The SpeciaList', 'Discover the World') or content_pillar = 'Travel' or url like '%bbc.com/travel%') AND startswith(b.page, 'travel.'))  THEN 'Travel'
+            WHEN ((content_section in ('Travel', 'The Travel Show', 'The SpeciaList', 'Discover the World') 
+            or content_pillar = 'Travel' 
+            or url like '%bbc.com/travel%' 
+            or content_topic ilike any ('%Travel%', '%Remote Places%', '%World''s Table%', '%Food $ Drink%', '%Food & Drink%')) 
+            AND (startswith(b.page, 'travel.') or startswith(b.page, 'reel')))  THEN 'Travel'
 
             WHEN (content_section = 'Business' 
             or content_pillar = 'Business' 
-            or content_topic ilike '%business%' 
+            or content_topic ilike any ('%business%', '%Opening Bell%')
             or startswith(b.page, 'news.business') 
             or b.page = 'business.page' or url like '%bbc.com/business%')
                 THEN 'Business'
@@ -125,32 +132,28 @@ WITH base_events AS (
             WHEN (content_pillar = 'Health' or content_section in ('Science $ Health', 'Science & Health', 'Family $ Education', 'Family & Education') or content_topic ilike any ('%health%', '%wellbeing%', '%medicine%', '%psychology%', '%fitness%', '%nutrition%', '%diet%', '%Science $ Health%', '%sleep%', '%mind%', '%love%', '%exercise%', '%longevity%', '%neuroscience%') or b.page = 'health.page' or url like '%bbc.com/health%') 
             THEN 'Health'
 
-            WHEN (content_section in ('Arts', 'Arts in Motion', 'Culture', 'Entertainment $ Arts', 'Entertainment & Arts', 'History', 'Film $ TV', 'Film & TV', 'Culture $ Experiences', 'Culture & Experiences', 'Photography') or content_pillar in ('Arts', 'Arts in Motion', 'Culture') or startswith(b.page, 'culture.') or b.page in ('culture.page', 'arts.page') or url like any ('%bbc.com/culture%', '%bbc.com/arts%'))
+            WHEN (content_section in ('Art', 'Art history', 'Arts', 'Arts in Motion', 'Culture', 'Entertainment $ Arts', 'Entertainment & Arts', 'History', 'Film $ TV', 'Film & TV', 'Culture $ Experiences', 'Culture & Experiences', 'Photography') or content_pillar in ('Arts', 'Arts in Motion', 'Culture') or startswith(b.page, 'culture.') or b.page in ('culture.page', 'arts.page') or url like any ('%bbc.com/culture%', '%bbc.com/arts%') or content_topic ilike any ('%Art%', '%Culture%', '%History%', '%Books%', '%Film%'))
                 THEN 'Culture'
 
             WHEN (content_section in ('Earth', 'Climate', 'Science $ Environment', 'Future Planet', 'Science & Environment', 'World of wonder', 'Natural wonders', 'Science') or content_pillar in ('Earth', 'Climate', 'Science $ Environment', 'Science & Environment', 'Future Planet') 
-            or content_topic ilike any ('%earth%', '%climate%', '%world of wonder%', '%weather%', '%natural wonders%', '%green living%', '%environment%', '%nature%', '%future planet%', '%sustainability%', '%plants%', '%animals%', '%carbon%', '%global warming%', '%wind power%', '%solar power%', '%pollution%', '%conservation%', '%severe weather%', '%flood%', '%drought%', '%wildfire%', '%heatwave%', '%el nino%', '%tornado%', '% COP %', '%just stop oil%', '%green getaways%', '%eco-tourism%', '%nature & outdoors%', '%space%', '%solar system%', '%science%', '%astronomy%', '%geology%', '%planet%', '% sun, %', '% space,%', '%archaeology%') 
+            or content_topic ilike any ('%earth%', '%climate%', '%world of wonder%', '%weather%', '%natural wonders%', '%green living%', '%environment%', '%nature%', '%future planet%', '%sustainability%', '%plants%', '%animals%', '%carbon%', '%global warming%', '%wind power%', '%solar power%', '%pollution%', '%conservation%', '%severe weather%', '%flood%', '%drought%', '%wildfire%', '%heatwave%', '%el nino%', '%tornado%', '% COP %', '%just stop oil%', '%green getaways%', '%eco-tourism%', '%nature & outdoors%', '%space%', '%solar system%', '%science%', '%astronomy%', '%geology%', '%planet%', '% sun, %', '% space,%', '%archaeology%', '%wildlife%') 
             or url = 'https://www.bbc.com/innovation/science' 
-            or b.page in ('science.page', 'video.docs.category.earth.page', 'future_planet.page') 
+            or b.page in ('science.page', 'future_planet.page') 
             or url like '%bbc.com/future-planet%')
                 THEN 'Earth & Science'
 
             WHEN (content_section in ('Technology', 'Tech Now') or content_pillar = 'Technology' or  content_topic ilike any ('%technology%', '%Artificial intelligence%', '%AI v the Mind%', '%Robot%', '%Computer%', '%Data breaches%', '%cyber%', '%gaming%') or b.page in ('technology.page', 'innovation.page') OR url LIKE '%bbc.com/technology%' OR content_pillar = 'Innovation') 
                 THEN 'Tech'
 
-            WHEN startswith(b.page, 'sport') THEN 'Sport'
-            WHEN startswith(b.page, 'audio') THEN 'Audio' 
-            WHEN startswith(b.page, 'video.doc') THEN 'Docs' 
-
-            WHEN (b.page = 'news.us_canada.page' or content_section in ('US $ Canada', 'US & Canada') or page like any ('%us_and_canada%', '%us_canada%'))
+            WHEN ((b.page = 'news.us_canada.page' or content_section in ('US $ Canada', 'US & Canada') or page like any ('%us_and_canada%', '%us_canada%')) and startswith(page, 'news'))
             THEN 'US & Canada News'
             
-            WHEN (b.page in ('news.war_in_ukraine.page', 'news.world.europe.page', 'news.world.asia.page', 'news.world.africa.page', 'news.topics.c2vdnvdg6xxt.page', 'news.world.latin_america.page', 'news.world.middle_east.page', 'news.world.australia.page', 'news.in_pictures.page', 'news.bbcindepth.page', 'news.bbcverify.page', 'news.uk.page', 'news.england.page', 'news.scotland.page', 'news.northern_ireland.page', 'news.wales.page', 'news.politics.page', 'news.scotland.scotland_politics.page', 'news.northern_ireland.northern_ireland_politics.page', 'news.wales.wales_politics.page') or content_section in ('Asia', 'Europe', 'World', 'Africa', 'Middle East', 'Australia', 'Latin America', 'BBC InDepth', 'In Pictures', 'Verify', 'Politics', 'Newsbeat', 'Israel-Gaza war', 'War in Ukraine', 'India', 'BBC Verify', 'China', 'UK', 'England', 'Berkshire', 'Scotland') 
+            WHEN ((b.page in ('news.war_in_ukraine.page', 'news.world.europe.page', 'news.world.asia.page', 'news.world.africa.page', 'news.topics.c2vdnvdg6xxt.page', 'news.world.latin_america.page', 'news.world.middle_east.page', 'news.world.australia.page', 'news.in_pictures.page', 'news.bbcindepth.page', 'news.bbcverify.page', 'news.uk.page', 'news.england.page', 'news.scotland.page', 'news.northern_ireland.page', 'news.wales.page', 'news.politics.page', 'news.scotland.scotland_politics.page', 'news.northern_ireland.northern_ireland_politics.page', 'news.wales.wales_politics.page') or content_section in ('Asia', 'Europe', 'World', 'Africa', 'Middle East', 'Australia', 'Latin America', 'BBC InDepth', 'In Pictures', 'Verify', 'Politics', 'Newsbeat', 'Israel-Gaza war', 'War in Ukraine', 'India', 'BBC Verify', 'China', 'UK', 'England', 'Berkshire', 'Scotland') 
             or startswith(b.page, 'news.article') 
             or startswith(b.page, 'news.video') 
             or startswith(b.page, 'news.world') 
             or startswith(b.page, 'news.live') 
-            or url like '%bbc.com/world%') 
+            or url like '%bbc.com/world%') and startswith(page, 'news')) 
             THEN 'World News (excludes US&Canada)'
         END AS vertical
         ,
@@ -205,22 +208,20 @@ LEFT JOIN content_type d on a.page = d.page
 LEFT JOIN content_id e on a.page = e.page
 LEFT JOIN seo_metadata on e.content_id = seo_metadata.id
 WHERE site_id not in (646755, 643247, 646753) --exclude weather, storyworks, newslanguages
-and a.page like any ('%article%', '%video%', '%live%')
-and a.page ! like '%sport%'
 )
 SELECT page_title, 
     page, 
-    url, 
-    date_published, 
-    first_published_at, 
-    last_published_at, 
-    vertical, 
-    content_type, 
-    seo_type, 
-    seo_subtype, 
+    vertical,
     content_section, 
     content_pillar, 
     content_topic, 
+    content_type, 
+    url, 
+    date_published, 
+    first_published_at, 
+    last_published_at,  
+    seo_type, 
+    seo_subtype,
     
     count(*) as pvs
 from final_table
