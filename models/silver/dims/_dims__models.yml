@@ -320,7 +320,7 @@ models:
         tests:
           - not_null
       - name: template_type
-        description: Classification from the template name (Paywall, Ribbon, Subscription Landing Page or Other).
+        description: Classification from the template name (Paywall, Ribbon, Subscription Landing Page or Other), or from the template_type_override seed where the name is misleading.
         tests:
           - not_null
           - accepted_values:
