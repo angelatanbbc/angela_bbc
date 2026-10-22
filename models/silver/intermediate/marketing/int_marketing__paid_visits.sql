@@ -16,23 +16,25 @@ agency_resolved_from says which.
 
 WITH visits AS (
 
+    -- URL tags come from the landing page only, so a paid link clicked partway through an organic
+    -- visit doesn't make the whole visit paid
     SELECT
         visit_id,
         COALESCE(
             NULLIF(REGEXP_REPLACE(LOWER(TRIM(MAX(src_bbc_team))), '[?&].*$', ''), ''),
-            NULLIF(REGEXP_REPLACE(LOWER(TRIM(MAX(url_at_bbc_team))), '[?&].*$', ''), ''),
+            NULLIF(REGEXP_REPLACE(LOWER(TRIM(MIN_BY(url_at_bbc_team, page_view_time))), '[?&].*$', ''), ''),
             {{ bbc_team_from_campaign('MAX(src_ptr_name)', 'MAX(src_detail)', 'MAX(src_campaign)') }}
         ) AS bbc_team,
         COALESCE(
             NULLIF(TRIM(MAX(src_bbc_team)), '') IS NULL
-            AND NULLIF(TRIM(MAX(url_at_bbc_team)), '') IS NULL
+            AND NULLIF(TRIM(MIN_BY(url_at_bbc_team, page_view_time)), '') IS NULL
             AND {{ bbc_team_from_campaign('MAX(src_ptr_name)', 'MAX(src_detail)', 'MAX(src_campaign)') }} IS NOT NULL,
             FALSE
         ) AS is_bbc_team_from_campaign_name,
         -- digits only: Piano sometimes records Meta's unsubstituted ad id placeholder
         COALESCE(
             MAX(IFF(REGEXP_LIKE(src_creative_id, '^[0-9]+$'), src_creative_id, NULL)),
-            MAX(IFF(REGEXP_LIKE(url_at_creative_id, '^[0-9]+$'), url_at_creative_id, NULL))
+            MIN_BY(IFF(REGEXP_LIKE(url_at_creative_id, '^[0-9]+$'), url_at_creative_id, NULL), page_view_time)
         ) AS ad_id,
         MAX(src_campaign) AS src_campaign,
         MAX_BY(visit_bounce, page_view_time) AS visit_bounce
