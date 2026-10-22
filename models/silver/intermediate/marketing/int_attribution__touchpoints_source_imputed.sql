@@ -12,7 +12,7 @@
 The credited touches with tidied source labels: one row per conversion x pageview_id x touchpoint_type.
 Credit is not changed here.
 
-Same rules as today (int_subscription__attribution_src_corrected):
+Same rules as the old model (archive/old_attribution/int_subscription__attribution_src_corrected.sql):
 - a touch with no source gets a non-paid source, picked in proportion to the non-paid sources'
   credit over the last var('attribution_imputation_window_days') days (flagged is_source_imputed)
 - a generic 'Search engines' touch gets a named engine, in the same way

@@ -161,10 +161,11 @@ models:
   - name: int_attribution__touchpoints
     description: >
       The credited touchpoints and their weights. One row per conversion x pageview_id x
-      touchpoint_type, a subset of int_attribution__journey_touches. Today's keep rules, position
-      weight and attribution source (int_subscription__attribution) step for step. The sign-up touch
-      weight counts per purchase, not per cookie; as today it sums to 0.6 on journeys whose purchase
-      was recorded on another cookie, which have no purchase row. Incremental on conversion_date.
+      touchpoint_type, a subset of int_attribution__journey_touches. The old model's keep rules, position
+      weight and attribution source (archive/old_attribution/int_subscription__attribution.sql) step for
+      step, except that promo-code journeys are scaled so their position weights add up to 1. The sign-up
+      touch weight counts per purchase, not per cookie; when the purchase was recorded on another cookie,
+      the last touch takes its 40%. Incremental on conversion_date.
     columns:
       - name: attribution_source
         description: Credited source before unknown sources are handled; NULL when unknown.

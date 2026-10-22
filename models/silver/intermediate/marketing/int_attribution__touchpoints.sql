@@ -17,14 +17,15 @@ For each touch it decides:
 - whether it is paid (DBS / 8MS) and its attribution source
 - its credit under four models: position (reported), sign-up touch, first touch and last touch
 
-These rules are copied step for step from today's model (int_subscription__attribution). Differences:
+These rules are copied step for step from the old model (archive/old_attribution/int_subscription__attribution.sql).
+Differences:
 - journeys are grouped by purchase (conversion_id), not by cookie and sign-up time
 - the sign-up touch weight is counted per purchase (today: per cookie); when the purchase is not a
   touch, the last touch takes the purchase's 40%, so it always sums to 1 (today it can sum to 0.4)
 - touches at the same time are ordered by touchpoint_type then pageview_id, so a rebuild gives the same credit
-*/
 - a promo-code journey's position weights are scaled to add up to 1 (today they add up to more than 1 when a
   paid touch is not the first or last)
+*/
 
 {%- set batch_floor = attribution_batch_floor() %}
 
@@ -318,8 +319,8 @@ weighted AS (
         bbc_team,
         partner,
         is_paid_event,
-        -- promo-code journeys are credited to the code; short same-day ones in full
         has_promo,
+        -- promo-code journeys are credited to the code; short same-day ones in full
         CASE
             WHEN total_events < 4 AND first_event::DATE = last_event::DATE AND promo_code_from_conversion IS NOT NULL
                 THEN promo_code_from_conversion || ' Promo code'

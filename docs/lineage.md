@@ -150,21 +150,17 @@ graph LR
 
 ### Attribution and Facebook package flow
 
+The old click-based attribution chain (`stg_piano__subscription_attribution`, `int_subscription__attribution`, `int_subscription__attribution_src_corrected`, `fct_subscription_attribution`) is archived in `archive/old_attribution/` and no longer built; its replacement is the click-based subscription attribution flow below. This diagram now shows the paid media spend and the Facebook package.
+
 ```mermaid
 graph LR
     classDef source fill:#fff3b0,stroke:#eab308,color:#713f12
     classDef model fill:#dbeafe,stroke:#2563eb,color:#172554
     classDef mart fill:#dcfce7,stroke:#16a34a,color:#14532d
     classDef package fill:#f3e8ff,stroke:#9333ea,color:#581c87
-    piano["studios_piano.studios_piano_events"]:::source --> attr_stg["stg_piano__subscription_attribution"]:::model
-    facebook["FACEBOOK_ADS.basic_ad"]:::source --> attr_stg
-    google["GOOGLE_ADS.STG_GOOGLE_ADS"]:::source --> attr_stg
-    attr_stg --> attr["int_subscription__attribution"]:::model --> corrected["int_subscription__attribution_src_corrected"]:::model --> attribution["fct_subscription_attribution"]:::mart --> conversions["fct_conversions"]:::mart
-    piano --> corrected
-    piano --> attribution
-    piano --> spend_stg["stg_piano__paid_media_spend"]:::model
-    facebook --> spend_stg
-    google --> spend_stg --> spend["fct_marketing_spend"]:::mart
+    piano["studios_piano.studios_piano_events"]:::source --> spend_stg["stg_piano__paid_media_spend"]:::model
+    facebook["FACEBOOK_ADS.basic_ad"]:::source --> spend_stg
+    google["GOOGLE_ADS.STG_GOOGLE_ADS"]:::source --> spend_stg --> spend["fct_marketing_spend"]:::mart
     fb_source["facebook_ads source tables"]:::package --> fb_basic["facebook_ads.stg_facebook_ads__basic_ad"]:::package
     fb_source --> fb_actions["facebook_ads.stg_facebook_ads__basic_ad_actions"]:::package
     fb_source --> fb_values["facebook_ads.stg_facebook_ads__basic_ad_action_values"]:::package
@@ -179,9 +175,9 @@ graph LR
     fb_conversions --> url
     fb_history --> url
     creative --> url
-    linkStyle 3,4,5,6,12,26 stroke:#4169e1,stroke-width:1.5px
-    linkStyle 13,14,15,16,17,18,19,20,21,22,23,24,25 stroke:#9333ea,stroke-width:2.5px
-    linkStyle 0,1,2,7,8,9,10,11 stroke:#eab308,stroke-width:2.5px
+    linkStyle 3,17 stroke:#4169e1,stroke-width:1.5px
+    linkStyle 4,5,6,7,8,9,10,11,12,13,14,15,16 stroke:#9333ea,stroke-width:2.5px
+    linkStyle 0,1,2 stroke:#eab308,stroke-width:2.5px
 ```
 
 ### Click-based subscription attribution flow
@@ -338,7 +334,6 @@ The following inventory records every project-owned model in the dbt manifest an
 | `stg_piano__offer_terms` | `source:cgm_extract_load.raw_piano_offer_terms` |
 | `stg_piano__offer_templates` | `source:cgm_extract_load.raw_piano_offer_templates` |
 | `stg_piano__terms` | `source:cgm_extract_load.raw_piano_terms` |
-| `stg_piano__subscription_attribution` | `source:studios_piano.studios_piano_events` |
 | `stg_google_ads__spend` | `source:GOOGLE_ADS.STG_GOOGLE_ADS` |
 | `stg_piano__studios_events` | `source:studios_piano.studios_piano_events` |
 
@@ -361,8 +356,6 @@ The following inventory records every project-owned model in the dbt manifest an
 | `int_piano__ad_impressions` | `int_piano__events_cleaned` |
 | `int_piano__event_durations` | `stg_piano__studios_events` |
 | `int_subscription__survival` | `fct_subscription_events`, `fct_conversions`, `dim_experience` |
-| `int_subscription__attribution` | `stg_piano__subscription_attribution` |
-| `int_subscription__attribution_src_corrected` | `source:studios_piano.studios_piano_events`, `int_subscription__attribution` |
 | `int_attribution__purchase_events` | `int_piano__events_cleaned` |
 | `int_attribution__conversions` | `int_attribution__purchase_events`, `int_piano__page_views`, `seed:excluded_promo_codes`, `seed:subscription_sites` |
 | `int_attribution__journey_identities` | `int_attribution__conversions`, `int_piano__page_views` |
@@ -396,7 +389,6 @@ The following inventory records every project-owned model in the dbt manifest an
 | `fct_visitors_daily` | `stg_piano__studios_events` |
 | `fct_marketing_spend` | `stg_piano__paid_media_spend` |
 | `fct_page_views` | `int_piano__page_views`, `int_piano__scroll_events`, `int_piano__click_events`, `int_piano__ad_impressions`, `int_piano__event_durations` |
-| `fct_subscription_attribution` | `source:studios_piano.studios_piano_events`, `int_subscription__attribution_src_corrected` |
 | `dim_ad` | `facebook_ads.stg_facebook_ads__ad_history`, `facebook_ads.stg_facebook_ads__ad_set_history`, `facebook_ads.stg_facebook_ads__campaign_history`, `facebook_ads.stg_facebook_ads__account_history`, `int_facebook_ads__creative_history`, `stg_google_ads__spend`, `seed:meta_ads_accounts`, `seed:bbc_team_agencies` |
 | `dim_channel` | `int_attribution__touchpoints_source_imputed`, `seed:traffic_source_channels`, `seed:bbc_team_agencies` |
 | `dim_campaign_tracking` | `int_attribution__journey_touches` |
@@ -438,7 +430,7 @@ These sources are configured in `models/bronze/<source>/_<source>__sources.yml` 
 
 - `agg_facebook_ads_url_report` and `int_facebook_ads__creative_history` are project-owned models that depend on models from the installed `facebook_ads` dbt package, including `facebook_ads__url_tags`. That package DAG must be available before these local outputs are built.
 - `fct_conversions` depends on `fct_subscription_attribution`, so the attribution mart is upstream of the canonical conversion fact.
-- `int_subscription__attribution_src_corrected`, `fct_subscription_attribution` and the `agg_subs_*` content, pillar and usage models read `studios_piano.studios_piano_events` directly in addition to local models.
+- The `agg_subs_*` content, pillar and usage models read `studios_piano.studios_piano_events` directly in addition to local models.
 - `stg_piano__subscription_snapshots` depends on the daily [cgm-extract-load](https://github.com/bbc/cgm-extract-load) load into `raw_piano_subscription_snapshots`, which has a source freshness check (warn after 20 hours, error after 26).
 - The `stg_piano__experiences`, `stg_piano__offers`, `stg_piano__offer_terms`, `stg_piano__offer_templates` and `stg_piano__terms` staging models depend on the same daily load (job `piano_catalog`), with the same freshness checks.
 - `dim_geography` is built after the facts it covers: it takes the US and Canada regions from `geo_mapping` and adds every other country and region found on exposures, conversions, subscription events and page views, so every fact `geo_id` resolves. The facts compute `geo_id` with the `generate_geo_id` macro and do not reference the dim.
