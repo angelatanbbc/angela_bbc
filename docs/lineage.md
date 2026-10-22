@@ -183,7 +183,7 @@ graph LR
 
 ### Click-based subscription attribution flow
 
-The corrected subscription attribution, built from the page view chain beside the attribution chain above. These models are on by default; `var('enable_attribution_models')` set to false (or `DBT_ENABLE_ATTRIBUTION_MODELS=false`) turns them off. The semantic view also needs `var('build_semantic_views')`.
+The corrected subscription attribution, built from the page view chain beside the attribution chain above. These models always build, because `fct_conversions` takes `paid_attribution_weight` from `fct_attribution_touchpoints`. The semantic view needs `var('build_semantic_views')`.
 
 ```mermaid
 graph LR
@@ -430,7 +430,7 @@ These sources are configured in `models/bronze/<source>/_<source>__sources.yml` 
 ## Cross-DAG and cross-project references
 
 - `agg_facebook_ads_url_report` and `int_facebook_ads__creative_history` are project-owned models that depend on models from the installed `facebook_ads` dbt package, including `facebook_ads__url_tags`. That package DAG must be available before these local outputs are built.
-- `fct_conversions` depends on `fct_attribution_touchpoints` (for `paid_attribution_weight`), so the click-based attribution chain is upstream of the canonical conversion fact and everything built on it (`fct_subscription_events`, the acquisition aggregates, `agg_subscriber_bans`, `sv_bbc_com`). `enable_attribution_models: false` therefore no longer parses: the attribution models are now part of the core build.
+- `fct_conversions` depends on `fct_attribution_touchpoints` (for `paid_attribution_weight`), so the click-based attribution chain is upstream of the canonical conversion fact and everything built on it (`fct_subscription_events`, the acquisition aggregates, `agg_subscriber_bans`, `sv_bbc_com`). The attribution models are therefore part of the core build, with no switch to turn them off.
 - The `agg_subs_*` content, pillar and usage models read `studios_piano.studios_piano_events` directly in addition to local models.
 - `stg_piano__subscription_snapshots` depends on the daily [cgm-extract-load](https://github.com/bbc/cgm-extract-load) load into `raw_piano_subscription_snapshots`, which has a source freshness check (warn after 20 hours, error after 26).
 - The `stg_piano__experiences`, `stg_piano__offers`, `stg_piano__offer_terms`, `stg_piano__offer_templates` and `stg_piano__terms` staging models depend on the same daily load (job `piano_catalog`), with the same freshness checks.
