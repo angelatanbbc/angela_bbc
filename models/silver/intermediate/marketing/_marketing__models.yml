@@ -270,3 +270,42 @@ models:
         tests:
           - not_null
           - unique
+
+unit_tests:
+  - name: int_attribution__touchpoints_promo_weights_sum_to_one
+    description: >
+      Two promo-code journeys of five touches, each on its own day. c1 has a paid touch that is neither the first
+      nor the last, so today's split gives 0.3 / 0.3 / 0.05 / 0.3 / 0.3 = 1.25, scaled to 0.24 / 0.24 / 0.04 /
+      0.24 / 0.24. c2 has no paid touch and keeps today's 0.3 / 0.05 / 0.05 / 0.3 / 0.3.
+    model: int_attribution__touchpoints
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('int_attribution__journey_touches')
+        rows:
+          - {conversion_id: c1, pageview_id: c1p1, touchpoint_type: page_view, conversion_date: 2026-10-05, conversion_at: "2026-10-05 10:00:00", touchpoint_at: "2026-10-01 10:00:00", touchpoint_visitor_id: "AA", visit_id: "01", src: direct}
+          - {conversion_id: c1, pageview_id: c1p2, touchpoint_type: page_view, conversion_date: 2026-10-05, conversion_at: "2026-10-05 10:00:00", touchpoint_at: "2026-10-02 10:00:00", touchpoint_visitor_id: "AA", visit_id: "02", src: paid, src_bbc_team: dbs}
+          - {conversion_id: c1, pageview_id: c1p3, touchpoint_type: page_view, conversion_date: 2026-10-05, conversion_at: "2026-10-05 10:00:00", touchpoint_at: "2026-10-03 10:00:00", touchpoint_visitor_id: "AA", visit_id: "03", src: direct}
+          - {conversion_id: c1, pageview_id: c1p4, touchpoint_type: page_view, conversion_date: 2026-10-05, conversion_at: "2026-10-05 10:00:00", touchpoint_at: "2026-10-04 10:00:00", touchpoint_visitor_id: "AA", visit_id: "04", src: direct}
+          - {conversion_id: c1, pageview_id: c1p5, touchpoint_type: conversion, conversion_date: 2026-10-05, conversion_at: "2026-10-05 10:00:00", touchpoint_at: "2026-10-05 10:00:00", touchpoint_visitor_id: "AA", visit_id: "05", src: direct, promo_code: SAVE}
+          - {conversion_id: c2, pageview_id: c2p1, touchpoint_type: page_view, conversion_date: 2026-10-05, conversion_at: "2026-10-05 10:00:00", touchpoint_at: "2026-10-01 10:00:00", touchpoint_visitor_id: "BB", visit_id: "11", src: direct}
+          - {conversion_id: c2, pageview_id: c2p2, touchpoint_type: page_view, conversion_date: 2026-10-05, conversion_at: "2026-10-05 10:00:00", touchpoint_at: "2026-10-02 10:00:00", touchpoint_visitor_id: "BB", visit_id: "12", src: direct}
+          - {conversion_id: c2, pageview_id: c2p3, touchpoint_type: page_view, conversion_date: 2026-10-05, conversion_at: "2026-10-05 10:00:00", touchpoint_at: "2026-10-03 10:00:00", touchpoint_visitor_id: "BB", visit_id: "13", src: direct}
+          - {conversion_id: c2, pageview_id: c2p4, touchpoint_type: page_view, conversion_date: 2026-10-05, conversion_at: "2026-10-05 10:00:00", touchpoint_at: "2026-10-04 10:00:00", touchpoint_visitor_id: "BB", visit_id: "14", src: direct}
+          - {conversion_id: c2, pageview_id: c2p5, touchpoint_type: conversion, conversion_date: 2026-10-05, conversion_at: "2026-10-05 10:00:00", touchpoint_at: "2026-10-05 10:00:00", touchpoint_visitor_id: "BB", visit_id: "15", src: direct, promo_code: SAVE}
+      - input: ref('bbc_team_agencies')
+        rows:
+          - {bbc_team_raw: dbs, agency: dbs, is_paid_media: true}
+    expect:
+      rows:
+        - {conversion_id: c1, pageview_id: c1p1, position_weight: 0.24}
+        - {conversion_id: c1, pageview_id: c1p2, position_weight: 0.24}
+        - {conversion_id: c1, pageview_id: c1p3, position_weight: 0.04}
+        - {conversion_id: c1, pageview_id: c1p4, position_weight: 0.24}
+        - {conversion_id: c1, pageview_id: c1p5, position_weight: 0.24}
+        - {conversion_id: c2, pageview_id: c2p1, position_weight: 0.3}
+        - {conversion_id: c2, pageview_id: c2p2, position_weight: 0.05}
+        - {conversion_id: c2, pageview_id: c2p3, position_weight: 0.05}
+        - {conversion_id: c2, pageview_id: c2p4, position_weight: 0.3}
+        - {conversion_id: c2, pageview_id: c2p5, position_weight: 0.3}

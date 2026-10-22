@@ -1052,7 +1052,9 @@ models:
       - name: is_lookback_complete
         description: FALSE when the page view history does not reach the full lookback before the purchase.
       - name: position_weight
-        description: Position-based credit, the dashboard's model.
+        description: >
+          Position-based credit, the dashboard's model. Promo-code journeys keep today's 30 / 30 / 30 / 10 split,
+          scaled so it adds up to 1.
         tests:
           - not_null
           - sums_to_one:

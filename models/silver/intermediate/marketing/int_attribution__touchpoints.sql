@@ -23,6 +23,8 @@ These rules are copied step for step from today's model (int_subscription__attri
   touch, the last touch takes the purchase's 40%, so it always sums to 1 (today it can sum to 0.4)
 - touches at the same time are ordered by touchpoint_type then pageview_id, so a rebuild gives the same credit
 */
+- a promo-code journey's position weights are scaled to add up to 1 (today they add up to more than 1 when a
+  paid touch is not the first or last)
 
 {%- set batch_floor = attribution_batch_floor() %}
 
@@ -317,6 +319,7 @@ weighted AS (
         partner,
         is_paid_event,
         -- promo-code journeys are credited to the code; short same-day ones in full
+        has_promo,
         CASE
             WHEN total_events < 4 AND first_event::DATE = last_event::DATE AND promo_code_from_conversion IS NOT NULL
                 THEN promo_code_from_conversion || ' Promo code'
@@ -404,7 +407,12 @@ SELECT
     is_paid_event = 1 AS is_paid_touch,
     IFF(is_paid_event = 1, 'Paid', attribution_source_unpaid) AS attribution_source,
     IFF(is_paid_event = 1, bbc_team, attribution_source_detail_unpaid) AS attribution_source_detail,
-    position_weight,
+    -- today's promo split adds up to more than 1 when a paid touch is not the first or last, so scale it to 1
+    IFF(
+        has_promo = 1,
+        position_weight / SUM(position_weight) OVER (PARTITION BY conversion_id),
+        position_weight
+    ) AS position_weight,
     signup_touch_weight,
     first_touch_weight,
     last_touch_weight
