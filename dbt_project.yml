@@ -7,40 +7,40 @@ model-paths: ["models"]
 models:
   dns_transformations:
     +materialized: table
-    # the subscription attribution and marketing models are off until their first live build is planned
-    # (see the runbook). --vars '{enable_attribution_models: true}' turns on the attribution chain, its dims
-    # and gold table; --vars '{enable_marketing_models: true}' turns on everything (marketing needs attribution).
+    # the attribution chain, its dims and gold table are on; --vars '{enable_attribution_models: false}' (or
+    # DBT_ENABLE_ATTRIBUTION_MODELS=false) turns them off. The marketing models stay off until
+    # --vars '{enable_marketing_models: true}', which turns on everything (marketing needs attribution).
     # The editor turns them on for lineage with DBT_ENABLE_MARKETING_MODELS=true (.vscode/settings.json)
     bronze:
       google_ads:
         stg_google_ads__spend:
-          +enabled: "{{ var('enable_attribution_models', env_var('DBT_ENABLE_ATTRIBUTION_MODELS', 'false') | lower == 'true') or var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') }}"
+          +enabled: "{{ var('enable_attribution_models', env_var('DBT_ENABLE_ATTRIBUTION_MODELS', 'true') | lower == 'true') or var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') }}"
     silver:
       intermediate:
         marketing:
           +enabled: "{{ var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') }}"
           int_attribution__purchase_events:
-            +enabled: "{{ var('enable_attribution_models', env_var('DBT_ENABLE_ATTRIBUTION_MODELS', 'false') | lower == 'true') or var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') }}"
+            +enabled: "{{ var('enable_attribution_models', env_var('DBT_ENABLE_ATTRIBUTION_MODELS', 'true') | lower == 'true') or var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') }}"
           int_attribution__conversions:
-            +enabled: "{{ var('enable_attribution_models', env_var('DBT_ENABLE_ATTRIBUTION_MODELS', 'false') | lower == 'true') or var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') }}"
+            +enabled: "{{ var('enable_attribution_models', env_var('DBT_ENABLE_ATTRIBUTION_MODELS', 'true') | lower == 'true') or var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') }}"
           int_attribution__journey_identities:
-            +enabled: "{{ var('enable_attribution_models', env_var('DBT_ENABLE_ATTRIBUTION_MODELS', 'false') | lower == 'true') or var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') }}"
+            +enabled: "{{ var('enable_attribution_models', env_var('DBT_ENABLE_ATTRIBUTION_MODELS', 'true') | lower == 'true') or var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') }}"
           int_attribution__journey_touches:
-            +enabled: "{{ var('enable_attribution_models', env_var('DBT_ENABLE_ATTRIBUTION_MODELS', 'false') | lower == 'true') or var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') }}"
+            +enabled: "{{ var('enable_attribution_models', env_var('DBT_ENABLE_ATTRIBUTION_MODELS', 'true') | lower == 'true') or var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') }}"
           int_attribution__touchpoints:
-            +enabled: "{{ var('enable_attribution_models', env_var('DBT_ENABLE_ATTRIBUTION_MODELS', 'false') | lower == 'true') or var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') }}"
+            +enabled: "{{ var('enable_attribution_models', env_var('DBT_ENABLE_ATTRIBUTION_MODELS', 'true') | lower == 'true') or var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') }}"
           int_attribution__touchpoints_source_imputed:
-            +enabled: "{{ var('enable_attribution_models', env_var('DBT_ENABLE_ATTRIBUTION_MODELS', 'false') | lower == 'true') or var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') }}"
+            +enabled: "{{ var('enable_attribution_models', env_var('DBT_ENABLE_ATTRIBUTION_MODELS', 'true') | lower == 'true') or var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') }}"
       dims:
         dim_ad:
-          +enabled: "{{ var('enable_attribution_models', env_var('DBT_ENABLE_ATTRIBUTION_MODELS', 'false') | lower == 'true') or var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') }}"
+          +enabled: "{{ var('enable_attribution_models', env_var('DBT_ENABLE_ATTRIBUTION_MODELS', 'true') | lower == 'true') or var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') }}"
         dim_channel:
-          +enabled: "{{ var('enable_attribution_models', env_var('DBT_ENABLE_ATTRIBUTION_MODELS', 'false') | lower == 'true') or var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') }}"
+          +enabled: "{{ var('enable_attribution_models', env_var('DBT_ENABLE_ATTRIBUTION_MODELS', 'true') | lower == 'true') or var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') }}"
         dim_campaign_tracking:
-          +enabled: "{{ var('enable_attribution_models', env_var('DBT_ENABLE_ATTRIBUTION_MODELS', 'false') | lower == 'true') or var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') }}"
+          +enabled: "{{ var('enable_attribution_models', env_var('DBT_ENABLE_ATTRIBUTION_MODELS', 'true') | lower == 'true') or var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') }}"
       facts:
         fct_attribution_touchpoints:
-          +enabled: "{{ var('enable_attribution_models', env_var('DBT_ENABLE_ATTRIBUTION_MODELS', 'false') | lower == 'true') or var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') }}"
+          +enabled: "{{ var('enable_attribution_models', env_var('DBT_ENABLE_ATTRIBUTION_MODELS', 'true') | lower == 'true') or var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') }}"
         fct_ad_performance_daily:
           +enabled: "{{ var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') }}"
         fct_paid_page_views:
@@ -50,7 +50,7 @@ models:
     gold:
       aggregates:
         agg_subscription_attribution_touchpoint:
-          +enabled: "{{ var('enable_attribution_models', env_var('DBT_ENABLE_ATTRIBUTION_MODELS', 'false') | lower == 'true') or var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') }}"
+          +enabled: "{{ var('enable_attribution_models', env_var('DBT_ENABLE_ATTRIBUTION_MODELS', 'true') | lower == 'true') or var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') }}"
         agg_marketing_paid_page_views:
           +enabled: "{{ var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true') }}"
         agg_marketing_visitor_funnel:
@@ -60,7 +60,7 @@ models:
       semantic_views:
         # also needs the CREATE SEMANTIC VIEW privilege: --vars '{build_semantic_views: true}'
         sv_marketing_attribution:
-          +enabled: "{{ (var('enable_attribution_models', env_var('DBT_ENABLE_ATTRIBUTION_MODELS', 'false') | lower == 'true') or var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true')) and var('build_semantic_views', false) }}"
+          +enabled: "{{ (var('enable_attribution_models', env_var('DBT_ENABLE_ATTRIBUTION_MODELS', 'true') | lower == 'true') or var('enable_marketing_models', env_var('DBT_ENABLE_MARKETING_MODELS', 'false') | lower == 'true')) and var('build_semantic_views', false) }}"
   facebook_ads:
     intermediate:
       int_facebook_ads__creative_history:

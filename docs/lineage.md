@@ -186,7 +186,7 @@ graph LR
 
 ### Click-based subscription attribution flow
 
-The corrected subscription attribution, built from the page view chain beside the attribution chain above. These models are disabled unless `var('enable_attribution_models')` (or `var('enable_marketing_models')`) is true; the semantic view also needs `var('build_semantic_views')`.
+The corrected subscription attribution, built from the page view chain beside the attribution chain above. These models are on by default; `var('enable_attribution_models')` set to false (or `DBT_ENABLE_ATTRIBUTION_MODELS=false`) turns them off. The semantic view also needs `var('build_semantic_views')`.
 
 ```mermaid
 graph LR
