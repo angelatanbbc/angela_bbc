@@ -225,7 +225,9 @@ models:
       Visits from paid media. One row per visit whose agency is a paid-media agency (seed
       bbc_team_agencies), by the attribution's agency rule at visit level: the visit's own tag, else
       its Meta ad's agency (dim_ad), else an 8ms_ / dbs_ campaign name on a Facebook or Instagram
-      visit. Covers the page view history int_piano__page_views holds.
+      visit. URL tags are read from the landing page only. When Piano's campaign is Meta's unfilled
+      placeholder, src_campaign comes from the visit's Meta ad (dim_ad) where it has one. Covers the page
+      view history int_piano__page_views holds.
     columns:
       - name: visit_id
         description: Piano visit id. Primary key.

@@ -71,13 +71,19 @@ paid_touches AS (
 
     SELECT
         f.touchpoint_date,
-        COALESCE(ct.campaign, '(none)') AS src_campaign,
+        -- as in int_marketing__paid_visits: Meta's unfilled campaign placeholder takes the Meta ad's campaign
+        COALESCE(
+            IFF(CONTAINS(ct.campaign, '{') AND a.platform = 'meta', a.campaign_name, ct.campaign),
+            ct.campaign,
+            '(none)'
+        ) AS src_campaign,
         ch.agency,
         f.position_weight,
         f.last_touch_weight
     FROM {{ ref('fct_attribution_touchpoints') }} f
     JOIN {{ ref('dim_channel') }} ch ON f.channel_sk = ch.channel_sk
     LEFT JOIN {{ ref('dim_campaign_tracking') }} ct ON f.campaign_tracking_sk = ct.campaign_tracking_sk
+    LEFT JOIN {{ ref('dim_ad') }} a ON f.ad_sk = a.ad_sk
     WHERE f.is_paid_touch
         AND ch.agency IS NOT NULL
 

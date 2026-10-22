@@ -11,7 +11,8 @@ Paid visits: one row per visit whose agency is a paid-media agency (seed bbc_tea
 The attribution's agency rule at visit level (Piano's src_* columns are constant within a visit):
 the visit's own tag (src_bbc_team, else the landing URL's at_bbc_team); with neither, the agency of
 its Meta ad (dim_ad), else an 8ms_ / dbs_ campaign name on a Facebook or Instagram visit.
-agency_resolved_from says which.
+agency_resolved_from says which. When Piano's campaign is Meta's unfilled placeholder, the campaign
+comes from the visit's Meta ad where it has one.
 */
 
 WITH visits AS (
@@ -59,7 +60,8 @@ meta_ads AS (
     SELECT
         ad_id,
         ad_sk,
-        LOWER(bbc_team) AS bbc_team
+        LOWER(bbc_team) AS bbc_team,
+        campaign_name
     FROM {{ ref('dim_ad') }}
     WHERE platform = 'meta'
 
@@ -72,6 +74,7 @@ visit_agency AS (
         v.ad_id,
         a.ad_sk,
         v.src_campaign,
+        a.campaign_name AS ad_campaign_name,
         v.visit_bounce,
         IFF(v.is_bbc_team_from_campaign_name, NULL, NULLIF(LOWER(TRIM(v.bbc_team)), '')) AS tag_team,
         IFF(pa.bbc_team_raw IS NOT NULL, a.bbc_team, NULL) AS ad_team,
@@ -92,7 +95,9 @@ SELECT
         WHEN va.ad_team IS NOT NULL THEN 'ad_id'
         ELSE 'campaign_name'
     END AS agency_resolved_from,
-    va.src_campaign,
+    -- Meta sometimes sends its campaign-name placeholder unfilled; the visit's Meta ad then gives the campaign
+    IFF(CONTAINS(va.src_campaign, '{') AND va.ad_campaign_name IS NOT NULL, va.ad_campaign_name, va.src_campaign)
+        AS src_campaign,
     va.visit_bounce
 FROM visit_agency va
 JOIN paid_agencies pa ON COALESCE(va.tag_team, va.ad_team, va.campaign_name_team) = pa.bbc_team_raw
