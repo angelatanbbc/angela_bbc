@@ -229,7 +229,9 @@ graph LR
     device --> sv
     google["GOOGLE_ADS.STG_GOOGLE_ADS"]:::source --> google_stg["stg_google_ads__spend"]:::model --> ad
     cleaned["int_piano__events_cleaned"]:::model --> purchases
-    linkStyle 0,1,4,5,6,7,8,10,13,14,15,17,19,20,21,22,23,24,25,26,27,28,29,30,31,32,34,35 stroke:#4169e1,stroke-width:1.5px
+    dates["dim_date"]:::mart --> sv
+    geography["dim_geography"]:::mart --> sv
+    linkStyle 0,1,4,5,6,7,8,10,13,14,15,17,19,20,21,22,23,24,25,26,27,28,29,30,31,32,34,35,36,37 stroke:#4169e1,stroke-width:1.5px
     linkStyle 2,3,11,12,16,18 stroke:#f97316,stroke-width:2.5px
     linkStyle 9 stroke:#9333ea,stroke-width:2.5px
     linkStyle 33 stroke:#eab308,stroke-width:2.5px
@@ -418,7 +420,7 @@ The following inventory records every project-owned model in the dbt manifest an
 | `agg_subs_product_usage_30d_snapshot` | `source:studios_piano.studios_piano_events`, `dim_subscription` |
 | `agg_subscriber_bans` | `fct_subscriber_activity_daily`, `fct_subscription_events`, `fct_visitors_daily`, `fct_conversions`, `fct_exposures` |
 | `agg_subscription_attribution_touchpoint` | `fct_attribution_touchpoints`, `dim_channel`, `dim_campaign_tracking`, `dim_ad`, `dim_device_platform` |
-| `sv_marketing_attribution` (semantic view) | `fct_attribution_touchpoints`, `dim_channel`, `dim_campaign_tracking`, `dim_ad`, `dim_device_platform` |
+| `sv_marketing_attribution` (semantic view) | `fct_attribution_touchpoints`, `dim_date`, `dim_device_platform`, `dim_geography`, `dim_channel`, `dim_campaign_tracking`, `dim_ad` |
 | `agg_marketing_paid_page_views` | `fct_ad_performance_daily`, `fct_paid_page_views`, `dim_ad`, `dim_device_platform` |
 | `agg_marketing_visitor_funnel` | `fct_paid_visitor_funnel` |
 | `agg_marketing_campaign_daily` | `agg_marketing_paid_page_views`, `agg_marketing_visitor_funnel`, `fct_attribution_touchpoints`, `dim_channel`, `dim_campaign_tracking` |
@@ -440,7 +442,7 @@ These sources are configured in `models/bronze/<source>/_<source>__sources.yml` 
 - `stg_piano__subscription_snapshots` depends on the daily [cgm-extract-load](https://github.com/bbc/cgm-extract-load) load into `raw_piano_subscription_snapshots`, which has a source freshness check (warn after 20 hours, error after 26).
 - The `stg_piano__experiences`, `stg_piano__offers`, `stg_piano__offer_terms`, `stg_piano__offer_templates` and `stg_piano__terms` staging models depend on the same daily load (job `piano_catalog`), with the same freshness checks.
 - `dim_geography` is built after the facts it covers: it takes the US and Canada regions from `geo_mapping` and adds every other country and region found on exposures, conversions, subscription events and page views, so every fact `geo_id` resolves. The facts compute `geo_id` with the `generate_geo_id` macro and do not reference the dim.
-- `sv_bbc_com` uses the `semantic_view` materialization from the installed `Snowflake-Labs/dbt_semantic_view` package. It is excluded from `dbt lint` in CI because its body is semantic view DDL, not a SELECT.
+- `sv_bbc_com` and `sv_marketing_attribution` use the `semantic_view` materialization from the installed `Snowflake-Labs/dbt_semantic_view` package. They are excluded from `dbt lint` in CI because their body is semantic view DDL, not a SELECT.
 - No direct `ref()` to a mart in a sibling repository is present in this project's model SQL. The explicit dbt project boundary is the installed `facebook_ads` package.
 
 ## Scheduling order
