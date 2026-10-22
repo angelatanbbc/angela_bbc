@@ -62,8 +62,8 @@ TABLES (
 
     -- Facts
     CONVERSION_TOUCHPOINTS AS {{ ref('fct_conversions') }}
-        WITH SYNONYMS = ('cta_touchpoints', 'marketing_touchpoints', 'touchpoints', 'conversions', 'sign_ups')
-        COMMENT = 'Subscription conversions with their marketing touchpoints. One row per touchpoint, so a conversion with several touchpoints has several rows; position_weight sums to 1 per conversion.',
+        WITH SYNONYMS = ('conversions', 'sign_ups')
+        COMMENT = 'Subscription conversions (sign-ups), web and app. One row per conversion; paid_attribution_weight is the share of its marketing credit that went to paid media.',
     DAILY_VISITORS AS {{ ref('fct_visitors_daily') }}
         PRIMARY KEY (VISITOR_DATE_KEY)
         COMMENT = 'Daily visitors to BBC.com web and app in the United States and Canada. One row per visitor, date, site and device platform. The denominator of exposure rates.',
@@ -117,11 +117,11 @@ RELATIONSHIPS (
 )
 
 FACTS (
-    -- Conversion touchpoints
+    -- Conversions
     CONVERSION_TOUCHPOINTS.CART_TURNOVERTAXFREE AS cart_turnovertaxfree
-        COMMENT = 'First-period revenue of the conversion excluding tax. Recorded by Piano for web checkouts; an estimate of list price less store fee for app store conversions. Repeated on every touchpoint row, so weight it by position_weight (see conversion_revenue).',
-    CONVERSION_TOUCHPOINTS.POSITION_WEIGHT AS position_weight
-        COMMENT = 'Fractional multi-touch attribution weight of the touchpoint. Sums to 1 per conversion.',
+        COMMENT = 'First-period revenue of the conversion excluding tax. Recorded by Piano for web checkouts; an estimate of list price less store fee for app store conversions.',
+    CONVERSION_TOUCHPOINTS.PAID_ATTRIBUTION_WEIGHT AS paid_attribution_weight
+        COMMENT = 'Share (0 to 1) of the conversion''s position-based marketing credit that went to paid media (DBS / 8MS) touches. 0 for app conversions and web conversions with no attribution.',
     PRIVATE CONVERSION_TOUCHPOINTS.CONVERSION_SUBSCRIPTION_WEIGHT AS subscription_weight
         COMMENT = 'Number of subscriptions the conversion counts as (2 for group plans, 10 or 25 for business plans, otherwise 1).',
 
@@ -347,13 +347,7 @@ DIMENSIONS (
     TERMS.TERM_TYPE AS term_type
         COMMENT = 'Piano term type, such as payment or external (app store).',
 
-    -- Conversion touchpoints
-    CONVERSION_TOUCHPOINTS.ATTRIBUTION_SOURCE AS attribution_source
-        WITH SYNONYMS = ('organic_or_paid')
-        COMMENT = 'Whether the touchpoint is Organic or Paid marketing.',
-    CONVERSION_TOUCHPOINTS.ATTRIBUTION_SOURCE_DETAIL AS attribution_source_detail
-        WITH SYNONYMS = ('marketing_channel', 'acquisition_channel')
-        COMMENT = 'Channel of the touchpoint, such as Direct traffic, Search engines, BBC Public Service sites, emails or Paid.',
+    -- Conversions
     CONVERSION_TOUCHPOINTS.CONVERSION_AB_TEST_VARIANT_NAME AS ab_test_variant_name
         COMMENT = 'A/B test variant of the experience that led to the conversion.',
     CONVERSION_TOUCHPOINTS.CONVERSION_C1X_CONTENT_LIKELY_TO_CONVERT AS c1x_content_likely_to_convert
@@ -376,12 +370,12 @@ DIMENSIONS (
         COMMENT = 'Date and time of the conversion.',
     CONVERSION_TOUCHPOINTS.PAYMENT_PROVIDER AS payment_provider
         COMMENT = 'Payment provider observed on the conversion: Stripe Elements or Braintree Credit Card for web checkouts, Apple App Store or Google Play for app stores.',
-    CONVERSION_TOUCHPOINTS.TOUCHPOINT_SRC AS src
-        COMMENT = 'Piano traffic source of the touchpoint visit, such as Direct traffic, Search engines or BBC Public Service sites.',
-    CONVERSION_TOUCHPOINTS.TOUCHPOINT_SRC_DETAIL AS src_detail
-        COMMENT = 'Detailed Piano traffic source of the touchpoint visit, such as a search engine or campaign name.',
-    CONVERSION_TOUCHPOINTS.TOUCHPOINT_VISIT_TIME AS visit_time
-        COMMENT = 'Date and time of the touchpoint visit.',
+    CONVERSION_TOUCHPOINTS.CONVERSION_SRC AS src
+        COMMENT = 'Piano traffic source of the conversion visit, such as Direct traffic, Search engines or BBC Public Service sites. For the full marketing journey use sv_marketing_attribution.',
+    CONVERSION_TOUCHPOINTS.CONVERSION_SRC_DETAIL AS src_detail
+        COMMENT = 'Detailed Piano traffic source of the conversion visit, such as a search engine or campaign name.',
+    CONVERSION_TOUCHPOINTS.CONVERSION_VISIT_TIME AS visit_time
+        COMMENT = 'Date and time the conversion visit started.',
     CONVERSION_TOUCHPOINTS.VX_PROMO_CODE AS vx_promo_code
         WITH SYNONYMS = ('promo_code')
         COMMENT = 'Promo code used at conversion, if any.',
@@ -495,22 +489,28 @@ DIMENSIONS (
 )
 
 METRICS (
-    -- Conversions. fct_conversions has one row per touchpoint, so counts are SUM(position_weight):
-    -- equal to the distinct conversion count overall and still correct when cut by touchpoint fields.
-    CONVERSION_TOUCHPOINTS.CONVERSIONS AS SUM(position_weight)
+    -- Conversions. fct_conversions has one row per conversion; paid and organic sign-ups split each
+    -- conversion by its paid_attribution_weight, so they add up to conversions.
+    CONVERSION_TOUCHPOINTS.CONVERSIONS AS COUNT(conversion_id)
         WITH SYNONYMS = ('new_starts', 'new_subscriptions', 'sign_ups', 'signups', 'subscription_starts', 'acquisitions')
-        COMMENT = 'New subscription sign-ups, with fractional multi-touch attribution, so sign-ups split by attribution source or traffic source add up to the total.',
-    CONVERSION_TOUCHPOINTS.CONVERSIONS_LANDING_PAGE AS SUM(IFF(templates.template_type = 'Subscription Landing Page', position_weight, 0))
+        COMMENT = 'New subscription sign-ups.',
+    CONVERSION_TOUCHPOINTS.PAID_CONVERSIONS AS SUM(paid_attribution_weight)
+        WITH SYNONYMS = ('paid_signups', 'paid_media_signups')
+        COMMENT = 'Sign-ups credited to paid media (DBS / 8MS), with fractional multi-touch attribution: a conversion counts by the share of its credit that went to paid touches. Paid plus organic sign-ups equals conversions. For channel-level attribution use sv_marketing_attribution.',
+    CONVERSION_TOUCHPOINTS.ORGANIC_CONVERSIONS AS SUM(1 - paid_attribution_weight)
+        WITH SYNONYMS = ('organic_signups', 'unpaid_signups')
+        COMMENT = 'Sign-ups not credited to paid media: conversions minus paid_conversions. App conversions count as organic.',
+    CONVERSION_TOUCHPOINTS.CONVERSIONS_LANDING_PAGE AS SUM(IFF(templates.template_type = 'Subscription Landing Page', 1, 0))
         COMMENT = 'Sign-ups from the Subscription Landing Page template type.',
-    CONVERSION_TOUCHPOINTS.CONVERSIONS_PAYWALL AS SUM(IFF(templates.template_type = 'Paywall', position_weight, 0))
+    CONVERSION_TOUCHPOINTS.CONVERSIONS_PAYWALL AS SUM(IFF(templates.template_type = 'Paywall', 1, 0))
         COMMENT = 'Sign-ups from the Paywall template type.',
-    CONVERSION_TOUCHPOINTS.CONVERSIONS_RIBBON AS SUM(IFF(templates.template_type = 'Ribbon', position_weight, 0))
+    CONVERSION_TOUCHPOINTS.CONVERSIONS_RIBBON AS SUM(IFF(templates.template_type = 'Ribbon', 1, 0))
         COMMENT = 'Sign-ups from the Ribbon template type.',
-    CONVERSION_TOUCHPOINTS.WEIGHTED_CONVERSIONS AS SUM(position_weight * conversion_touchpoints.conversion_subscription_weight)
+    CONVERSION_TOUCHPOINTS.WEIGHTED_CONVERSIONS AS SUM(conversion_touchpoints.conversion_subscription_weight)
         COMMENT = 'Sign-ups counting group and business plans as the number of subscriptions they include (2, 10 or 25).',
-    CONVERSION_TOUCHPOINTS.CONVERSION_REVENUE AS SUM(position_weight * cart_turnovertaxfree)
+    CONVERSION_TOUCHPOINTS.CONVERSION_REVENUE AS SUM(cart_turnovertaxfree)
         WITH SYNONYMS = ('acquisition_revenue', 'first_period_revenue')
-        COMMENT = 'First-period revenue of sign-ups excluding tax, attributed across touchpoints. App store revenue is an estimate of list price less store fee.',
+        COMMENT = 'First-period revenue of sign-ups excluding tax. App store revenue is an estimate of list price less store fee.',
 
     -- Exposures
     EXPOSURES.EXPOSURE_EVENTS AS COUNT(exposure_id)
@@ -687,7 +687,7 @@ METRICS (
         COMMENT = 'Active subscriptions at the end of the period minus active subscriptions at the start.'
 )
 
-COMMENT = 'BBC.com subscriptions and audience: CTA exposures, sign-ups with multi-touch attribution, subscriber stock, MRR, churn and renewals, US/Canada visitors and worldwide web page views. Built by dbt (model sv_bbc_com).'
+COMMENT = 'BBC.com subscriptions and audience: CTA exposures, sign-ups split into paid and organic, subscriber stock, MRR, churn and renewals, US/Canada visitors and worldwide web page views. Built by dbt (model sv_bbc_com).'
 
 AI_SQL_GENERATION 'Filter and group by dates, geographies, device_platforms, experiences, templates, terms, offers and subscriptions columns rather than fact columns; every fact joins to those tables. For a period such as "last month", filter dates.year_month or dates.date_day; today is partial, so use dates up to yesterday. Subscriber metrics (active_subscribers, mrr, opening_*) are stock measures: never sum them across days; the metric already takes the first or last day of the period. For cohort retention use retained_subscriptions grouped by subscriptions.cohort_month and months_since_conversion, without a date filter, and divide each month by month 0; compare with the piano_retention_benchmark metrics by benchmark_month, which are shares from 0 to 1. Device platform on subscription facts is the platform of the original conversion. Web and Mobile App experiences and templates are separate: an experience runs on one app type only (experiences.is_app_experience), so filter rate denominators to the same app type. On the mobile app, exposure visitor_id is not a stable visitor identifier (iOS gives a new one per exposure), so do not compute app exposure rates or app conversion rates per exposed visitor; report app exposures with exposure_events and explain why. distinct_visitors covers web and app in the United States and Canada only; page view metrics cover web only, worldwide. Ad revenue is not available. Country names are sentence case, for example ''United states'' and ''United kingdom''.'
 
@@ -702,10 +702,10 @@ AI_VERIFIED_QUERIES (
         ONBOARDING_QUESTION TRUE
         SQL 'SELECT * FROM SEMANTIC_VIEW({{ this }} DIMENSIONS dates.year_month METRICS subscription_events.churned_subscriptions, subscriber_daily_snapshot.opening_active_subscribers, churn_rate WHERE dates.date_day >= DATEADD(MONTH, -6, DATE_TRUNC(MONTH, CURRENT_DATE)) AND dates.date_day < DATE_TRUNC(MONTH, CURRENT_DATE)) ORDER BY year_month'
     ),
-    signups_by_channel_last_month AS (
-        QUESTION 'How many sign-ups did each marketing channel drive last month?'
+    paid_vs_organic_signups_last_month AS (
+        QUESTION 'How many sign-ups came from paid media versus organic last month?'
         ONBOARDING_QUESTION TRUE
-        SQL 'SELECT * FROM SEMANTIC_VIEW({{ this }} DIMENSIONS conversion_touchpoints.attribution_source, conversion_touchpoints.attribution_source_detail METRICS conversion_touchpoints.conversions WHERE dates.year_month = TO_CHAR(DATEADD(MONTH, -1, CURRENT_DATE), ''YYYY-MM'')) ORDER BY conversions DESC'
+        SQL 'SELECT * FROM SEMANTIC_VIEW({{ this }} METRICS conversion_touchpoints.conversions, conversion_touchpoints.paid_conversions, conversion_touchpoints.organic_conversions WHERE dates.year_month = TO_CHAR(DATEADD(MONTH, -1, CURRENT_DATE), ''YYYY-MM''))'
     ),
     monthly_plan_cohort_retention AS (
         QUESTION 'How many monthly-plan subscriptions from each sign-up month were still active in each month after sign-up?'

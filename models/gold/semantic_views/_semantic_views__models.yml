@@ -17,7 +17,8 @@ models:
     description: >
       Snowflake semantic view over the BBC.com subscription and audience facts and dims, for
       Cortex Analyst and SEMANTIC_VIEW() queries. Covers CTA exposures, sign-ups with
-      fractional multi-touch attribution and first-period revenue, subscriber stock, MRR
+      paid and organic shares from the multi-touch attribution (fct_attribution_touchpoints) and
+      first-period revenue, subscriber stock, MRR
       movements (new, churned and other), billed revenue and earned revenue per subscription,
       churn and renewals, cohort retention with the Piano retention benchmark (from the
       piano_retention_curves seed), US/Canada daily visitors and worldwide web page views.

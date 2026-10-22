@@ -64,6 +64,7 @@ graph LR
     experience --> app_exp
     web --> conversions["fct_conversions"]:::mart
     app --> conversions
+    touchpoints["fct_attribution_touchpoints"]:::mart --> conversions
     web_exp --> exposures["fct_exposures"]:::mart
     app_exp --> exposures
     conversions --> events["fct_subscription_events"]:::mart
@@ -380,7 +381,7 @@ The following inventory records every project-owned model in the dbt manifest an
 | `dim_subscription` | `int_piano__subscription_current`, `fct_subscription_events` |
 | `dim_template` | `stg_piano__offer_templates`, `seed:template_type_override` |
 | `dim_term` | `stg_piano__terms`, `seed:app_store_term_billing_period`, `seed:term_subscription_weight` |
-| `fct_conversions` | `int_piano__conversion_attribution_web`, `int_piano__conversion_attribution_app`, `fct_subscription_attribution`, `dim_term` |
+| `fct_conversions` | `int_piano__conversion_attribution_web`, `int_piano__conversion_attribution_app`, `fct_attribution_touchpoints`, `dim_term` |
 | `fct_exposures` | `int_piano__exposures_web`, `int_piano__exposures_app` |
 | `fct_subscription_events` | `fct_conversions`, `stg_piano__studios_events` |
 | `fct_subscriber_daily_snapshot` | `fct_subscription_events`, `dim_subscription`, `dim_term`, `dim_date` |
@@ -429,7 +430,7 @@ These sources are configured in `models/bronze/<source>/_<source>__sources.yml` 
 ## Cross-DAG and cross-project references
 
 - `agg_facebook_ads_url_report` and `int_facebook_ads__creative_history` are project-owned models that depend on models from the installed `facebook_ads` dbt package, including `facebook_ads__url_tags`. That package DAG must be available before these local outputs are built.
-- `fct_conversions` depends on `fct_subscription_attribution`, so the attribution mart is upstream of the canonical conversion fact.
+- `fct_conversions` depends on `fct_attribution_touchpoints` (for `paid_attribution_weight`), so the click-based attribution chain is upstream of the canonical conversion fact and everything built on it (`fct_subscription_events`, the acquisition aggregates, `agg_subscriber_bans`, `sv_bbc_com`). `enable_attribution_models: false` therefore no longer parses: the attribution models are now part of the core build.
 - The `agg_subs_*` content, pillar and usage models read `studios_piano.studios_piano_events` directly in addition to local models.
 - `stg_piano__subscription_snapshots` depends on the daily [cgm-extract-load](https://github.com/bbc/cgm-extract-load) load into `raw_piano_subscription_snapshots`, which has a source freshness check (warn after 20 hours, error after 26).
 - The `stg_piano__experiences`, `stg_piano__offers`, `stg_piano__offer_terms`, `stg_piano__offer_templates` and `stg_piano__terms` staging models depend on the same daily load (job `piano_catalog`), with the same freshness checks.

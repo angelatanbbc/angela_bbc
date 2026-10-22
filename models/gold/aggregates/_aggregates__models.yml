@@ -7,7 +7,7 @@ models:
       as of the latest subscriber snapshot date. Serves the subscriber activity dashboard
       (dashboard_name = 'subscriber_activity') and the acquisition dashboard
       (dashboard_name = 'acquisition'). Acquisition sign-up metrics use fractional
-      multi-touch attribution (position_weight), so organic + paid equals total sign-ups;
+      multi-touch attribution (fct_conversions.paid_attribution_weight), so organic + paid equals total sign-ups;
       pct_annual is treated as higher-is-better on lifetime-value grounds.
       subscription_arpu is MTD subscription transaction value (cart turnover ex-tax)
       per 1,000 distinct site visitors - stored pre-scaled by 1,000 because the
@@ -107,8 +107,8 @@ models:
     description: >
       Daily sign-up counts for the acquisition dashboard, one row per conversion date,
       attribution source, billing period and geography/device/app/OS combination.
-      n_signups uses fractional multi-touch attribution (position_weight sums to 1 per
-      conversion), so it is fully additive: Tableau can SUM it across any date range or
+      n_signups uses fractional multi-touch attribution (each conversion splits into Paid by its
+      paid_attribution_weight and Organic by the rest), so it is fully additive: Tableau can SUM it across any date range or
       dimension filter, and Organic + Paid equals the exact distinct conversion count at
       every grain. Display rounding should happen in Tableau number formatting, not here.
     columns:

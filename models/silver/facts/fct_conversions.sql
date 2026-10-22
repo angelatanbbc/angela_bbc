@@ -29,13 +29,15 @@ unioned AS (
 
 ),
 
+-- The share of each conversion's position-based credit that went to paid touches (0 to 1).
+-- Touch-level credit stays in fct_attribution_touchpoints.
 attribution AS (
 
     SELECT
-        subscription_id,
-        attribution_source,
-        position_weight
-    FROM {{ ref('fct_subscription_attribution') }}
+        conversion_id,
+        SUM(IFF(is_paid_touch, position_weight, 0)) AS paid_attribution_weight
+    FROM {{ ref('fct_attribution_touchpoints') }}
+    GROUP BY conversion_id
 
 ),
 
@@ -50,11 +52,11 @@ terms AS (
 
 SELECT
     c.*,
-    COALESCE(IFF(a.attribution_source != 'Paid', 'Organic', a.attribution_source), 'Organic') AS attribution_source,
-    a.attribution_source AS attribution_source_detail,
-    COALESCE(a.position_weight, 1) AS position_weight,
+    -- app conversions and web conversions the attribution does not cover count as organic, as before
+    COALESCE(a.paid_attribution_weight, 0)::NUMBER(18, 6) AS paid_attribution_weight,
     COALESCE(t.subscription_weight, 1) AS subscription_weight
 FROM unioned c
-LEFT JOIN attribution a USING (subscription_id)
+LEFT JOIN attribution a
+    ON c.conversion_id = a.conversion_id
 LEFT JOIN terms t
     ON c.term_id = t.term_id

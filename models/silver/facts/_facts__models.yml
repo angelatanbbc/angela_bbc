@@ -155,12 +155,16 @@ models:
           - not_null
 
   - name: fct_conversions
-    description: This table contains correctly attributed conversion events with relevant attributes, at the grain of one row per marketing touchpoint.
+    description: >
+      Web and app subscription conversions with their attributes, one row per conversion. Marketing
+      attribution is summarised as paid_attribution_weight; the touches behind it and their credit are in
+      fct_attribution_touchpoints.
     columns:
       - name: conversion_id
         description: Piano unique identifier for the conversion event.
         tests:
           - not_null
+          - unique
       - name: subscription_id
         description: Identifier for the subscription associated with the conversion.
         tests:
@@ -285,17 +289,21 @@ models:
         description: Likelihood to Return bucket of the visitor at the time of conversion.
       - name: c1x_revenue_auto_optimization
         description: Revenue Optimization bucket of the page view at the time of conversion.
-      - name: attribution_source
-        description: Source of attribution for the conversion.
-      - name: attribution_source_detail
-        description: Detail about the attribution source for the conversion.
-      - name: position_weight
-        description: Weight assigned to the position of the card in the Composer experience.
+      - name: paid_attribution_weight
+        description: >
+          Share (0 to 1) of the conversion's position-based credit that went to paid media (DBS / 8MS) touches: the
+          sum of position_weight over its paid touches in fct_attribution_touchpoints. Sum it for paid sign-ups and
+          sum 1 - paid_attribution_weight for organic ones. 0 for app conversions and web conversions the
+          attribution does not cover (other sites, excluded promo codes), so they count as organic.
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: "BETWEEN 0 AND 1.0001"
       - name: subscription_weight
         description: >
           Number of subscriptions this conversion counts as, from dim_term (2 for group plans, 10 for Business 10, 25
-          for Business 25, otherwise 1). Sum it for weighted conversions; multiply by position_weight for weighted
-          attributed conversions.
+          for Business 25, otherwise 1). Sum it for weighted conversions.
         tests:
           - not_null
 
