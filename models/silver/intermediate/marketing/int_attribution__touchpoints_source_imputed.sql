@@ -4,6 +4,7 @@
         incremental_strategy="delete+insert",
         unique_key="conversion_date",
         on_schema_change="fail",
+        full_refresh=false,
         tags=["attribution", "intermediate"]
     )
 }}
@@ -19,8 +20,7 @@ Same rules as the old model (archive/old_attribution/int_subscription__attributi
 - owned banners are labelled 'House Ad'
 */
 
-{%- set batch_floor = attribution_batch_floor() %}
-{%- set mix_floor = (batch_floor - modules.datetime.timedelta(days=var('attribution_imputation_window_days'))) if batch_floor else none %}
+{%- set window = attribution_batch_window() %}
 
 WITH batch AS (
 
@@ -54,8 +54,8 @@ WITH batch AS (
         first_touch_weight,
         last_touch_weight
     FROM {{ ref('int_attribution__touchpoints') }}
-    {%- if batch_floor %}
-    WHERE conversion_date >= '{{ batch_floor }}'
+    {%- if window %}
+    WHERE {{ attribution_window_predicate(window, 'conversion_date') }}
     {%- endif %}
 
 ),
@@ -67,8 +67,9 @@ mix_window AS (
         attribution_source_detail,
         position_weight
     FROM {{ ref('int_attribution__touchpoints') }}
-    {%- if mix_floor %}
-    WHERE conversion_date >= '{{ mix_floor }}'
+    {%- if window %}
+    -- the window's dates and the var('attribution_imputation_window_days') days before them
+    WHERE {{ attribution_window_predicate(window, 'conversion_date', var('attribution_imputation_window_days')) }}
     {%- endif %}
 
 ),

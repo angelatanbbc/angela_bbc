@@ -4,11 +4,12 @@
         incremental_strategy="delete+insert",
         unique_key="conversion_date",
         on_schema_change="fail",
+        full_refresh=false,
         tags=["fct", "attribution"]
     )
 }}
 
-{%- set batch_floor = attribution_batch_floor() %}
+{%- set window = attribution_batch_window() %}
 
 WITH touchpoints AS (
 
@@ -34,8 +35,8 @@ WITH touchpoints AS (
         first_touch_weight,
         last_touch_weight
     FROM {{ ref('int_attribution__touchpoints_source_imputed') }}
-    {%- if batch_floor %}
-    WHERE conversion_date >= '{{ batch_floor }}'
+    {%- if window %}
+    WHERE {{ attribution_window_predicate(window, 'conversion_date') }}
     {%- endif %}
 
 ),
@@ -56,8 +57,8 @@ touches AS (
         content_section,
         content_type
     FROM {{ ref('int_attribution__journey_touches') }}
-    {%- if batch_floor %}
-    WHERE conversion_date >= '{{ batch_floor }}'
+    {%- if window %}
+    WHERE {{ attribution_window_predicate(window, 'conversion_date') }}
     {%- endif %}
 
 ),

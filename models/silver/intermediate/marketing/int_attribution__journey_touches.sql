@@ -4,6 +4,7 @@
         incremental_strategy="delete+insert",
         unique_key="conversion_date",
         on_schema_change="fail",
+        full_refresh=false,
         tags=["attribution", "intermediate"]
     )
 }}
@@ -22,7 +23,7 @@ Corrections (each can be switched off with a var):
 A dropped purchase or sign-in page is kept if it would otherwise be the journey's only touch.
 */
 
-{%- set batch_floor = attribution_batch_floor() %}
+{%- set window = attribution_batch_window() %}
 {%- set lookback_days = var('attribution_lookback_days') %}
 {%- set columns = attribution_touch_columns() %}
 
@@ -41,8 +42,8 @@ WITH conversions AS (
         {{ column }}{{ ',' if not loop.last }}
         {%- endfor %}
     FROM {{ ref('int_attribution__conversions') }}
-    {%- if batch_floor %}
-    WHERE conversion_date >= '{{ batch_floor }}'
+    {%- if window %}
+    WHERE {{ attribution_window_predicate(window, 'conversion_date') }}
     {%- endif %}
 
 ),
@@ -54,8 +55,8 @@ identities AS (
         visitor_id,
         identity_link_type
     FROM {{ ref('int_attribution__journey_identities') }}
-    {%- if batch_floor %}
-    WHERE conversion_date >= '{{ batch_floor }}'
+    {%- if window %}
+    WHERE {{ attribution_window_predicate(window, 'conversion_date') }}
     {%- endif %}
 
 ),
@@ -86,8 +87,8 @@ page_view_touches AS (
         AND (c.previous_conversion_at IS NULL OR pv.page_view_time > c.previous_conversion_at)
     WHERE
         TRUE
-        {%- if batch_floor %}
-        AND pv.page_view_time >= '{{ (batch_floor - modules.datetime.timedelta(days=lookback_days + 1)).isoformat() }}'
+        {%- if window %}
+        AND {{ attribution_window_predicate(window, 'pv.page_view_time', lookback_days + 1) }}
         {%- endif %}
         {%- if var('attribution_site_scope') %}
         AND pv.site_id IN (SELECT s.site_id FROM {{ ref('subscription_sites') }} s)

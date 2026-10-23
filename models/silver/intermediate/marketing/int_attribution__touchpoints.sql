@@ -4,6 +4,7 @@
         incremental_strategy="delete+insert",
         unique_key="conversion_date",
         on_schema_change="fail",
+        full_refresh=false,
         tags=["attribution", "intermediate"]
     )
 }}
@@ -27,7 +28,7 @@ Differences:
   paid touch is not the first or last)
 */
 
-{%- set batch_floor = attribution_batch_floor() %}
+{%- set window = attribution_batch_window() %}
 
 WITH touches AS (
 
@@ -58,8 +59,8 @@ WITH touches AS (
         LOWER(src_bbc_team) AS visit_team,
         LOWER(url_at_bbc_team) AS url_team
     FROM {{ ref('int_attribution__journey_touches') }}
-    {%- if batch_floor %}
-    WHERE conversion_date >= '{{ batch_floor }}'
+    {%- if window %}
+    WHERE {{ attribution_window_predicate(window, 'conversion_date') }}
     {%- endif %}
 
 ),

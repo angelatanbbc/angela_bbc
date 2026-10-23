@@ -104,6 +104,9 @@ vars:
   attribution_lookback_days: 30
   attribution_max_cookies_per_browser: 20
   attribution_reprocess_days: 7
+  # the run that creates an attribution table builds only this many days; older history is
+  # backfilled in monthly chunks (ops/backfill_page_views.sh --mode attribution)
+  attribution_initial_build_days: 31
   attribution_imputation_window_days: 90
 
   # marketing reporting: history start, the bbc.com site, podcast ads and the RevOps score bands

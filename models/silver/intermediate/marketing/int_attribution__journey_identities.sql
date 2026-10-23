@@ -4,6 +4,7 @@
         incremental_strategy="delete+insert",
         unique_key="conversion_date",
         on_schema_change="fail",
+        full_refresh=false,
         tags=["attribution", "intermediate"]
     )
 }}
@@ -17,7 +18,7 @@ that browser had more than var('attribution_max_cookies_per_browser') cookies in
 linked more than one way keeps the first of checkout_cookie, account, device.
 */
 
-{%- set batch_floor = attribution_batch_floor() %}
+{%- set window = attribution_batch_window() %}
 {%- set lookback_days = var('attribution_lookback_days') %}
 {%- set link_types = var('attribution_link_types') %}
 
@@ -32,8 +33,8 @@ WITH conversions AS (
         buyer_user_id,
         buyer_device_id
     FROM {{ ref('int_attribution__conversions') }}
-    {%- if batch_floor %}
-    WHERE conversion_date >= '{{ batch_floor }}'
+    {%- if window %}
+    WHERE {{ attribution_window_predicate(window, 'conversion_date') }}
     {%- endif %}
 
 ),
@@ -51,8 +52,8 @@ evidence_page_views AS (
             pv.user_id IN (SELECT c.buyer_user_id FROM conversions c)
             OR pv.device_first_party_id IN (SELECT c.buyer_device_id FROM conversions c)
         )
-        {%- if batch_floor %}
-        AND pv.page_view_time >= '{{ (batch_floor - modules.datetime.timedelta(days=lookback_days + 1)).isoformat() }}'
+        {%- if window %}
+        AND {{ attribution_window_predicate(window, 'pv.page_view_time', lookback_days + 1) }}
         {%- endif %}
 
 ),

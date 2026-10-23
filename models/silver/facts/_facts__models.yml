@@ -830,7 +830,10 @@ models:
       each summing to 1 per conversion. No revenue. Limitations: the browser link only reaches cookies that carry
       device_first_party_id, so paid credit is a floor; journeys are incomplete where
       is_lookback_complete is FALSE. Incremental: rebuilds the last var attribution_reprocess_days
-      conversion dates.
+      conversion dates. The run that creates the table builds only the last var
+      attribution_initial_build_days days; history is built in monthly chunks with the
+      attribution_backfill_start / attribution_backfill_end vars (ops/backfill_page_views.sh --mode
+      attribution). full_refresh=false, as for the upstream incremental attribution models.
     columns:
       - name: attribution_touchpoint_sk
         description: Surrogate key of conversion_id + pageview_id + touchpoint_type. Primary key.
