@@ -605,8 +605,9 @@ models:
       facebook_ads package's staging and int_facebook_ads__creative_history; their bbc_team is the
       creative's at_bbc_team URL tag, else DBS / 8MS in the ad, ad set or campaign name, else the
       account's default (seed meta_ads_accounts). Google and Microsoft ads come from the manual upload
-      (stg_google_ads__spend), which has no campaign, creative or account: name and team (from the ad
-      name) only, platform from the id length. is_paid_media comes from seed bbc_team_agencies.
+      (stg_google_ads__spend), which has no creative or account: the campaign (loaded as the ad name,
+      and copied to campaign_name) and the team from it, platform from the id length. Performance Max
+      has no ad ids, so each of its campaigns is one row. is_paid_media comes from seed bbc_team_agencies.
       Latest attributes only.
     columns:
       - name: ad_sk

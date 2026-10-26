@@ -5,10 +5,17 @@
     )
 }}
 
-WITH spend AS (
+WITH ad_spend AS (
 
     SELECT
         f.spend_date AS date_day,
+        -- Google and Microsoft spend is matched to page views by campaign and day: Piano carries the
+        -- campaign name but rarely the ad id, and Performance Max has none. Meta spend by ad and day.
+        IFF(
+            f.platform IN ('google', 'microsoft') AND a.campaign_name IS NOT NULL,
+            'campaign:' || LOWER(TRIM(a.campaign_name)),
+            f.ad_id
+        ) AS spend_key,
         f.platform,
         f.account_id,
         f.ad_id,
@@ -30,9 +37,45 @@ WITH spend AS (
 
 ),
 
+-- one row per ad-day (Meta) or campaign-day and platform (Google, Microsoft). A campaign on both
+-- Google and Microsoft the same day keeps a row each; page views take the bigger one's spend.
+spend AS (
+
+    SELECT
+        date_day,
+        spend_key,
+        platform,
+        ROW_NUMBER() OVER (PARTITION BY date_day, spend_key ORDER BY SUM(spend) DESC, platform ASC) = 1
+            AS is_page_view_spend,
+        ANY_VALUE(account_id) AS account_id,
+        IFF(spend_key LIKE 'campaign:%', NULL, ANY_VALUE(ad_id)) AS ad_id,
+        IFF(spend_key LIKE 'campaign:%', NULL, ANY_VALUE(ad_name)) AS ad_name,
+        IFF(spend_key LIKE 'campaign:%', NULL, ANY_VALUE(adset_id)) AS adset_id,
+        IFF(spend_key LIKE 'campaign:%', NULL, ANY_VALUE(adset_name)) AS adset_name,
+        ANY_VALUE(campaign_id) AS campaign_id,
+        ANY_VALUE(campaign_name) AS campaign_name,
+        ANY_VALUE(account_currency) AS account_currency,
+        ANY_VALUE(bbc_team) AS bbc_team,
+        SUM(impressions) AS impressions,
+        SUM(clicks) AS clicks,
+        SUM(spend) AS spend
+    FROM ad_spend
+    GROUP BY date_day, spend_key, platform
+
+),
+
+google_campaigns AS (
+
+    SELECT DISTINCT spend_key
+    FROM spend
+    WHERE spend_key LIKE 'campaign:%'
+
+),
+
 page_views AS (
 
     SELECT
+        COALESCE(gc.spend_key, p.ad_id) AS spend_key,
         p.pageview_id,
         p.visit_id,
         p.visitor_id,
@@ -64,7 +107,8 @@ page_views AS (
         p.geo_region
     FROM {{ ref('fct_paid_page_views') }} p
     LEFT JOIN {{ ref('dim_device_platform') }} dp ON p.device_platform_id = dp.device_platform_id
-    WHERE p.ad_id IS NOT NULL
+    LEFT JOIN google_campaigns gc ON gc.spend_key = 'campaign:' || LOWER(TRIM(p.src_campaign))
+    WHERE COALESCE(gc.spend_key, p.ad_id) IS NOT NULL
 
 ),
 
@@ -72,10 +116,10 @@ page_views_per_ad_day AS (
 
     SELECT
         page_view_date AS date_day,
-        ad_id,
+        spend_key,
         COUNT(*) AS page_views_on_ad_day
     FROM page_views
-    GROUP BY page_view_date, ad_id
+    GROUP BY page_view_date, spend_key
 
 ),
 
@@ -83,9 +127,10 @@ joined AS (
 
     SELECT
         COALESCE(s.date_day, pv.page_view_date) AS date_day,
+        COALESCE(s.spend_key, pv.spend_key) AS spend_key,
         COALESCE(s.ad_id, pv.ad_id) AS ad_id,
         pv.pageview_id,
-        s.ad_id IS NOT NULL AS has_spend,
+        s.spend_key IS NOT NULL AS has_spend,
         pv.pageview_id IS NOT NULL AS has_page_view,
         s.platform,
         s.account_id,
@@ -138,16 +183,18 @@ joined AS (
     FROM spend s
     FULL OUTER JOIN page_views_per_ad_day n
         ON s.date_day = n.date_day
-        AND s.ad_id = n.ad_id
+        AND s.spend_key = n.spend_key
+        AND s.is_page_view_spend
     FULL OUTER JOIN page_views pv
-        ON COALESCE(s.date_day, n.date_day) = pv.page_view_date
-        AND COALESCE(s.ad_id, n.ad_id) = pv.ad_id
+        ON n.date_day = pv.page_view_date
+        AND n.spend_key = pv.spend_key
 
 )
 
 SELECT
     -- keys
     date_day,
+    LEFT(spend_key, 512)::VARCHAR(512) AS spend_key,
     LEFT(ad_id, 64)::VARCHAR(64) AS ad_id,
     LEFT(pageview_id, 512)::VARCHAR(512) AS pageview_id,
     HEX_ENCODE(visitor_id)::VARCHAR(64) AS visitor_id,

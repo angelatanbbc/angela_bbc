@@ -5,44 +5,56 @@
     )
 }}
 
-WITH delivery AS (
+WITH campaign_platforms AS (
+
+    -- the platform a campaign's spend is on, so its page views, outcomes and credit get the same label
+    SELECT
+        LOWER(TRIM(campaign_name)) AS campaign_key,
+        MIN(platform) AS platform
+    FROM {{ ref('agg_marketing_paid_page_views') }}
+    WHERE has_spend AND campaign_name IS NOT NULL
+    GROUP BY LOWER(TRIM(campaign_name))
+
+),
+
+delivery AS (
 
     SELECT
-        COALESCE(platform, 'meta') AS platform,
-        date_day,
-        IFF(has_page_view, COALESCE(src_campaign, '(none)'), COALESCE(campaign_name, '(none)')) AS src_campaign,
-        funnel_stage,
-        funnel_stage_v2,
-        src_bbc_team,
-        COUNT(pageview_id) AS page_views,
-        COUNT(DISTINCT visit_id) AS visits,
-        COUNT(DISTINCT visitor_id) AS visitor_days,
-        SUM(COALESCE(spend_per_page_view, 0)) AS spend,
-        SUM(COALESCE(impressions_per_page_view, 0)) AS impressions,
-        SUM(COALESCE(clicks_per_page_view, 0)) AS clicks,
-        SUM(COALESCE(subscription_select_count, 0)) AS subscription_selects,
-        SUM(COALESCE(vx_conversion_count, 0)) AS purchases_on_page_view
-    FROM {{ ref('agg_marketing_paid_page_views') }}
-    WHERE has_page_view OR platform = 'meta'
+        COALESCE(p.platform, cp.platform, 'meta') AS platform,
+        p.date_day,
+        IFF(p.has_page_view, COALESCE(p.src_campaign, '(none)'), COALESCE(p.campaign_name, '(none)')) AS src_campaign,
+        p.funnel_stage,
+        p.funnel_stage_v2,
+        p.src_bbc_team,
+        COUNT(p.pageview_id) AS page_views,
+        COUNT(DISTINCT p.visit_id) AS visits,
+        COUNT(DISTINCT p.visitor_id) AS visitor_days,
+        SUM(COALESCE(p.spend_per_page_view, 0)) AS spend,
+        SUM(COALESCE(p.impressions_per_page_view, 0)) AS impressions,
+        SUM(COALESCE(p.clicks_per_page_view, 0)) AS clicks,
+        SUM(COALESCE(p.subscription_select_count, 0)) AS subscription_selects,
+        SUM(COALESCE(p.vx_conversion_count, 0)) AS purchases_on_page_view
+    FROM {{ ref('agg_marketing_paid_page_views') }} p
+    LEFT JOIN campaign_platforms cp ON cp.campaign_key = LOWER(TRIM(p.src_campaign))
     GROUP BY
-        COALESCE(platform, 'meta'),
-        date_day,
-        IFF(has_page_view, COALESCE(src_campaign, '(none)'), COALESCE(campaign_name, '(none)')),
-        funnel_stage,
-        funnel_stage_v2,
-        src_bbc_team
+        COALESCE(p.platform, cp.platform, 'meta'),
+        p.date_day,
+        IFF(p.has_page_view, COALESCE(p.src_campaign, '(none)'), COALESCE(p.campaign_name, '(none)')),
+        p.funnel_stage,
+        p.funnel_stage_v2,
+        p.src_bbc_team
 
 ),
 
 outcomes AS (
 
     SELECT
-        'meta' AS platform,
-        first_paid_date AS date_day,
-        src_campaign,
-        funnel_stage,
-        funnel_stage_v2,
-        src_bbc_team,
+        COALESCE(cp.platform, 'meta') AS platform,
+        f.first_paid_date AS date_day,
+        f.src_campaign,
+        f.funnel_stage,
+        f.funnel_stage_v2,
+        f.src_bbc_team,
         COUNT(DISTINCT visitor_id) AS arrivals,
         SUM(saw_paywall) AS saw_paywall,
         SUM(interacted) AS interacted,
@@ -62,8 +74,15 @@ outcomes AS (
         SUM(IFF(is_last_paid_touch, 1, 0)) AS converted_last_touch,
         SUM(IFF(is_last_paid_touch AND (prior_tof_touch = 1 OR prior_mof_touch = 1), 1, 0))
             AS converted_last_touch_prior_upper
-    FROM {{ ref('agg_marketing_visitor_funnel') }}
-    GROUP BY first_paid_date, src_campaign, funnel_stage, funnel_stage_v2, src_bbc_team
+    FROM {{ ref('agg_marketing_visitor_funnel') }} f
+    LEFT JOIN campaign_platforms cp ON cp.campaign_key = LOWER(TRIM(f.src_campaign))
+    GROUP BY
+        COALESCE(cp.platform, 'meta'),
+        f.first_paid_date,
+        f.src_campaign,
+        f.funnel_stage,
+        f.funnel_stage_v2,
+        f.src_bbc_team
 
 ),
 
@@ -92,16 +111,17 @@ paid_touches AS (
 attributed AS (
 
     SELECT
-        'meta' AS platform,
-        touchpoint_date AS date_day,
-        src_campaign,
-        {{ classify_funnel_stage('src_campaign') }} AS funnel_stage,
-        {{ classify_funnel_stage_v2('src_campaign') }} AS funnel_stage_v2,
-        agency AS src_bbc_team,
-        SUM(position_weight) AS paid_attributed_subscriptions,
-        SUM(last_touch_weight) AS paid_last_touch_subscriptions
-    FROM paid_touches
-    GROUP BY touchpoint_date, src_campaign, agency
+        COALESCE(cp.platform, 'meta') AS platform,
+        t.touchpoint_date AS date_day,
+        t.src_campaign,
+        {{ classify_funnel_stage('t.src_campaign') }} AS funnel_stage,
+        {{ classify_funnel_stage_v2('t.src_campaign') }} AS funnel_stage_v2,
+        t.agency AS src_bbc_team,
+        SUM(t.position_weight) AS paid_attributed_subscriptions,
+        SUM(t.last_touch_weight) AS paid_last_touch_subscriptions
+    FROM paid_touches t
+    LEFT JOIN campaign_platforms cp ON cp.campaign_key = LOWER(TRIM(t.src_campaign))
+    GROUP BY COALESCE(cp.platform, 'meta'), t.touchpoint_date, t.src_campaign, t.agency
 
 ),
 

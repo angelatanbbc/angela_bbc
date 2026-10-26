@@ -144,7 +144,8 @@ resolved AS (
         NULL AS adset_id,
         adset_name,
         NULL AS campaign_id,
-        NULL AS campaign_name,
+        -- the upload's Campaign column is loaded as the ad name
+        ad_name AS campaign_name,
         NULL AS creative_id,
         NULL AS creative_name,
         NULL AS landing_url,
