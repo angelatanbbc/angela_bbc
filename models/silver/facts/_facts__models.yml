@@ -231,7 +231,13 @@ models:
           - not_null
           - accepted_values:
               arguments:
-                values: ["Stripe Elements", "Braintree Credit Card", "Apple App Store", "Google Play"]
+                values:
+                  [
+                    "Stripe Elements",
+                    "Braintree Credit Card",
+                    "Apple App Store",
+                    "Google Play",
+                  ]
       - name: vx_promo_code
         description: Promo code used during the conversion event, if any.
       - name: cart_turnovertaxfree
@@ -411,7 +417,7 @@ models:
         description: Piano unique identifier for the subscribed user.
         tests:
           - not_null:
-              config: 
+              config:
                 severity: warn
       - name: user_first_party_id
         description: First-party identifier for the subscribed user aka FED_ID.
@@ -431,7 +437,13 @@ models:
           - not_null
           - accepted_values:
               arguments:
-                values: ["Stripe Elements", "Braintree Credit Card", "Apple App Store", "Google Play"]
+                values:
+                  [
+                    "Stripe Elements",
+                    "Braintree Credit Card",
+                    "Apple App Store",
+                    "Google Play",
+                  ]
       - name: last_subscription_action
         description: Latest observed subscription action or event type.
         tests:
@@ -519,7 +531,13 @@ models:
           - not_null
           - accepted_values:
               arguments:
-                values: ["Stripe Elements", "Braintree Credit Card", "Apple App Store", "Google Play"]
+                values:
+                  [
+                    "Stripe Elements",
+                    "Braintree Credit Card",
+                    "Apple App Store",
+                    "Google Play",
+                  ]
       - name: term_id
         description: Identifier for the subscription term associated with the event.
       - name: term_name
@@ -811,6 +829,8 @@ models:
         description: Content pillar of the page. Taken from the page view's latest page.display event.
       - name: content_type
         description: Content type of the page (article, video, ...). Taken from the page view's latest page.display event.
+      - name: content_topic
+        description: Content topic of the page. Taken from the page view's latest page.display event.
       - name: date_published
         description: Publication date of the content, as Piano receives it. Taken from the page view's latest page.display event.
       - name: article_word_count
