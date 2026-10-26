@@ -1,6 +1,10 @@
 {{
     config(
-        materialized="table",
+        materialized="incremental",
+        incremental_strategy="delete+insert",
+        unique_key="visit_date",
+        on_schema_change="fail",
+        full_refresh=false,
         tags=["marketing", "intermediate"]
     )
 }}
@@ -9,12 +13,16 @@
 The page views of paid visits: one row per page view of a visit in int_marketing__paid_visits,
 including the few whose own tag Piano left empty. Measures come from fct_page_views and labels from
 int_piano__page_views. The 'unidentified-user' placeholder is never an account here.
+Incremental on visit_date, the same days as int_marketing__paid_visits (see marketing_batch_window).
 */
+
+{%- set window = marketing_batch_window() %}
 
 WITH paid_visits AS (
 
     SELECT
         visit_id,
+        visit_date,
         ad_sk,
         ad_id,
         agency,
@@ -22,6 +30,9 @@ WITH paid_visits AS (
         src_campaign,
         visit_bounce
     FROM {{ ref('int_marketing__paid_visits') }}
+    {%- if window %}
+    WHERE {{ attribution_window_predicate(window, 'visit_date') }}
+    {%- endif %}
 
 ),
 
@@ -42,7 +53,9 @@ page_views AS (
         newsletter_subscribe_count,
         subscription_select_count
     FROM {{ ref('fct_page_views') }}
-    WHERE visit_id IN (SELECT pv.visit_id FROM paid_visits pv)
+    WHERE
+        {{ marketing_page_view_predicate(window, 'page_view_time') }}
+        AND visit_id IN (SELECT pv.visit_id FROM paid_visits pv)
 
 ),
 
@@ -62,7 +75,9 @@ labels AS (
         geo_region,
         c1x_revenue_auto_optimization
     FROM {{ ref('int_piano__page_views') }}
-    WHERE visit_id IN (SELECT pv.visit_id FROM paid_visits pv)
+    WHERE
+        {{ marketing_page_view_predicate(window, 'page_view_time') }}
+        AND visit_id IN (SELECT pv.visit_id FROM paid_visits pv)
 
 ),
 
@@ -86,6 +101,7 @@ SELECT
     {{ generate_geo_id('l.geo_country', 'l.geo_region') }} AS geo_id,
     l.device_platform_id,
     p.site_id,
+    v.visit_date,
     p.page_view_date,
     p.page_view_time,
     v.agency,

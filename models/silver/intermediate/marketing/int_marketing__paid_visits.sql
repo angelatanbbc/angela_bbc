@@ -1,6 +1,10 @@
 {{
     config(
-        materialized="table",
+        materialized="incremental",
+        incremental_strategy="delete+insert",
+        unique_key="visit_date",
+        on_schema_change="fail",
+        full_refresh=false,
         tags=["marketing", "intermediate"]
     )
 }}
@@ -13,7 +17,14 @@ the visit's own tag (src_bbc_team, else the landing URL's at_bbc_team); with nei
 its Meta ad (dim_ad), else an 8ms_ / dbs_ campaign name on a Facebook or Instagram visit.
 agency_resolved_from says which. When Piano's campaign is Meta's unfilled placeholder, the campaign
 comes from the visit's Meta ad where it has one.
+
+Incremental on visit_date (the day of the visit's first page view): each run redoes the last
+var('marketing_reprocess_days') days; the first build covers var('marketing_initial_build_days') days and
+older history is backfilled with marketing_backfill_start / marketing_backfill_end (see marketing_batch_window).
+full_refresh=false, so --full-refresh is ignored here.
 */
+
+{%- set window = marketing_batch_window() %}
 
 WITH visits AS (
 
@@ -21,6 +32,7 @@ WITH visits AS (
     -- visit doesn't make the whole visit paid
     SELECT
         visit_id,
+        MIN(page_view_time)::DATE AS visit_date,
         COALESCE(
             NULLIF(REGEXP_REPLACE(LOWER(TRIM(MAX(src_bbc_team))), '[?&].*$', ''), ''),
             NULLIF(REGEXP_REPLACE(LOWER(TRIM(MIN_BY(url_at_bbc_team, page_view_time))), '[?&].*$', ''), ''),
@@ -40,8 +52,13 @@ WITH visits AS (
         MAX(src_campaign) AS src_campaign,
         MAX_BY(visit_bounce, page_view_time) AS visit_bounce
     FROM {{ ref('int_piano__page_views') }}
-    WHERE visit_id IS NOT NULL
+    WHERE
+        visit_id IS NOT NULL
+        AND {{ marketing_page_view_predicate(window, 'page_view_time') }}
     GROUP BY visit_id
+    {%- if window %}
+    HAVING {{ attribution_window_predicate(window, 'MIN(page_view_time)::DATE') }}
+    {%- endif %}
 
 ),
 
@@ -71,6 +88,7 @@ visit_agency AS (
 
     SELECT
         v.visit_id,
+        v.visit_date,
         v.ad_id,
         a.ad_sk,
         v.src_campaign,
@@ -87,6 +105,7 @@ visit_agency AS (
 
 SELECT
     va.visit_id,
+    va.visit_date,
     va.ad_sk,
     va.ad_id,
     pa.agency,
