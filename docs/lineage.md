@@ -271,7 +271,8 @@ graph LR
     channel["dim_channel"]:::mart --> g5
     tracking["dim_campaign_tracking"]:::mart --> g5
     ad --> g5
-    linkStyle 0,1,3,4,5,6,7,8,10,11,13,14,15,16,17,18,19,20,21,22,23,24,25,26 stroke:#4169e1,stroke-width:1.5px
+    page_views --> funnel
+    linkStyle 0,1,3,4,5,6,7,8,10,11,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27 stroke:#4169e1,stroke-width:1.5px
     linkStyle 2,12 stroke:#f97316,stroke-width:2.5px
     linkStyle 9 stroke:#9333ea,stroke-width:2.5px
 ```
@@ -397,7 +398,7 @@ The following inventory records every project-owned model in the dbt manifest an
 | `fct_attribution_touchpoints` | `int_attribution__touchpoints_source_imputed`, `int_attribution__conversions`, `int_attribution__journey_touches` |
 | `fct_ad_performance_daily` | `int_marketing__ad_spend_daily` |
 | `fct_paid_page_views` | `int_marketing__paid_page_views` |
-| `fct_paid_visitor_funnel` | `int_marketing__paid_page_views`, `int_marketing__funnel_events` |
+| `fct_paid_visitor_funnel` | `int_marketing__paid_page_views`, `int_marketing__funnel_events`, `int_piano__page_views` |
 | `fct_sfmc_journey_send_job` | `source:sfmc.sent`, `source:sfmc.opens`, `source:sfmc.clicks`, `source:sfmc.bounces`, `source:sfmc.unsubs`, `source:sfmc.send_jobs`, `source:sfmc.journey`, `source:sfmc.journey_activity`, `source:sfmc.list_subscribers` |
 
 ### Reporting outputs

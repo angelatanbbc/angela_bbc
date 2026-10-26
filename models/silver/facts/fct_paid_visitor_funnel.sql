@@ -122,13 +122,58 @@ paid_devices AS (
 
 ),
 
--- a browser carrying many paid visitor_ids is shared, not one person
+-- the page views on each paid visitor's browser from their first paid arrival on, to judge the
+-- browser link the way the attribution does
+browser_page_views AS (
+
+    SELECT
+        d.visitor_id AS paid_visitor_id,
+        pv.visitor_id,
+        IFF(pv.user_id ILIKE 'unidentified%', NULL, NULLIF(pv.user_id, '')) AS user_id
+    FROM paid_devices d
+    JOIN visitor v ON d.visitor_id = v.visitor_id
+    JOIN {{ ref('int_piano__page_views') }} pv
+        ON d.device_id = pv.device_first_party_id
+        AND pv.page_view_time >= v.first_paid_time_visitor
+    WHERE pv.page_view_time >= '{{ var("marketing_start_date") }}'
+
+),
+
+-- a browser with more than var('attribution_max_cookies_per_browser') cookies is shared, not one person
 usable_devices AS (
 
-    SELECT device_id
-    FROM paid_devices
-    GROUP BY device_id
-    HAVING COUNT(DISTINCT visitor_id) <= {{ var('attribution_max_cookies_per_browser') }}
+    SELECT
+        d.visitor_id,
+        d.device_id
+    FROM paid_devices d
+    JOIN browser_page_views b ON d.visitor_id = b.paid_visitor_id
+    GROUP BY d.visitor_id, d.device_id
+    HAVING COUNT(DISTINCT b.visitor_id) <= {{ var('attribution_max_cookies_per_browser') }}
+
+),
+
+-- the accounts the paid cookie signed in to
+paid_cookie_accounts AS (
+
+    SELECT
+        visitor_id,
+        COUNT(DISTINCT user_id) AS account_count,
+        MAX(user_id) AS user_id
+    FROM (
+        SELECT
+            paid_visitor_id AS visitor_id,
+            user_id
+        FROM browser_page_views
+        WHERE visitor_id = paid_visitor_id AND user_id IS NOT NULL
+
+        UNION DISTINCT
+
+        SELECT
+            visitor_id,
+            user_id
+        FROM identity
+    )
+    GROUP BY visitor_id
 
 ),
 
@@ -191,7 +236,7 @@ linked_over_time AS (
 
     UNION ALL
 
-    -- link 4: same browser afterwards (shared browsers skipped)
+    -- link 4: same browser afterwards, skipping shared browsers and a paid cookie signed in to another account
     SELECT
         v.visitor_id,
         e.event_id,
@@ -205,11 +250,12 @@ linked_over_time AS (
         e.is_newsletter,
         4 AS link
     FROM visitor v
-    JOIN paid_devices d ON v.visitor_id = d.visitor_id
-    JOIN usable_devices u ON d.device_id = u.device_id
+    JOIN usable_devices u ON v.visitor_id = u.visitor_id
+    LEFT JOIN paid_cookie_accounts a ON v.visitor_id = a.visitor_id
     JOIN events e
-        ON d.device_id = e.device_first_party_id
+        ON u.device_id = e.device_first_party_id
         AND e.event_time >= v.first_paid_time_visitor
+    WHERE a.visitor_id IS NULL OR (a.account_count = 1 AND a.user_id = e.user_id)
 
 ),
 
