@@ -282,6 +282,10 @@ unit_tests:
     overrides:
       macros:
         is_incremental: false
+      # the test's own date range, so it doesn't fall outside the first-build window as time passes
+      vars:
+        attribution_backfill_start: "2026-10-05"
+        attribution_backfill_end: "2026-10-06"
     given:
       - input: ref('int_attribution__journey_touches')
         rows:
