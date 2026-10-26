@@ -1,0 +1,200 @@
+version: 2
+
+models:
+  - name: int_subscription__attribution
+    description: Intermediate attribution table that builds an event-level view of marketing touchpoints, flags paid interactions, and assigns position-based weights to support conversion attribution.
+    columns:
+      - name: event_date
+        description: Date of the attribution touchpoint event.
+        tests:
+          - not_null
+      - name: visitor_id
+        description: Piano visitor identifier for the attribution journey.
+        tests:
+          - not_null
+      - name: pageview_id
+        description: Page view identifier associated with the touchpoint event.
+      - name: subscription_id
+        description: Subscription identifier tied to the associated conversion journey.
+      - name: subscription_action
+        description: Subscription lifecycle action associated with the event.
+      - name: attribution_source
+        description: Final attributed source for the touchpoint after applying promotion and paid-channel logic.
+      - name: attribution_source_detail
+        description: More granular attribution detail for the source.
+      - name: vx_promo_code
+        description: Promo code captured on the conversion event, if present.
+      - name: is_paid_event
+        description: Flag indicating whether the touchpoint was classified as paid traffic.
+      - name: position_weight
+        description: Position-based attribution weight assigned to the touchpoint.
+        tests:
+          - not_null
+      - name: first_touch
+        description: Flag indicating whether the touchpoint is the first event in the attribution journey.
+      - name: last_touch
+        description: Flag indicating whether the touchpoint is the last event in the attribution journey.
+      - name: signup_touch
+        description: Flag indicating whether the touchpoint corresponds to the signup event.
+  - name: int_subscription__attribution_src_corrected
+    description: Intermediate attribution table that corrects missing source values through deterministic redistribution and further splits generic Search engines attribution into specific search engines.
+    columns:
+      - name: event_date
+        description: Date of the attribution touchpoint event.
+        tests:
+          - not_null
+      - name: visitor_id
+        description: Piano visitor identifier for the attribution journey.
+        tests:
+          - not_null
+      - name: pageview_id
+        description: Page view identifier associated with the touchpoint event.
+      - name: attribution_source
+        description: Corrected attribution source after redistribution of null or generic values.
+        tests:
+          - not_null
+      - name: attribution_source_detail
+        description: More specific attribution source detail after search-engine redistribution.
+      - name: subscription_id
+        description: Subscription identifier tied to the associated conversion journey.
+      - name: subscription_action
+        description: Subscription lifecycle action associated with the event.
+      - name: position_weight
+        description: Position-based attribution weight carried through from the source attribution model.
+        tests:
+          - not_null
+      - name: first_touch
+        description: Flag indicating whether the touchpoint is the first event in the attribution journey.
+      - name: last_touch
+        description: Flag indicating whether the touchpoint is the last event in the attribution journey.
+      - name: signup_touch
+        description: Flag indicating whether the touchpoint corresponds to the signup event.
+  - name: fct_subscription_attribution
+    description: Attribution model output for marketing touchpoints and conversion outcomes.
+    columns:
+      - name: event_date
+        description: Date of the attribution event.
+        tests:
+          - not_null
+      - name: event_url_full
+        description: Full URL of the attribution event.
+      - name: visitor_id
+        description: Identifier for the visitor.
+      - name: geo_country
+        description: Country of the visitor.
+      - name: browser
+        description: Browser used by the visitor.
+      - name: device_type
+        description: Type of device used by the visitor.
+      - name: site_id
+        description: Identifier for the site.
+      - name: pageview_id
+        description: Identifier for the page view.
+      - name: content_pillar
+        description: Content pillar to which the attribution event belongs.
+      - name: event_name
+        description: Name of the attribution event.
+      - name: src_detail
+        description: Detail of the source for the attribution event.
+      - name: src
+        description: Source of the attribution event.
+      - name: attribution_source
+        description: Source of the attribution.
+      - name: attribution_source_detail
+        description: Detail of the source for the attribution event.
+      - name: src_bbc_team
+        description: BBC team associated with the source of the attribution event.
+      - name: src_ptr_name
+        description: Name of the source pointer for the attribution event.
+      - name: src_creative_id
+        description: Identifier for the creative associated with the source of the attribution event.
+      - name: src_organic
+        description: Indicates if the source is organic.
+      - name: src_organic_detail
+        description: Detail of the organic source for the attribution event.
+      - name: src_campaign
+        description: Campaign associated with the source of the attribution event.
+      - name: src_adset_name
+        description: Ad set name associated with the source of the attribution event.
+      - name: src_medium
+        description: Medium associated with the source of the attribution event.
+      - name: src_sl_term
+        description: Search term associated with the source of the attribution event.
+      - name: src_campaign_type
+        description: Type of campaign associated with the source of the attribution event.
+      - name: src_format
+        description: Format associated with the source of the attribution event.
+      - name: vx_promo_code
+        description: Promotional code associated with the attribution event.
+      - name: billing_period
+        description: Billing period associated with the attribution result.
+      - name: trial_duration
+        description: Trial duration associated with the attribution result.
+      - name: subscription_id
+        description: Subscription identifier associated with the conversion.
+      - name: subscription_action
+        description: Action taken on the subscription.
+      - name: subscription_period_number
+        description: Number of periods for which the subscription is active.
+      - name: cart_turnovertaxfree
+        description: Cart turnover excluding tax.
+      - name: signup_event
+        description: Signup event associated with the subscription.
+      - name: link_origin
+        description: Origin of the link associated with the subscription.
+      - name: signup_page
+        description: Page from which the signup was initiated.
+      - name: at_adset_name
+        description: Ad set name associated with the attribution event.
+      - name: at_adset_id
+        description: Ad set ID associated with the attribution event.
+      - name: at_objective
+        description: Objective associated with the attribution event.
+      - name: at_medium
+        description: Medium associated with the attribution event.
+      - name: at_creation
+        description: Timestamp at which the attribution was created.
+      - name: at_keyword
+        description: Keyword associated with the attribution event.
+      - name: at_matchtype
+        description: Match type associated with the attribution event.
+      - name: at_campaign_name
+        description: Campaign name associated with the attribution event.
+      - name: is_paid_event
+        description: Flag indicating if the event is paid.
+      - name: first_event
+        description: Flag indicating if this is the first event for the user.
+      - name: last_event
+        description: Flag indicating if this is the last event for the user.
+      - name: promo_code_from_conversion
+        description: Promotional code associated with the conversion.
+      - name: position_weight
+        description: Weight associated with the position of the attribution event.
+      - name: position_signup_touch_weight
+        description: Weight associated with the position of the signup touchpoint.
+      - name: first_touch
+        description: Flag indicating if this is the first touchpoint for the user.
+      - name: last_touch
+        description: Flag indicating if this is the last touchpoint for the user.
+      - name: signup_touch
+        description: Flag indicating if this is the signup touchpoint for the user.
+      - name: billing_period_filled
+        description: Flag indicating if the billing period is filled.
+      - name: subscription_id_filled
+        description: Flag indicating if the subscription ID is filled.
+      - name: revenue_filled
+        description: Flag indicating if the revenue is filled.
+      - name: revenue_weighted_a
+        description: Weighted revenue for the first attribution event.
+      - name: annualised_revenue_a
+        description: Annualised revenue for the first attribution event.
+      - name: date_of_creation
+        description: Date at which the record was created.
+      - name: date_of_latest_renewal
+        description: Date of the latest renewal for the subscription.
+      - name: months_between_creation_and_renewal
+        description: Number of months between the creation and the latest renewal of the subscription.
+      - name: revenue_weighted
+        description: Weighted revenue for the subscription
+      - name: annualised_revenue
+        description: Annualised revenue for the subscription.

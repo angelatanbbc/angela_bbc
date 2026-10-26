@@ -155,12 +155,16 @@ models:
           - not_null
 
   - name: fct_conversions
-    description: This table contains correctly attributed conversion events with relevant attributes, at the grain of one row per marketing touchpoint.
+    description: >
+      Web and app subscription conversions with their attributes, one row per conversion. Marketing
+      attribution is summarised as paid_attribution_weight; the touches behind it and their credit are in
+      fct_attribution_touchpoints.
     columns:
       - name: conversion_id
         description: Piano unique identifier for the conversion event.
         tests:
           - not_null
+          - unique
       - name: subscription_id
         description: Identifier for the subscription associated with the conversion.
         tests:
@@ -291,17 +295,21 @@ models:
         description: Likelihood to Return bucket of the visitor at the time of conversion.
       - name: c1x_revenue_auto_optimization
         description: Revenue Optimization bucket of the page view at the time of conversion.
-      - name: attribution_source
-        description: Source of attribution for the conversion.
-      - name: attribution_source_detail
-        description: Detail about the attribution source for the conversion.
-      - name: position_weight
-        description: Weight assigned to the position of the card in the Composer experience.
+      - name: paid_attribution_weight
+        description: >
+          Share (0 to 1) of the conversion's position-based credit that went to paid media (DBS / 8MS) touches: the
+          sum of position_weight over its paid touches in fct_attribution_touchpoints. Sum it for paid sign-ups and
+          sum 1 - paid_attribution_weight for organic ones. 0 for app conversions and web conversions the
+          attribution does not cover (other sites, excluded promo codes), so they count as organic.
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: "BETWEEN 0 AND 1.0001"
       - name: subscription_weight
         description: >
           Number of subscriptions this conversion counts as, from dim_term (2 for group plans, 10 for Business 10, 25
-          for Business 25, otherwise 1). Sum it for weighted conversions; multiply by position_weight for weighted
-          attributed conversions.
+          for Business 25, otherwise 1). Sum it for weighted conversions.
         tests:
           - not_null
 
@@ -615,136 +623,6 @@ models:
       - name: revenue_amount
         description: Revenue attributable to the spend observation.
 
-  - name: fct_subscription_attribution
-    description: Attribution model output for marketing touchpoints and conversion outcomes.
-    columns:
-      - name: event_date
-        description: Date of the attribution event.
-        tests:
-          - not_null
-      - name: event_url_full
-        description: Full URL of the attribution event.
-      - name: visitor_id
-        description: Identifier for the visitor.
-      - name: geo_country
-        description: Country of the visitor.
-      - name: browser
-        description: Browser used by the visitor.
-      - name: device_type
-        description: Type of device used by the visitor.
-      - name: site_id
-        description: Identifier for the site.
-      - name: pageview_id
-        description: Identifier for the page view.
-      - name: content_pillar
-        description: Content pillar to which the attribution event belongs.
-      - name: event_name
-        description: Name of the attribution event.
-      - name: src_detail
-        description: Detail of the source for the attribution event.
-      - name: src
-        description: Source of the attribution event.
-      - name: attribution_source
-        description: Source of the attribution.
-      - name: attribution_source_detail
-        description: Detail of the source for the attribution event.
-      - name: src_bbc_team
-        description: BBC team associated with the source of the attribution event.
-      - name: src_ptr_name
-        description: Name of the source pointer for the attribution event.
-      - name: src_creative_id
-        description: Identifier for the creative associated with the source of the attribution event.
-      - name: src_organic
-        description: Indicates if the source is organic.
-      - name: src_organic_detail
-        description: Detail of the organic source for the attribution event.
-      - name: src_campaign
-        description: Campaign associated with the source of the attribution event.
-      - name: src_adset_name
-        description: Ad set name associated with the source of the attribution event.
-      - name: src_medium
-        description: Medium associated with the source of the attribution event.
-      - name: src_sl_term
-        description: Search term associated with the source of the attribution event.
-      - name: src_campaign_type
-        description: Type of campaign associated with the source of the attribution event.
-      - name: src_format
-        description: Format associated with the source of the attribution event.
-      - name: vx_promo_code
-        description: Promotional code associated with the attribution event.
-      - name: billing_period
-        description: Billing period associated with the attribution result.
-      - name: trial_duration
-        description: Trial duration associated with the attribution result.
-      - name: subscription_id
-        description: Subscription identifier associated with the conversion.
-      - name: subscription_action
-        description: Action taken on the subscription.
-      - name: subscription_period_number
-        description: Number of periods for which the subscription is active.
-      - name: cart_turnovertaxfree
-        description: Cart turnover excluding tax.
-      - name: signup_event
-        description: Signup event associated with the subscription.
-      - name: link_origin
-        description: Origin of the link associated with the subscription.
-      - name: signup_page
-        description: Page from which the signup was initiated.
-      - name: at_adset_name
-        description: Ad set name associated with the attribution event.
-      - name: at_adset_id
-        description: Ad set ID associated with the attribution event.
-      - name: at_objective
-        description: Objective associated with the attribution event.
-      - name: at_medium
-        description: Medium associated with the attribution event.
-      - name: at_creation
-        description: Timestamp at which the attribution was created.
-      - name: at_keyword
-        description: Keyword associated with the attribution event.
-      - name: at_matchtype
-        description: Match type associated with the attribution event.
-      - name: at_campaign_name
-        description: Campaign name associated with the attribution event.
-      - name: is_paid_event
-        description: Flag indicating if the event is paid.
-      - name: first_event
-        description: Flag indicating if this is the first event for the user.
-      - name: last_event
-        description: Flag indicating if this is the last event for the user.
-      - name: promo_code_from_conversion
-        description: Promotional code associated with the conversion.
-      - name: position_weight
-        description: Weight associated with the position of the attribution event.
-      - name: position_signup_touch_weight
-        description: Weight associated with the position of the signup touchpoint.
-      - name: first_touch
-        description: Flag indicating if this is the first touchpoint for the user.
-      - name: last_touch
-        description: Flag indicating if this is the last touchpoint for the user.
-      - name: signup_touch
-        description: Flag indicating if this is the signup touchpoint for the user.
-      - name: billing_period_filled
-        description: Flag indicating if the billing period is filled.
-      - name: subscription_id_filled
-        description: Flag indicating if the subscription ID is filled.
-      - name: revenue_filled
-        description: Flag indicating if the revenue is filled.
-      - name: revenue_weighted_a
-        description: Weighted revenue for the first attribution event.
-      - name: annualised_revenue_a
-        description: Annualised revenue for the first attribution event.
-      - name: date_of_creation
-        description: Date at which the record was created.
-      - name: date_of_latest_renewal
-        description: Date of the latest renewal for the subscription.
-      - name: months_between_creation_and_renewal
-        description: Number of months between the creation and the latest renewal of the subscription.
-      - name: revenue_weighted
-        description: Weighted revenue for the subscription
-      - name: annualised_revenue
-        description: Annualised revenue for the subscription.
-
   - name: fct_page_views
     description: >
       Page view fact table. One row per pageview_id; the grain is guaranteed upstream by
@@ -963,3 +841,227 @@ models:
         description: Total ad impressions on this page view.
       - name: ad_revenue
         description: Total ad revenue attributed to this page view.
+
+  - name: fct_attribution_touchpoints
+    description: >
+      Click-based subscription attribution. One row per attributable web subscription x credited
+      touchpoint in the var attribution_lookback_days days before it. Four credit models side by side:
+      position_weight (the dashboard's), signup_touch_weight, first_touch_weight and last_touch_weight,
+      each summing to 1 per conversion. No revenue. Limitations: the browser link only reaches cookies that carry
+      device_first_party_id, so paid credit is a floor; journeys are incomplete where
+      is_lookback_complete is FALSE. Incremental: rebuilds the last var attribution_reprocess_days
+      conversion dates. The run that creates the table builds only the last var
+      attribution_initial_build_days days; history is built in monthly chunks with the
+      attribution_backfill_start / attribution_backfill_end vars (ops/backfill_page_views.sh --mode
+      attribution). full_refresh=false, as for the upstream incremental attribution models.
+    columns:
+      - name: attribution_touchpoint_sk
+        description: Surrogate key of conversion_id + pageview_id + touchpoint_type. Primary key.
+        tests:
+          - not_null
+          - unique
+      - name: conversion_id
+        description: Piano conversion id of the subscription purchase.
+        tests:
+          - not_null
+      - name: subscription_id
+        description: Piano subscription bought.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_subscription')
+                field: subscription_id
+              config:
+                severity: warn
+      - name: channel_sk
+        description: Key to dim_channel.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_channel')
+                field: channel_sk
+      - name: campaign_tracking_sk
+        description: Key to dim_campaign_tracking.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_campaign_tracking')
+                field: campaign_tracking_sk
+      - name: ad_sk
+        description: Key to dim_ad when the touch's creative id is a known Meta, Google or Microsoft ad; NULL otherwise.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_ad')
+                field: ad_sk
+      - name: geo_id
+        description: Key to dim_geography. dim_geography holds US and Canadian regions only, so geo_country and geo_region are also carried.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_geography')
+                field: geo_id
+              config:
+                severity: warn
+      - name: device_platform_id
+        description: Key to dim_device_platform (app type, device type and OS group).
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_device_platform')
+                field: device_platform_id
+      - name: visitor_id
+        description: The journey's checkout cookie.
+      - name: touchpoint_visitor_id
+        description: The cookie the touch was on.
+      - name: touchpoint_date
+        description: Date of the touch - the date the attribution dashboard reports by.
+        tests:
+          - not_null
+      - name: conversion_date
+        description: Date the subscription was bought. Incremental key.
+        tests:
+          - not_null
+      - name: touchpoint_type
+        description: page_view, or conversion for the purchase itself.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["page_view", "conversion"]
+      - name: identity_link_type
+        description: How the touch's cookie is tied to the buyer.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["checkout_cookie", "account", "device"]
+      - name: agency_resolved_from
+        description: Where the touch's agency came from.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["visit_tag", "ad_id", "campaign_name", "none"]
+      - name: is_paid_touch
+        description: TRUE for an 8MS / DBS paid-media touch.
+        tests:
+          - not_null
+      - name: is_source_imputed
+        description: TRUE when the touch had no source and was given one in proportion to the known sources.
+        tests:
+          - not_null
+      - name: is_lookback_complete
+        description: FALSE when the page view history does not reach the full lookback before the purchase.
+      - name: position_weight
+        description: >
+          Position-based credit, the dashboard's model. Promo-code journeys keep today's 30 / 30 / 30 / 10 split,
+          scaled so it adds up to 1.
+        tests:
+          - not_null
+          - sums_to_one:
+              arguments:
+                group_by: conversion_id
+      - name: signup_touch_weight
+        description: >
+          40 / 40 / 20 first / sign-up / middle credit. The sign-up touch is the purchase, or the last
+          touch when the purchase is not a touch.
+        tests:
+          - sums_to_one:
+              arguments:
+                group_by: conversion_id
+      - name: first_touch_weight
+        description: 1 on the journey's first touch.
+        tests:
+          - sums_to_one:
+              arguments:
+                group_by: conversion_id
+      - name: last_touch_weight
+        description: 1 on the last touch before the purchase.
+        tests:
+          - sums_to_one:
+              arguments:
+                group_by: conversion_id
+    tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "position_weight BETWEEN 0 AND 1 AND signup_touch_weight BETWEEN 0 AND 1"
+
+  - name: fct_ad_performance_daily
+    description: >
+      Ad delivery and spend. One row per platform x account x ad x day: Meta from the facebook_ads
+      package, Google and Microsoft from the manual upload (spend only; their delivery measures are 0).
+      Descriptive attributes are in dim_ad. Never sum spend across currencies; reach and frequency
+      are not additive across days or ads.
+    columns:
+      - name: ad_performance_sk
+        description: Surrogate key of platform + account_id + ad_id + spend_date. Primary key.
+        tests:
+          - not_null
+          - unique
+      - name: ad_sk
+        description: Key to dim_ad.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_ad')
+                field: ad_sk
+              config:
+                severity: warn
+      - name: spend_date
+        description: Day of the spend.
+        tests:
+          - not_null
+      - name: spend_amount
+        description: Spend in account_currency.
+
+  - name: fct_paid_page_views
+    description: >
+      Page views from paid media. One row per page view of a paid visit (int_marketing__paid_page_views),
+      with the visit's agency and ad, and the page's content, device and geography.
+    columns:
+      - name: pageview_id
+        description: Primary key.
+        tests:
+          - not_null
+          - unique
+      - name: ad_sk
+        description: Key to dim_ad when the visit's ad id is a known Meta ad.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_ad')
+                field: ad_sk
+      - name: device_platform_id
+        description: Key to dim_device_platform (app type, device type and OS group).
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_device_platform')
+                field: device_platform_id
+      - name: agency
+        description: Paid-media agency of the visit.
+        tests:
+          - not_null
+
+  - name: fct_paid_visitor_funnel
+    description: >
+      What paid visitors went on to do. One row per paid visitor x campaign (src_campaign, '(none)'
+      when Piano captured none): an accumulating snapshot of first paid arrival, paywall and offer
+      seen, clicks on either, first purchase and newsletter sign-up, with 0 / 1 flags. Events link to
+      the visitor through their paid page views, the same cookie afterwards, the same real account
+      afterwards, or the same browser afterwards (a browser holding more than var
+      attribution_max_cookies_per_browser paid cookies is skipped). Over-time flags repeat on each of
+      a visitor's rows; same-visit flags are per campaign. Nothing is windowed: compare cohorts with a
+      fixed window.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - visitor_id
+              - src_campaign
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - visitor_id
+          config:
+            where: "is_last_paid_touch"

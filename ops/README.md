@@ -36,6 +36,7 @@ Runs the input catch-up, then the current month and the three before it, then st
 
 | Option | Default | |
 | --- | --- | --- |
+| `--mode MODE` | `page-views` | `page-views`, or `attribution` for the subscription attribution models (see below). |
 | `--target NAME` | `dev` | dbt target. On `dev`, the input models only hold the last 30 days, so step 0's check shows that. |
 | `--confirm-live` | | Required with `--target live` (except with `--dry-run`). |
 | `--start YYYY-MM` | `2024-06` | Oldest month to backfill. |
@@ -55,7 +56,7 @@ ops/backfill_page_views.sh --target live --confirm-live --resume-from 2025-03
 
 That re-runs the failed month and carries on with older ones. Re-running a chunk is safe: rows merge on `pageview_id`, and each MERGE only touches target rows within two days of the chunk. Don't resume with a month newer than the failed one unless you mean to redo it.
 
-Every run appends to `ops/logs/backfill_page_views.log` (git-ignored): the target, each chunk's range, when it started and finished, how long it took, and whether it failed. Use it to see where a run stopped and how long months take.
+Every run appends to `ops/logs/backfill_page_views.log`, or `backfill_attribution.log` with `--mode attribution` (both git-ignored): the target, each chunk's range, when it started and finished, how long it took, and whether it failed. Use it to see where a run stopped and how long months take.
 
 ### Cost and limits
 
@@ -63,3 +64,20 @@ Every run appends to `ops/logs/backfill_page_views.log` (git-ignored): the targe
 - **Daily resource monitor.** The live Medium warehouse (`DNS_TRANSFORMATIONS_PROJECT_TRANSFORMATIONS_GENERAL_MD_WH`) has a daily credit limit, and it also runs the 03:00 UTC pipeline. Spread the backfill over several days with `--max-chunks`, and resume each day with the printed command. If the monitor suspends the warehouse mid-chunk, the chunk fails; resume from it the next day.
 - **Larger warehouse.** If the platform team grants a time-boxed larger warehouse for the backfill, point the `warehouse` of your local `live` profile at it while you run the script, then change it back. The scheduled run stays on the Medium warehouse.
 - **Remote spill.** If a month starts spilling to remote storage, stop and run it by hand as two half-month chunks, then resume the script from the month before.
+
+## Attribution mode
+
+`ops/backfill_page_views.sh --mode attribution` builds the history of the click-based subscription attribution in the same monthly chunks, by `conversion_date`. It takes every option above and differs in these ways:
+
+- **Chunked models:** `int_attribution__journey_identities`, `int_attribution__journey_touches`, `int_attribution__touchpoints`, `int_attribution__touchpoints_source_imputed` and `fct_attribution_touchpoints`, run with `--vars '{attribution_backfill_start: …, attribution_backfill_end: …}'` (end exclusive). Each chunk replaces its conversion dates (delete+insert), so re-running or resuming a month is safe.
+- **Step 0** catches up `int_attribution__purchase_events`, `int_attribution__conversions`, `stg_google_ads__spend` and `dim_ad` with a normal `dbt run`, then shows the conversion and page view date ranges. Purchases and conversions are never chunked: a journey reaches back to the buyer's previous purchase in any month, so every chunk needs all of them.
+- **Page views first.** A journey is the 30 days of page views before the purchase, so `int_piano__page_views` must reach back at least 30 days before `--start`. Run the page view backfill first. If attribution runs on a short page view history, rerun those months after the page view backfill, because the nightly run only reprocesses the last 7 days.
+- **The first scheduled run is small.** When an attribution table doesn't exist yet, the run that creates it builds only the last `attribution_initial_build_days` (31) days, so merging the models doesn't put full history into the nightly run. Backfill the rest with this mode. The five models have `full_refresh=false`: `--full-refresh` is ignored for them, and to rebuild one you drop its table and backfill.
+- **Imputation mix:** a chunk imputes unknown sources from the credit mix of its own dates and the 90 days before them. Months run newest first, so the older 90 days aren't loaded yet and the mix comes from the chunk itself.
+- **After the backfill,** the tables built from these models (`dim_channel`, `dim_campaign_tracking`, `agg_subscription_attribution_touchpoint`, `fct_conversions` and everything after it) pick up the history at the next scheduled run.
+
+```bash
+ops/backfill_page_views.sh --mode attribution --target live --confirm-live --start 2025-06
+```
+
+`--start 2025-06` covers every web conversion in `fct_conversions` (they start on 26 June 2025); the default goes back to `2024-06`.
