@@ -33,6 +33,9 @@ models:
               arguments:
                 to: ref('fct_attribution_touchpoints')
                 field: conversion_id
+              config:
+                # the days every build covers: older conversions have touchpoints only once history is backfilled
+                where: "conversion_date >= DATEADD(DAY, -{{ var('attribution_initial_build_days') }}, CURRENT_DATE)"
       - name: subscription_id
         description: Piano subscription bought.
         tests:
