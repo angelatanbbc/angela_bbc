@@ -15,9 +15,6 @@ models:
               - site_id
               - device_platform_id
               - visitor_id
-          config:
-            # Warn until tables built before the delete+insert fix have been fully refreshed
-            severity: warn
     columns:
       - name: visitor_date_key
         description: Surrogate key of date, site, geography, device platform and visitor. Unique per row; geo_id is the modal geography, so the key is not stable across runs if that changes.
