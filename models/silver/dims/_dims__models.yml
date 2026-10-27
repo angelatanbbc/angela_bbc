@@ -752,3 +752,70 @@ models:
         description: Latest sign-up to the title.
       - name: signup_rows
         description: Sign-up events that included the title.
+  - name: dim_registered_user
+    description: One row per registered user (bbc_hid3), plus an unknown row (registered_user_key = '-1'). SCD1.
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: registered_user_key
+        data_type: varchar
+        description: Surrogate key. '-1' is the unknown user.
+        constraints:
+          - type: not_null
+        data_tests:
+          - unique
+      - name: bbc_hid3
+        data_type: varchar
+        description: BBC account ID (natural key). Matches user_id on Piano events.
+        constraints:
+          - type: not_null
+        data_tests:
+          - unique
+      - name: piano_user_id
+        data_type: varchar
+        description: >
+          Piano encrypted ID (bbcid_piano_encrypted) on the latest profile record.
+          Matches user_first_party_id on Piano events. Null for the unknown user.
+          See int_account__user_piano_ids for every ID a user has carried.
+        data_tests:
+          - unique:
+              config:
+                where: "piano_user_id is not null"
+                severity: warn
+      - name: registration_date
+        data_type: date
+        description: Date the account was created (cal_createdate). Null for the unknown user.
+      - name: registration_timestamp
+        data_type: timestamp_tz
+        description: Timestamp the account was created.
+      - name: registration_product
+        data_type: varchar
+        description: Product the user registered through, lower case.
+      - name: status
+        data_type: varchar
+        description: Raw profile status, lower case. To be mapped via a seed.
+      - name: age_range
+        data_type: varchar
+        description: Raw age range. To be mapped to a band via a seed.
+      - name: age_group
+        data_type: varchar
+        description: Age group from the profile.
+      - name: is_child
+        data_type: number
+        description: Whether the profile is a child profile.
+      - name: location
+        data_type: varchar
+        description: Profile location as an upper case country code. Not the visit geography.
+      - name: is_uk_user
+        data_type: boolean
+        description: Whether the user is flagged as a UK user.
+      - name: is_deleted
+        data_type: number
+        description: Whether the account has been deleted.
+      - name: deleted_date
+        data_type: date
+        description: Date the account was deleted, if applicable.
+      - name: last_profile_event_date
+        data_type: varchar
+        description: Date of the latest profile event for the user.
