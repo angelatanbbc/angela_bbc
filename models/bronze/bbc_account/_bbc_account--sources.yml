@@ -1,0 +1,12 @@
+version: 2
+
+sources:
+  - name: bbc_account
+    database: sdp_silver
+    description: BBC account (identity) data, including registered user profiles.
+    tables:
+      - name: id_profile
+        description: >
+          User profile records from the BBC account (registered) system. A user (bbc_hid3)
+          can have several rows, one per profile event, so deduplicate to the
+          latest row before using it as a dimension.
