@@ -312,7 +312,11 @@ models:
         description: A/B test variant associated with the exposure.
 
   - name: int_piano__offsite_conversion_event_consolidation
-    description: Intermediate table that consolidates offsite app-store conversion events with the closest onsite mobile-app conversion record for attribution.
+    description: >
+      Intermediate table that consolidates offsite conversion events with the same user's closest
+      onsite mobile-app conversion record (within an hour) for attribution. Conversions with no
+      matching onsite event, including web upgrades that Piano reports offsite, are kept with no
+      visit, visitor or geo.
     columns:
       - name: conversion_id
         description: Unique identifier for the offsite conversion event.
@@ -322,17 +326,15 @@ models:
       - name: subscription_id
         description: Subscription identifier associated with the conversion.
       - name: visitor_id
-        description: Piano visitor identifier for the matched conversion journey.
-        tests:
-          - not_null
+        description: Piano visitor identifier for the matched conversion journey. Null when the user has no matching onsite conversion event.
       - name: user_first_party_id
-        description: First-party user identifier AKA FED_ID
+        description: First-party user identifier AKA FED_ID. Used to match the onsite conversion event.
       - name: visit_id
         description: Piano visit identifier for the matched conversion journey.
       - name: visit_time
         description: Timestamp of the piano visit for the matched conversion journey.
       - name: device_platform_id
-        description: Device platform of the matched onsite conversion event, with app type forced to Mobile App.
+        description: Device platform of the matched onsite conversion event, with app type forced to Mobile App. Without a match, the OS comes from the app store and the device type is Unknown.
         tests:
           - not_null
           - relationships:

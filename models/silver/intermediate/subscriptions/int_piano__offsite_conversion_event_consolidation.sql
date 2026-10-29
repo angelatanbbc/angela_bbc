@@ -34,6 +34,7 @@ WITH offsite_conversions AS (
         site_id = 638824
         AND event_time::DATE > '2025-06-25'
         AND event_name = 'vx.conversion.offsite'
+        AND subscription_id IS NOT NULL  -- Excludes group grants such as the Ad Sales group subscription
 
 ),
 
@@ -42,10 +43,12 @@ onsite_conversions AS (
 
     SELECT
         event_time AS conversion_time,
+        user_first_party_id,
         visitor_id,
         visit_id,
         visit_time,
-        {{ generate_device_platform_id("'Mobile App'", 'device_type', 'os_group') }} AS device_platform_id,
+        device_type,
+        os_group,
         src,
         src_detail,
         geo_id,
@@ -61,18 +64,23 @@ onsite_conversions AS (
 
 ),
 
+-- Match each offsite conversion to the same user's nearest onsite conversion. Matching on
+-- time alone gave conversions another user's visit when the user's own event was missing.
+-- Conversions with no match (no in-app event, or a web upgrade Piano reports offsite) are
+-- kept with no visit, visitor or geo.
 ranked_matches AS (
 
     SELECT
         ofs.*,
-        ons.* EXCLUDE (conversion_time),
+        ons.* EXCLUDE (conversion_time, user_first_party_id),
         ROW_NUMBER() OVER (
             PARTITION BY ofs.conversion_id
             ORDER BY ABS(DATEDIFF(SECOND, ofs.conversion_time, ons.conversion_time))
         ) AS ranking
     FROM offsite_conversions ofs
     LEFT JOIN onsite_conversions ons
-        ON ABS(DATEDIFF(HOUR, ofs.conversion_time, ons.conversion_time)) <= 1  -- window in hours
+        ON ofs.user_first_party_id = ons.user_first_party_id
+        AND ABS(DATEDIFF(HOUR, ofs.conversion_time, ons.conversion_time)) <= 1  -- window in hours
 
 )
 
@@ -84,7 +92,12 @@ SELECT
     user_first_party_id,
     visit_id,
     visit_time,
-    device_platform_id,
+    -- Without a matched event, the store still tells us the OS
+    {{ generate_device_platform_id(
+        "'Mobile App'",
+        'device_type',
+        "COALESCE(os_group, CASE payment_provider WHEN 'Apple App Store' THEN 'iOS' WHEN 'Google Play' THEN 'Android' END)"
+    ) }} AS device_platform_id,
     conversion_time,
     term_id,
     term_name,
@@ -100,11 +113,10 @@ SELECT
     created_via_upgrade,
     src,
     src_detail,
-    geo_id,
-    geo_country,
-    geo_region,
+    -- Unmatched conversions have no geo, so they get the Unknown geography
+    COALESCE(geo_id, {{ generate_geo_id('geo_country', 'geo_region') }}) AS geo_id,
+    COALESCE(geo_country, 'Unknown') AS geo_country,
+    COALESCE(geo_region, 'Unknown') AS geo_region,
     geo_city
 FROM ranked_matches
-WHERE
-    visitor_id IS NOT NULL
-    AND ranking = 1
+WHERE ranking = 1
