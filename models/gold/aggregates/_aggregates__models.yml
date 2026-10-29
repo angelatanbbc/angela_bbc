@@ -368,18 +368,26 @@ models:
   - name: agg_marketing_paid_page_views
     description: >
       Paid page views with the spend that bought them, for the Marketing Measurement Dashboard's
-      Overview and Stage deep dive. One row per paid page view x ad-day, plus one row per ad-day with
-      spend but no page views. The ad-day's spend, impressions and clicks are split equally across its
-      page views (spend_per_page_view and its twins are additive; spend and the other ad-day totals
-      are not). Podcast ads are left out unless var include_podcast_ads. Column names follow the
-      dashboard.
+      Overview and Stage deep dive. One row per paid page view that spend can reach, plus one row per
+      spend day with no page views. Meta spend is matched to page views by ad and day; Google and
+      Microsoft spend by campaign and day (Piano's src_campaign), as Piano rarely carries their ad ids
+      and Performance Max has none. spend_key says which. The day's spend, impressions and clicks are
+      split equally across its page views (spend_per_page_view and its twins are additive; spend and
+      the other day totals are not). Podcast ads are left out unless var include_podcast_ads. Column
+      names follow the dashboard.
     columns:
       - name: pageview_id
-        description: The paid page view; NULL on spend-only ad-days.
+        description: The paid page view; NULL on spend-only days.
         tests:
           - unique
       - name: date_day
-        description: Day of the page view, or of the ad-day when it had none.
+        description: Day of the page view, or of the spend day when it had none.
+        tests:
+          - not_null
+      - name: spend_key
+        description: >
+          What spend was matched on: the Meta ad id, or 'campaign:' plus the lower-cased campaign name
+          for Google and Microsoft.
         tests:
           - not_null
 
@@ -401,7 +409,8 @@ models:
       per platform x src_campaign x funnel stage x agency x day, combining delivery and spend
       (agg_marketing_paid_page_views), visitor outcomes (agg_marketing_visitor_funnel) and the
       click-based attribution's paid credit (fct_attribution_touchpoints), each additive by day, so
-      every ratio is SUM / SUM. Google and Microsoft spend-only ad-days are left out.
+      every ratio is SUM / SUM. platform comes from the campaign's spend (meta, google or microsoft),
+      and is meta for campaigns with no spend.
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:

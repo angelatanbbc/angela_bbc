@@ -1049,8 +1049,9 @@ models:
       when Piano captured none): an accumulating snapshot of first paid arrival, paywall and offer
       seen, clicks on either, first purchase and newsletter sign-up, with 0 / 1 flags. Events link to
       the visitor through their paid page views, the same cookie afterwards, the same real account
-      afterwards, or the same browser afterwards (a browser holding more than var
-      attribution_max_cookies_per_browser paid cookies is skipped). Over-time flags repeat on each of
+      afterwards, or the same browser afterwards. As in the attribution, the browser link skips a
+      browser with more than var attribution_max_cookies_per_browser cookies and a paid cookie signed in
+      to another account. Over-time flags repeat on each of
       a visitor's rows; same-visit flags are per campaign. Nothing is windowed: compare cohorts with a
       fixed window.
     tests:

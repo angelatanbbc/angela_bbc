@@ -12,7 +12,7 @@
     The body is passed straight to CREATE OR REPLACE SEMANTIC VIEW, so it follows
     Snowflake's semantic view syntax rather than the SQL style guide.
 
-    Naming rule, as in sv_bbc_com: every dimension, fact and metric name is unique across the view.
+    Naming rule: every dimension, fact and metric name is unique across the view.
     Dates, geography and device platform are only exposed from their dims; the fact keeps only the
     attributes of the touch itself. Dates join on the purchase date (conversion_date).
 -#}
@@ -169,8 +169,8 @@ DIMENSIONS (
     ADS.AD_NAME AS ad_name
         COMMENT = 'Name of the ad as its platform reports it. For Google and Microsoft ads this is the campaign name from the agencies'' sheet.',
     ADS.PLATFORM_CAMPAIGN_NAME AS campaign_name
-        WITH SYNONYMS = ('meta_campaign')
-        COMMENT = 'Campaign name as Meta reports it. Empty for Google and Microsoft ads.',
+        WITH SYNONYMS = ('meta_campaign', 'google_campaign')
+        COMMENT = 'Campaign name as the ad platform reports it; for Google and Microsoft, the campaign from the agencies'' sheet.',
 
     -- Attribution touchpoints
     ATTRIBUTION_TOUCHPOINTS.CONVERSION_ID AS conversion_id

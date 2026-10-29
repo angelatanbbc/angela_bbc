@@ -33,6 +33,9 @@ models:
               arguments:
                 to: ref('fct_attribution_touchpoints')
                 field: conversion_id
+              config:
+                # the days every build covers: older conversions have touchpoints only once history is backfilled
+                where: "conversion_date >= DATEADD(DAY, -{{ var('attribution_initial_build_days') }}, CURRENT_DATE)"
       - name: subscription_id
         description: Piano subscription bought.
         tests:
@@ -225,13 +228,22 @@ models:
       Visits from paid media. One row per visit whose agency is a paid-media agency (seed
       bbc_team_agencies), by the attribution's agency rule at visit level: the visit's own tag, else
       its Meta ad's agency (dim_ad), else an 8ms_ / dbs_ campaign name on a Facebook or Instagram
-      visit. Covers the page view history int_piano__page_views holds.
+      visit. URL tags are read from the landing page only. When Piano's campaign is Meta's unfilled
+      placeholder, src_campaign comes from the visit's Meta ad (dim_ad) where it has one. Incremental:
+      rebuilds the last var marketing_reprocess_days visit dates. The run that creates the table builds
+      only the last var marketing_initial_build_days days; history is built in chunks with the
+      marketing_backfill_start / marketing_backfill_end vars, run together with
+      int_marketing__paid_page_views. full_refresh=false, so --full-refresh is ignored.
     columns:
       - name: visit_id
         description: Piano visit id. Primary key.
         tests:
           - not_null
           - unique
+      - name: visit_date
+        description: Date of the visit's first page view. Incremental key.
+        tests:
+          - not_null
       - name: agency
         description: Paid-media agency.
         tests:
@@ -250,13 +262,18 @@ models:
       The page views of paid visits. One row per page view of a visit in int_marketing__paid_visits,
       with measures from fct_page_views and labels and the RevOps score from int_piano__page_views.
       vx_conversion_count counts the attributable purchases (int_attribution__conversions) made on the
-      page view. The 'unidentified-user' placeholder is never an account.
+      page view. The 'unidentified-user' placeholder is never an account. Incremental on visit_date,
+      the same days as int_marketing__paid_visits.
     columns:
       - name: pageview_id
         description: Primary key.
         tests:
           - not_null
           - unique
+      - name: visit_date
+        description: Date of the visit's first page view (int_marketing__paid_visits). Incremental key.
+        tests:
+          - not_null
 
   - name: int_marketing__funnel_events
     description: >
