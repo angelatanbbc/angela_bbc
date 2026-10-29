@@ -7,7 +7,7 @@ models:
       as of the latest subscriber snapshot date. Serves the subscriber activity dashboard
       (dashboard_name = 'subscriber_activity') and the acquisition dashboard
       (dashboard_name = 'acquisition'). Acquisition sign-up metrics use fractional
-      multi-touch attribution (position_weight), so organic + paid equals total sign-ups;
+      multi-touch attribution (fct_conversions.paid_attribution_weight), so organic + paid equals total sign-ups;
       pct_annual is treated as higher-is-better on lifetime-value grounds.
       subscription_arpu is MTD subscription transaction value (cart turnover ex-tax)
       per 1,000 distinct site visitors - stored pre-scaled by 1,000 because the
@@ -107,8 +107,8 @@ models:
     description: >
       Daily sign-up counts for the acquisition dashboard, one row per conversion date,
       attribution source, billing period and geography/device/app/OS combination.
-      n_signups uses fractional multi-touch attribution (position_weight sums to 1 per
-      conversion), so it is fully additive: Tableau can SUM it across any date range or
+      n_signups uses fractional multi-touch attribution (each conversion splits into Paid by its
+      paid_attribution_weight and Organic by the rest), so it is fully additive: Tableau can SUM it across any date range or
       dimension filter, and Organic + Paid equals the exact distinct conversion count at
       every grain. Display rounding should happen in Tableau number formatting, not here.
     columns:
@@ -328,3 +328,96 @@ models:
         description: The month-over-month change in product usage.
         tests:
           - not_null
+
+  - name: agg_subscription_attribution_touchpoint
+    description: >
+      The click-based subscription attribution, flat, for the Subscriptions Click Based Attribution
+      dashboard. One row per attributable web subscription x credited touchpoint (the grain of
+      fct_attribution_touchpoints): every touch, its four credits and every label it is filtered or
+      grouped by. No weight is recalculated; left joins, so no touch is dropped. Text is capped at
+      VARCHAR(512) for Tableau's Snowflake driver.
+    columns:
+      - name: attribution_touchpoint_sk
+        description: Primary key (the fact's).
+        tests:
+          - not_null
+          - unique
+      - name: conversion_id
+        description: The subscription purchase; count distinct for subscriptions.
+        tests:
+          - not_null
+      - name: touchpoint_date
+        description: Date of the touch - the date the dashboard reports by.
+        tests:
+          - not_null
+      - name: is_paid_touch
+        description: TRUE for an 8MS / DBS paid-media touch.
+        tests:
+          - not_null
+      - name: funnel_stage
+        description: TOF / MOF / BOF from the ad platform's campaign name; NULL for touches without a known Meta ad (the Google upload has no campaign).
+      - name: position_weight
+        description: Position-based credit, the dashboard's model; sums to 1 per conversion.
+        tests:
+          - not_null
+    tests:
+      - dbt_utils.equal_rowcount:
+          arguments:
+            compare_model: ref('fct_attribution_touchpoints')
+
+  - name: agg_marketing_paid_page_views
+    description: >
+      Paid page views with the spend that bought them, for the Marketing Measurement Dashboard's
+      Overview and Stage deep dive. One row per paid page view that spend can reach, plus one row per
+      spend day with no page views. Meta spend is matched to page views by ad and day; Google and
+      Microsoft spend by campaign and day (Piano's src_campaign), as Piano rarely carries their ad ids
+      and Performance Max has none. spend_key says which. The day's spend, impressions and clicks are
+      split equally across its page views (spend_per_page_view and its twins are additive; spend and
+      the other day totals are not). Podcast ads are left out unless var include_podcast_ads. Column
+      names follow the dashboard.
+    columns:
+      - name: pageview_id
+        description: The paid page view; NULL on spend-only days.
+        tests:
+          - unique
+      - name: date_day
+        description: Day of the page view, or of the spend day when it had none.
+        tests:
+          - not_null
+      - name: spend_key
+        description: >
+          What spend was matched on: the Meta ad id, or 'campaign:' plus the lower-cased campaign name
+          for Google and Microsoft.
+        tests:
+          - not_null
+
+  - name: agg_marketing_visitor_funnel
+    description: >
+      The paid visitor funnel for the Marketing Measurement Dashboard's Funnel tab. One row per paid
+      visitor x campaign (fct_paid_visitor_funnel) with the labels the dashboard filters by. date_day
+      is the visitor's first arrival on the campaign. Column names follow the dashboard.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - visitor_id
+              - src_campaign
+
+  - name: agg_marketing_campaign_daily
+    description: >
+      Campaign economics by day for the Marketing Measurement Dashboard's Campaign deep dive. One row
+      per platform x src_campaign x funnel stage x agency x day, combining delivery and spend
+      (agg_marketing_paid_page_views), visitor outcomes (agg_marketing_visitor_funnel) and the
+      click-based attribution's paid credit (fct_attribution_touchpoints), each additive by day, so
+      every ratio is SUM / SUM. platform comes from the campaign's spend (meta, google or microsoft),
+      and is meta for campaigns with no spend.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - platform
+              - date_day
+              - src_campaign
+              - funnel_stage
+              - funnel_stage_v2
+              - src_bbc_team

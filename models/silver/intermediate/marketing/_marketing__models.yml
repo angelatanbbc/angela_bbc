@@ -1,0 +1,335 @@
+version: 2
+
+models:
+  - name: int_attribution__purchase_events
+    description: >
+      Piano purchase events. One row per conversion_id: its first vx.conversion event with a
+      pageview_id, on any site and app type, with the purchase's source, tag, geography, device and
+      content columns. Incremental (merge on conversion_id), rereading the events from the day before
+      the latest one loaded; a purchase already loaded keeps its first event.
+    columns:
+      - name: conversion_id
+        description: Piano conversion id. Primary key.
+        tests:
+          - not_null
+          - unique
+
+  - name: int_attribution__conversions
+    description: >
+      Attributable web subscription purchases, rebuilt in full from int_attribution__purchase_events.
+      One row per conversion_id. A vx.conversion with a
+      conversion_id and a pageview_id, not from the mobile app, not a staff, editorial or empty promo
+      code, and on a subscription site (seed subscription_sites) when var attribution_site_scope is on.
+      Resolves the buyer: the checkout cookie (the journey key), the real account and the browser id.
+      Limitation: vx.conversion events without a pageview_id carry no conversion_id and cannot be
+      attributed.
+    columns:
+      - name: conversion_id
+        description: Piano conversion id of the purchase. Primary key.
+        tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('fct_attribution_touchpoints')
+                field: conversion_id
+              config:
+                # the days every build covers: older conversions have touchpoints only once history is backfilled
+                where: "conversion_date >= DATEADD(DAY, -{{ var('attribution_initial_build_days') }}, CURRENT_DATE)"
+      - name: subscription_id
+        description: Piano subscription bought.
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: checkout_pageview_id
+        description: The checkout page view the purchase was made on.
+      - name: checkout_visitor_id
+        description: Cookie on the checkout page view, else the purchase event's own. The journey key.
+        tests:
+          - not_null
+      - name: conversion_visitor_id
+        description: Cookie on the purchase event itself.
+      - name: buyer_user_id
+        description: >
+          Real account of the buyer, from the purchase or the checkout page view. Never the
+          'unidentified-user' placeholder.
+      - name: buyer_device_id
+        description: device_first_party_id of the buyer's browser.
+      - name: conversion_at
+        description: Timestamp of the purchase, local time.
+        tests:
+          - not_null
+      - name: conversion_date
+        description: Date of the purchase.
+        tests:
+          - not_null
+      - name: previous_conversion_at
+        description: The checkout cookie's previous purchase on any site. The journey reaches back no further.
+      - name: is_lookback_complete
+        description: >
+          FALSE when the page view history does not yet reach var attribution_lookback_days before
+          the purchase, so the journey may be missing early touches.
+      - name: promo_code
+        description: Promo code used on the purchase.
+    tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "buyer_user_id IS NULL OR buyer_user_id NOT ILIKE 'unidentified%'"
+
+  - name: int_attribution__journey_identities
+    description: >
+      The cookies in each buyer's journey. One row per conversion x cookie. Links: checkout_cookie
+      (always), account (page views carrying the buyer's user_id) and device (cookies seen on the
+      buyer's device_first_party_id, unless that browser carried more than var
+      attribution_max_cookies_per_browser cookies or the cookie carries another account), all judged
+      inside the journey window. var attribution_link_types switches links off. Incremental:
+      rebuilds the last var attribution_reprocess_days conversion dates. Limitation: the device link
+      only reaches cookies that carry device_first_party_id.
+    columns:
+      - name: conversion_id
+        description: The purchase.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('int_attribution__conversions')
+                field: conversion_id
+      - name: visitor_id
+        description: A cookie in the purchase's journey.
+        tests:
+          - not_null
+      - name: conversion_date
+        description: Date of the purchase. Incremental key.
+      - name: identity_link_type
+        description: How the cookie is tied to the buyer.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["checkout_cookie", "account", "device"]
+      - name: browser_cookie_count
+        description: Cookies seen on the buyer's browser in the journey window. Device links only.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - conversion_id
+              - visitor_id
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "identity_link_type != 'device' OR browser_cookie_count <= {{ var('attribution_max_cookies_per_browser') }}"
+
+  - name: int_attribution__journey_touches
+    description: >
+      Every touch in each purchase's journey. One row per conversion x pageview_id x touchpoint_type:
+      the page views on the buyer's cookies inside the journey window (on subscription sites when var
+      attribution_site_scope is on), plus the purchase itself when it was recorded on the checkout
+      cookie. Drops the sign-in return from account.bbc.com unless a journey would be empty (var
+      attribution_skip_signin_return), and fills a lost agency tag from the ad id or campaign name (var
+      attribution_fill_agency). Carries the campaign tags, the conformed geography and device
+      platform ids, and the content labels. Incremental on conversion_date.
+    columns:
+      - name: touchpoint_type
+        description: page_view, or conversion for the purchase itself.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["page_view", "conversion"]
+      - name: identity_link_type
+        description: How the touch's cookie is tied to the buyer.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["checkout_cookie", "account", "device"]
+      - name: agency_resolved_from
+        description: Where the agency came from - visit_tag, ad_id, campaign_name or none.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["visit_tag", "ad_id", "campaign_name", "none"]
+      - name: ad_sk
+        description: dim_ad key when the touch's creative id is a known Meta, Google or Microsoft ad; NULL otherwise. Only Meta ads fill a lost agency tag.
+      - name: campaign_tracking_sk
+        description: dim_campaign_tracking key; the 'none' row when the visit has no tags.
+        tests:
+          - not_null
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - conversion_id
+              - pageview_id
+              - touchpoint_type
+
+  - name: int_attribution__touchpoints
+    description: >
+      The credited touchpoints and their weights. One row per conversion x pageview_id x
+      touchpoint_type, a subset of int_attribution__journey_touches. The old model's keep rules, position
+      weight and attribution source (archive/old_attribution/int_subscription__attribution.sql) step for
+      step, except that promo-code journeys are scaled so their position weights add up to 1. The sign-up
+      touch weight counts per purchase, not per cookie; when the purchase was recorded on another cookie,
+      the last touch takes its 40%. Incremental on conversion_date.
+    columns:
+      - name: attribution_source
+        description: Credited source before unknown sources are handled; NULL when unknown.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - conversion_id
+              - pageview_id
+              - touchpoint_type
+
+  - name: int_attribution__touchpoints_source_imputed
+    description: >
+      The credited touchpoints with every touch given a source. One row per conversion x pageview_id
+      x touchpoint_type. A touch with no source is reassigned in proportion to the last var
+      attribution_imputation_window_days of known non-paid credit (is_source_imputed; var
+      attribution_impute_unknown_sources off leaves it Unknown), the generic Search engines detail is
+      split across the named engines, and owned banners are credited to House Ad, as today.
+      Incremental on conversion_date.
+    columns:
+      - name: attribution_source
+        description: Credited source.
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: channel_sk
+        description: dim_channel key.
+        tests:
+          - not_null
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - conversion_id
+              - pageview_id
+              - touchpoint_type
+
+  - name: int_marketing__ad_spend_daily
+    description: >
+      Ad spend by platform x account x ad x day, from var marketing_start_date. Meta from the
+      facebook_ads package's basic_ad report, with the ad's hierarchy, team and podcast flag from
+      dim_ad and the account from the package's account history; Google and Microsoft from the manual
+      upload (stg_google_ads__spend), which has no account, hierarchy or delivery metrics (an ad renamed
+      during a day is summed onto one row). Spend is never split per visit here.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - platform
+              - account_id
+              - ad_id
+              - spend_date
+
+  - name: int_marketing__paid_visits
+    description: >
+      Visits from paid media. One row per visit whose agency is a paid-media agency (seed
+      bbc_team_agencies), by the attribution's agency rule at visit level: the visit's own tag, else
+      its Meta ad's agency (dim_ad), else an 8ms_ / dbs_ campaign name on a Facebook or Instagram
+      visit. URL tags are read from the landing page only. When Piano's campaign is Meta's unfilled
+      placeholder, src_campaign comes from the visit's Meta ad (dim_ad) where it has one. Incremental:
+      rebuilds the last var marketing_reprocess_days visit dates. The run that creates the table builds
+      only the last var marketing_initial_build_days days; history is built in chunks with the
+      marketing_backfill_start / marketing_backfill_end vars, run together with
+      int_marketing__paid_page_views. full_refresh=false, so --full-refresh is ignored.
+    columns:
+      - name: visit_id
+        description: Piano visit id. Primary key.
+        tests:
+          - not_null
+          - unique
+      - name: visit_date
+        description: Date of the visit's first page view. Incremental key.
+        tests:
+          - not_null
+      - name: agency
+        description: Paid-media agency.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["8ms", "dbs"]
+      - name: agency_resolved_from
+        description: Where the agency came from.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["visit_tag", "ad_id", "campaign_name"]
+
+  - name: int_marketing__paid_page_views
+    description: >
+      The page views of paid visits. One row per page view of a visit in int_marketing__paid_visits,
+      with measures from fct_page_views and labels and the RevOps score from int_piano__page_views.
+      vx_conversion_count counts the attributable purchases (int_attribution__conversions) made on the
+      page view. The 'unidentified-user' placeholder is never an account. Incremental on visit_date,
+      the same days as int_marketing__paid_visits.
+    columns:
+      - name: pageview_id
+        description: Primary key.
+        tests:
+          - not_null
+          - unique
+      - name: visit_date
+        description: Date of the visit's first page view (int_marketing__paid_visits). Incremental key.
+        tests:
+          - not_null
+
+  - name: int_marketing__funnel_events
+    description: >
+      The events the paid visitor funnel follows, for any visitor, from var marketing_start_date. One
+      row per event that is a paywall or inline-offer exposure or click (Composer template columns),
+      an attributable purchase (int_attribution__conversions), or a newsletter sign-up: on a page view,
+      or on the newsletters page of var marketing_site_ids, which never carries a pageview_id.
+      Incremental (merge on event_id), rereading the events from the day before the latest one loaded. The
+      run that creates it builds only var marketing_initial_build_days days; older history is backfilled in
+      chunks with the marketing_backfill_start / marketing_backfill_end vars.
+    columns:
+      - name: event_id
+        description: Piano event id. Primary key.
+        tests:
+          - not_null
+          - unique
+
+unit_tests:
+  - name: int_attribution__touchpoints_promo_weights_sum_to_one
+    description: >
+      Two promo-code journeys of five touches, each on its own day. c1 has a paid touch that is neither the first
+      nor the last, so today's split gives 0.3 / 0.3 / 0.05 / 0.3 / 0.3 = 1.25, scaled to 0.24 / 0.24 / 0.04 /
+      0.24 / 0.24. c2 has no paid touch and keeps today's 0.3 / 0.05 / 0.05 / 0.3 / 0.3.
+    model: int_attribution__touchpoints
+    overrides:
+      macros:
+        is_incremental: false
+      # the test's own date range, so it doesn't fall outside the first-build window as time passes
+      vars:
+        attribution_backfill_start: "2026-10-05"
+        attribution_backfill_end: "2026-10-06"
+    given:
+      - input: ref('int_attribution__journey_touches')
+        rows:
+          - {conversion_id: c1, pageview_id: c1p1, touchpoint_type: page_view, conversion_date: 2026-10-05, conversion_at: "2026-10-05 10:00:00", touchpoint_at: "2026-10-01 10:00:00", touchpoint_visitor_id: "AA", visit_id: "01", src: direct}
+          - {conversion_id: c1, pageview_id: c1p2, touchpoint_type: page_view, conversion_date: 2026-10-05, conversion_at: "2026-10-05 10:00:00", touchpoint_at: "2026-10-02 10:00:00", touchpoint_visitor_id: "AA", visit_id: "02", src: paid, src_bbc_team: dbs}
+          - {conversion_id: c1, pageview_id: c1p3, touchpoint_type: page_view, conversion_date: 2026-10-05, conversion_at: "2026-10-05 10:00:00", touchpoint_at: "2026-10-03 10:00:00", touchpoint_visitor_id: "AA", visit_id: "03", src: direct}
+          - {conversion_id: c1, pageview_id: c1p4, touchpoint_type: page_view, conversion_date: 2026-10-05, conversion_at: "2026-10-05 10:00:00", touchpoint_at: "2026-10-04 10:00:00", touchpoint_visitor_id: "AA", visit_id: "04", src: direct}
+          - {conversion_id: c1, pageview_id: c1p5, touchpoint_type: conversion, conversion_date: 2026-10-05, conversion_at: "2026-10-05 10:00:00", touchpoint_at: "2026-10-05 10:00:00", touchpoint_visitor_id: "AA", visit_id: "05", src: direct, promo_code: SAVE}
+          - {conversion_id: c2, pageview_id: c2p1, touchpoint_type: page_view, conversion_date: 2026-10-05, conversion_at: "2026-10-05 10:00:00", touchpoint_at: "2026-10-01 10:00:00", touchpoint_visitor_id: "BB", visit_id: "11", src: direct}
+          - {conversion_id: c2, pageview_id: c2p2, touchpoint_type: page_view, conversion_date: 2026-10-05, conversion_at: "2026-10-05 10:00:00", touchpoint_at: "2026-10-02 10:00:00", touchpoint_visitor_id: "BB", visit_id: "12", src: direct}
+          - {conversion_id: c2, pageview_id: c2p3, touchpoint_type: page_view, conversion_date: 2026-10-05, conversion_at: "2026-10-05 10:00:00", touchpoint_at: "2026-10-03 10:00:00", touchpoint_visitor_id: "BB", visit_id: "13", src: direct}
+          - {conversion_id: c2, pageview_id: c2p4, touchpoint_type: page_view, conversion_date: 2026-10-05, conversion_at: "2026-10-05 10:00:00", touchpoint_at: "2026-10-04 10:00:00", touchpoint_visitor_id: "BB", visit_id: "14", src: direct}
+          - {conversion_id: c2, pageview_id: c2p5, touchpoint_type: conversion, conversion_date: 2026-10-05, conversion_at: "2026-10-05 10:00:00", touchpoint_at: "2026-10-05 10:00:00", touchpoint_visitor_id: "BB", visit_id: "15", src: direct, promo_code: SAVE}
+      - input: ref('bbc_team_agencies')
+        rows:
+          - {bbc_team_raw: dbs, agency: dbs, is_paid_media: true}
+    expect:
+      rows:
+        - {conversion_id: c1, pageview_id: c1p1, position_weight: 0.24}
+        - {conversion_id: c1, pageview_id: c1p2, position_weight: 0.24}
+        - {conversion_id: c1, pageview_id: c1p3, position_weight: 0.04}
+        - {conversion_id: c1, pageview_id: c1p4, position_weight: 0.24}
+        - {conversion_id: c1, pageview_id: c1p5, position_weight: 0.24}
+        - {conversion_id: c2, pageview_id: c2p1, position_weight: 0.3}
+        - {conversion_id: c2, pageview_id: c2p2, position_weight: 0.05}
+        - {conversion_id: c2, pageview_id: c2p3, position_weight: 0.05}
+        - {conversion_id: c2, pageview_id: c2p4, position_weight: 0.3}
+        - {conversion_id: c2, pageview_id: c2p5, position_weight: 0.3}

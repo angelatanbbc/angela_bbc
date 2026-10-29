@@ -1,0 +1,11 @@
+bbc_team_raw,agency,is_paid_media,note
+8ms,8ms,true,8MS paid media agency
+dbs,dbs,true,DBS paid media agency
+8ms_ws,,false,World Service; its creative ids match no ad account we hold
+bbc,,false,BBC public service
+bbc.com,,false,house ads on bbc.com
+crm,,false,CRM and email
+editorial,,false,editorial links
+studios,,false,BBC Studios
+ws,,false,World Service
+ps,,false,public service

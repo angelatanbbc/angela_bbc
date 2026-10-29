@@ -1,0 +1,24 @@
+version: 2
+
+models:
+  - name: stg_google_ads__spend
+    description: >
+      Google Ads and Microsoft Ads spend from the manual upload, renamed and cast. One row per upload
+      line: an ad renamed during a day appears on two lines for that day, each with its own spend.
+      Rows without a parseable date are dropped. Performance Max lines have no ad id and are kept under
+      their campaign.
+    columns:
+      - name: ad_id
+        description: >
+          Platform ad id, as text so it matches Piano's src_creative_id. 12 digits for Google, 14 for
+          Microsoft; 'campaign:' plus the campaign name for lines without one (Performance Max).
+        tests:
+          - not_null
+      - name: spend_date
+        description: Day of the spend.
+        tests:
+          - not_null
+      - name: ad_name
+        description: The upload's Campaign column (the upload has no ad name); carries the BBC team (DBS / 8MS) and the funnel stage.
+      - name: spend_amount
+        description: Spend on the ad that day.

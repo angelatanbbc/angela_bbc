@@ -1,11 +1,24 @@
 version: 2
 
 models:
+  - name: sv_marketing_attribution
+    description: >
+      Snowflake semantic view over fct_attribution_touchpoints and its dimensions (dim_date,
+      dim_device_platform, dim_geography, dim_channel, dim_campaign_tracking, dim_ad), for Cortex
+      Analyst and SEMANTIC_VIEW() queries. Metrics: subscriptions, subscriptions with a paid touch,
+      and attributed subscriptions under the position, sign-up touch, first touch and last touch
+      models, overall and for paid media.
+      Follows the sv_bbc_com conventions: every dimension, fact and metric name is unique across the
+      view; dates, geography and device platform come from their dims only (dates join on the
+      purchase date); comments and synonyms live inline in the DDL. Includes AI_SQL_GENERATION
+      guidance and verified queries for Cortex Analyst. Needs the CREATE SEMANTIC VIEW privilege, so
+      it is built only with var build_semantic_views.
   - name: sv_bbc_com
     description: >
       Snowflake semantic view over the BBC.com subscription and audience facts and dims, for
       Cortex Analyst and SEMANTIC_VIEW() queries. Covers CTA exposures, sign-ups with
-      fractional multi-touch attribution and first-period revenue, subscriber stock, MRR
+      paid and organic shares from the multi-touch attribution (fct_attribution_touchpoints) and
+      first-period revenue, subscriber stock, MRR
       movements (new, churned and other), billed revenue and earned revenue per subscription,
       churn and renewals, cohort retention with the Piano retention benchmark (from the
       piano_retention_curves seed), US/Canada daily visitors and worldwide web page views.

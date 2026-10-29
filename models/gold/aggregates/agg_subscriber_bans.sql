@@ -213,9 +213,8 @@ conversions AS (
     SELECT
         conversion_date,
         conversion_id,
-        attribution_source,
         COALESCE(billing_period, 'Unknown') AS billing_period,
-        position_weight
+        paid_attribution_weight
     FROM {{ ref('fct_conversions') }}
 
 ),
@@ -335,15 +334,15 @@ avg_subscriber_visits_per_period AS (
 
 ),
 
--- Sign-up counts use fractional multi-touch attribution: position_weight sums to 1
--- per conversion_id, so organic + paid equals the exact distinct conversion count.
+-- Sign-up counts use fractional multi-touch attribution: each conversion is paid by its
+-- paid_attribution_weight and organic by the rest, so organic + paid equals the conversion count.
 organic_signups AS (
 
     SELECT
         pw.metric_name,
         pw.period_type,
-        COALESCE(SUM(IFF(c.conversion_date BETWEEN pw.current_start_date AND pw.current_end_date AND c.attribution_source = 'Organic', c.position_weight, 0)), 0) AS current_value,
-        COALESCE(SUM(IFF(c.conversion_date BETWEEN pw.prior_start_date AND pw.prior_end_date AND c.attribution_source = 'Organic', c.position_weight, 0)), 0) AS prior_value
+        COALESCE(SUM(IFF(c.conversion_date BETWEEN pw.current_start_date AND pw.current_end_date, 1 - c.paid_attribution_weight, 0)), 0) AS current_value,
+        COALESCE(SUM(IFF(c.conversion_date BETWEEN pw.prior_start_date AND pw.prior_end_date, 1 - c.paid_attribution_weight, 0)), 0) AS prior_value
     FROM acquisition_period_windows pw
     LEFT JOIN conversions c
         ON c.conversion_date BETWEEN pw.prior_start_date AND pw.current_end_date
@@ -357,8 +356,8 @@ paid_signups AS (
     SELECT
         pw.metric_name,
         pw.period_type,
-        COALESCE(SUM(IFF(c.conversion_date BETWEEN pw.current_start_date AND pw.current_end_date AND c.attribution_source = 'Paid', c.position_weight, 0)), 0) AS current_value,
-        COALESCE(SUM(IFF(c.conversion_date BETWEEN pw.prior_start_date AND pw.prior_end_date AND c.attribution_source = 'Paid', c.position_weight, 0)), 0) AS prior_value
+        COALESCE(SUM(IFF(c.conversion_date BETWEEN pw.current_start_date AND pw.current_end_date, c.paid_attribution_weight, 0)), 0) AS current_value,
+        COALESCE(SUM(IFF(c.conversion_date BETWEEN pw.prior_start_date AND pw.prior_end_date, c.paid_attribution_weight, 0)), 0) AS prior_value
     FROM acquisition_period_windows pw
     LEFT JOIN conversions c
         ON c.conversion_date BETWEEN pw.prior_start_date AND pw.current_end_date
@@ -389,8 +388,8 @@ pct_annual AS (
 conversion_lifetime_totals AS (
 
     SELECT
-        SUM(IFF(attribution_source = 'Organic', position_weight, 0)) AS organic_signups_lifetime,
-        SUM(IFF(attribution_source = 'Paid', position_weight, 0)) AS paid_signups_lifetime,
+        SUM(1 - paid_attribution_weight) AS organic_signups_lifetime,
+        SUM(paid_attribution_weight) AS paid_signups_lifetime,
         COUNT(DISTINCT IFF(billing_period = '1 year', conversion_id, NULL))
             / NULLIF(COUNT(DISTINCT conversion_id), 0) AS pct_annual_lifetime
     FROM conversions

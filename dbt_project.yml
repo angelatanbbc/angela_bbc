@@ -7,6 +7,11 @@ model-paths: ["models"]
 models:
   dns_transformations:
     +materialized: table
+    gold:
+      semantic_views:
+        # also needs the CREATE SEMANTIC VIEW privilege: --vars '{build_semantic_views: true}'
+        sv_marketing_attribution:
+          +enabled: "{{ var('build_semantic_views', false) }}"
   facebook_ads:
     intermediate:
       int_facebook_ads__creative_history:
@@ -14,6 +19,31 @@ models:
     facebook_ads__url_report:
       +enabled: false
     +schema:
+
+# the attribution seeds share live tables with the dns_dbt_enablement project, so their types match it
+seeds:
+  dns_transformations:
+    bbc_team_agencies:
+      +column_types:
+        bbc_team_raw: varchar
+        agency: varchar
+        is_paid_media: boolean
+        note: varchar
+    excluded_promo_codes:
+      +column_types:
+        promo_code: varchar
+        reason: varchar
+    traffic_source_channels:
+      +column_types:
+        attribution_source: varchar
+        channel_group: varchar
+    meta_ads_accounts:
+      +column_types:
+        account_id: varchar
+    subscription_sites:
+      +column_types:
+        site_id: number
+        site_name: varchar
 
 vars:
   facebook_ads_database: sdp_bronze
@@ -30,3 +60,31 @@ vars:
     - name: offsite_conversion.fb_pixel_purchase
     - name: offsite_conversion.fb_pixel_lead
     - name: offsite_conversion.fb_pixel_custom # same as pattern: offsite_conversion.custom%
+
+  # subscription attribution. Today's logic, for parity: attribution_link_types: ["checkout_cookie"],
+  # attribution_fill_agency, attribution_site_scope and attribution_skip_signin_return false
+  attribution_link_types: ["checkout_cookie", "account", "device"]
+  attribution_fill_agency: true
+  attribution_site_scope: true
+  attribution_skip_signin_return: true
+  attribution_impute_unknown_sources: true
+  attribution_lookback_days: 30
+  attribution_max_cookies_per_browser: 20
+  attribution_reprocess_days: 7
+  # the run that creates an attribution table builds only this many days; older history is
+  # backfilled in monthly chunks (ops/backfill_page_views.sh --mode attribution)
+  attribution_initial_build_days: 31
+  attribution_imputation_window_days: 90
+
+  # marketing reporting: history start, the bbc.com site, podcast ads and the RevOps score bands
+  marketing_start_date: "2026-01-01"
+  marketing_site_ids: [638824]
+  # paid visits and their page views redo this many days each night; the run that creates them (and
+  # int_marketing__funnel_events) builds only marketing_initial_build_days, older history is backfilled
+  # with marketing_backfill_start / _end
+  marketing_reprocess_days: 7
+  marketing_initial_build_days: 31
+  podcast_ad_name_pattern: "%POD%"
+  include_podcast_ads: false
+  med_ro_threshold: 50
+  high_ro_threshold: 80

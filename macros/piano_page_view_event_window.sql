@@ -67,21 +67,5 @@
     or none when neither is set. Both must be YYYY-MM-DD dates, start before end.
 #}
 {% macro piano_page_view_backfill_range() %}
-    {%- set start = var('piano_backfill_start', none) -%}
-    {%- set end = var('piano_backfill_end', none) -%}
-    {%- if start is none and end is none -%}
-        {{ return(none) }}
-    {%- endif -%}
-    {%- if start is none or end is none -%}
-        {{ exceptions.raise_compiler_error("Set both piano_backfill_start and piano_backfill_end, or neither.") }}
-    {%- endif -%}
-    {%- set start = start | string -%}
-    {%- set end = end | string -%}
-    {%- if not modules.re.match('^\d{4}-\d{2}-\d{2}$', start) or not modules.re.match('^\d{4}-\d{2}-\d{2}$', end) -%}
-        {{ exceptions.raise_compiler_error("piano_backfill_start and piano_backfill_end must be YYYY-MM-DD dates.") }}
-    {%- endif -%}
-    {%- if start >= end -%}
-        {{ exceptions.raise_compiler_error("piano_backfill_start must be before piano_backfill_end (end is exclusive).") }}
-    {%- endif -%}
-    {{ return({'start': start, 'end': end}) }}
+    {{ return(backfill_date_range('piano_backfill_start', 'piano_backfill_end')) }}
 {% endmacro %}

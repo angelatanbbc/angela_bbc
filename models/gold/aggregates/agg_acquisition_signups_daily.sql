@@ -10,7 +10,6 @@ WITH conversions AS (
     SELECT
         conversion_date,
         conversion_id,
-        attribution_source,
         COALESCE(billing_period, 'Unknown') AS billing_period,
         experience_id,
         template_id,
@@ -18,13 +17,47 @@ WITH conversions AS (
         geo_country,
         geo_region,
         device_platform_id,
-        position_weight
+        paid_attribution_weight
     FROM {{ ref('fct_conversions') }}
 
 ),
 
--- position_weight sums to 1 per conversion_id, so n_signups is fully additive:
--- Organic + Paid slices total exactly to the distinct conversion count at any grain.
+-- each conversion splits into a Paid row (its paid_attribution_weight) and an Organic row (the rest),
+-- so n_signups is fully additive: Organic + Paid total exactly to the conversion count at any grain
+attributed AS (
+
+    SELECT
+        conversion_date,
+        'Paid' AS attribution_source,
+        billing_period,
+        experience_id,
+        template_id,
+        geo_id,
+        geo_country,
+        geo_region,
+        device_platform_id,
+        paid_attribution_weight AS attribution_weight
+    FROM conversions
+    WHERE paid_attribution_weight > 0
+
+    UNION ALL
+
+    SELECT
+        conversion_date,
+        'Organic' AS attribution_source,
+        billing_period,
+        experience_id,
+        template_id,
+        geo_id,
+        geo_country,
+        geo_region,
+        device_platform_id,
+        1 - paid_attribution_weight AS attribution_weight
+    FROM conversions
+    WHERE paid_attribution_weight < 1
+
+),
+
 aggregated AS (
 
     SELECT
@@ -37,8 +70,8 @@ aggregated AS (
         geo_country,
         geo_region,
         device_platform_id,
-        SUM(position_weight)::NUMBER(38, 6) AS n_signups
-    FROM conversions
+        SUM(attribution_weight)::NUMBER(38, 6) AS n_signups
+    FROM attributed
     GROUP BY ALL
 
 )
