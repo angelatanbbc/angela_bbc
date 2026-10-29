@@ -9,7 +9,8 @@ Builds the history of `int_piano__page_views` and `fct_page_views` in monthly ch
 0. Catches up the four input models (`int_piano__scroll_events`, `int_piano__click_events`, `int_piano__ad_impressions`, `int_piano__event_durations`) with a normal `dbt run`, shows their date range, and asks you to confirm it before going on.
 1. Runs the current month, ending tomorrow. This goes first because the scheduled run continues from `MAX(last_event_time)`: once this chunk is in, the nightly run only processes recent days.
 2. Runs earlier months, one `dbt run` each, newest first, back to `2024-06` (the first Piano events are from 18 June 2024) or to `--start`.
-3. Runs `dbt test` on both models once every chunk is in.
+3. Merges page views that the chunks split into several rows (`dbt run-operation dedupe_page_view_fragments`, see below). It also runs when `--max-chunks` pauses the backfill, so the nightly tests pass between runs.
+4. Runs `dbt test` on both models once every chunk is in.
 
 Each chunk is `dbt run --select int_piano__page_views fct_page_views --vars '{piano_backfill_start: …, piano_backfill_end: …}'` (end exclusive). The script never uses `dbt build` or `--full-refresh`.
 
@@ -57,6 +58,18 @@ ops/backfill_page_views.sh --target live --confirm-live --resume-from 2025-03
 That re-runs the failed month and carries on with older ones. Re-running a chunk is safe: rows merge on `pageview_id`, and each MERGE only touches target rows within two days of the chunk. Don't resume with a month newer than the failed one unless you mean to redo it.
 
 Every run appends to `ops/logs/backfill_page_views.log`, or `backfill_attribution.log` with `--mode attribution` (both git-ignored): the target, each chunk's range, when it started and finished, how long it took, and whether it failed. Use it to see where a run stopped and how long months take.
+
+### Page views split across chunks
+
+A page view whose `page.display` events straddle a month boundary, with the later ones more than two days into the next month, ends up as one row per chunk: each chunk's MERGE only looks at target rows within two days of the chunk, so it can't see the other month's row. The first live backfill (December 2025 to October 2026) left 374 page views split like this, out of about 3.9 billion. They fail the `unique` tests on `pageview_id` and count those page views' scroll, click and duration measures twice in `fct_page_views`.
+
+Step 3 merges them with the `dedupe_page_view_fragments` macro: the fragments of a page view hold different events, so it keeps the attributes of the fragment with the latest event, the earliest `page_view_time`, the largest duration and the summed event count, which is what one build over all the events would give. Each table is fixed in one transaction. To check or fix by hand:
+
+```bash
+dbt run-operation dedupe_page_view_fragments --args '{dry_run: true}' --target live
+```
+
+Drop `--args` to merge. Each run reads both tables in full, so allow about 20 minutes on live (the dry run in October 2026 took 21).
 
 ### Cost and limits
 
