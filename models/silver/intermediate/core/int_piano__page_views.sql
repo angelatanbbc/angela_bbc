@@ -34,7 +34,9 @@ original model did. Ties on the latest event_time (a few hundred page views a
 month) resolve to an arbitrary event, as before.
 
 History is built in date chunks with the piano_backfill_start/end vars; see
-"Backfilling the Piano page view models" in the DNS Transformations Runbook.
+"Backfilling the Piano page view models" in the DNS Transformations Runbook. A page view
+whose events straddle a chunk boundary gets a row per chunk; the backfill script merges
+them afterwards with the dedupe_page_view_fragments macro.
 full_refresh=false makes dbt ignore --full-refresh here: a full refresh would
 build all history in one statement, which can't finish. To rebuild, drop the
 table and backfill in chunks.

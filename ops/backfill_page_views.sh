@@ -8,7 +8,9 @@
 #   0. catch up the mode's input models (no vars) and check their date range
 #   1. the current month, ending tomorrow, so the nightly watermark is in place
 #   2. earlier months, one per dbt run, newest first, back to --start
-#   3. dbt test on the chunked models once every chunk is in
+#   3. page-views mode: merge page views split across chunks
+#      (dbt run-operation dedupe_page_view_fragments)
+#   4. dbt test on the chunked models once every chunk is in
 # Each chunk is `dbt run` with the mode's backfill vars (end exclusive):
 # piano_backfill_start/end or attribution_backfill_start/end. Never `dbt build`
 # (it tests the whole table after every chunk) and never --full-refresh. See
@@ -91,6 +93,8 @@ case "${mode}" in
         readonly CHUNK_MODELS=(int_piano__page_views fct_page_views)
         readonly INPUT_MODELS=(int_piano__scroll_events int_piano__click_events int_piano__ad_impressions int_piano__event_durations)
         readonly BACKFILL_VARS=(piano_backfill_start piano_backfill_end)
+        # a page view whose events straddle a chunk boundary gets a row per chunk
+        readonly DEDUPE_OPERATION="dedupe_page_view_fragments"
         readonly INPUT_CHECK_SQL="
 select 'scroll' m, min(last_event_time) first_event, max(last_event_time) last_event from {{ ref('int_piano__scroll_events') }}
 union all select 'click', min(last_event_time), max(last_event_time) from {{ ref('int_piano__click_events') }}
@@ -108,6 +112,7 @@ input starts later, stop and tell the CGM data team: it needs its own history fi
             int_attribution__touchpoints int_attribution__touchpoints_source_imputed fct_attribution_touchpoints)
         readonly INPUT_MODELS=(int_attribution__purchase_events int_attribution__conversions stg_google_ads__spend dim_ad)
         readonly BACKFILL_VARS=(attribution_backfill_start attribution_backfill_end)
+        readonly DEDUPE_OPERATION=""
         readonly INPUT_CHECK_SQL="
 select 'conversions' m, min(conversion_date)::timestamp first_event, max(conversion_date)::timestamp last_event from {{ ref('int_attribution__conversions') }}
 union all select 'page views', min(page_view_time), max(page_view_time) from {{ ref('int_piano__page_views') }}"
@@ -210,6 +215,21 @@ resume_hint() {
     echo "  ${hint} --resume-from ${month}"
 }
 
+# Step 3, page-views mode only: merge page views that the chunks split into several rows.
+# Also run when --max-chunks pauses a backfill, so the nightly tests pass in between.
+dedupe() {
+    [[ -n "${DEDUPE_OPERATION}" ]] || return 0
+    echo "Step 3: merge page views split across chunks"
+    log "dedupe START"
+    local started=${SECONDS}
+    run dbt run-operation "${DEDUPE_OPERATION}" --target "${target}" || {
+        log "dedupe FAILED"
+        die "merging split page views failed; re-run: dbt run-operation ${DEDUPE_OPERATION} --target ${target}"
+    }
+    log "dedupe OK duration=$(format_duration $((SECONDS - started)))"
+    echo
+}
+
 # --- confirmation -------------------------------------------------------------
 
 cd "${REPO_ROOT}"
@@ -261,6 +281,7 @@ month="${resume_from:-${current_month}}"
 chunks_run=0
 while [[ ! "${month}" < "${start_month}" ]]; do
     if [[ "${max_chunks}" -gt 0 && "${chunks_run}" -ge "${max_chunks}" ]]; then
+        dedupe
         echo "Stopped after ${chunks_run} chunk(s) (--max-chunks). Continue with:"
         resume_hint "${month}"
         log "paused before ${month} (--max-chunks ${max_chunks})"
@@ -295,10 +316,14 @@ while [[ ! "${month}" < "${start_month}" ]]; do
     month="$(previous_month "${month}")"
 done
 
-# --- step 3: test -------------------------------------------------------------
+# --- step 3: merge split page views -------------------------------------------
+
+dedupe
+
+# --- step 4: test -------------------------------------------------------------
 
 if [[ "${skip_test}" != true ]]; then
-    echo "Step 3: test the backfilled models"
+    echo "Step 4: test the backfilled models"
     log "test START"
     started=${SECONDS}
     run dbt test --target "${target}" --select "${CHUNK_MODELS[@]}" || {
