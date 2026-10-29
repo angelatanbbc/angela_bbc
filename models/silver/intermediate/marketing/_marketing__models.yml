@@ -281,7 +281,9 @@ models:
       row per event that is a paywall or inline-offer exposure or click (Composer template columns),
       an attributable purchase (int_attribution__conversions), or a newsletter sign-up: on a page view,
       or on the newsletters page of var marketing_site_ids, which never carries a pageview_id.
-      Incremental (merge on event_id), rereading the events from the day before the latest one loaded.
+      Incremental (merge on event_id), rereading the events from the day before the latest one loaded. The
+      run that creates it builds only var marketing_initial_build_days days; older history is backfilled in
+      chunks with the marketing_backfill_start / marketing_backfill_end vars.
     columns:
       - name: event_id
         description: Piano event id. Primary key.
