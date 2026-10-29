@@ -16,9 +16,12 @@ or not: fct_paid_visitor_funnel links them to paid visitors.
 
 Newsletter sign-ups: those on a page view, plus those on the newsletters page of
 var('marketing_site_ids'), which never carries a pageview_id; the latter have no browser id link.
-Incremental: rereads the Piano events from the day before the latest one loaded.
+Incremental: rereads the Piano events from the day before the latest one loaded. The run that creates
+it builds only var('marketing_initial_build_days') days, never before var('marketing_start_date'), as
+the paid visits do; older history is backfilled in chunks with marketing_backfill_start / _end.
 */
 
+{%- set backfill = backfill_date_range('marketing_backfill_start', 'marketing_backfill_end') %}
 {%- set floor = incremental_date_floor('event_time') %}
 
 WITH conversions AS (
@@ -46,7 +49,16 @@ cleaned AS (
     FROM {{ ref('int_piano__events_cleaned') }}
     WHERE
         event_name IN ('experience.action', 'experience.interaction', 'vx.conversion', 'newsletter.subscribe')
-        AND event_time >= '{{ floor if floor else var("marketing_start_date") }}'
+        {%- if backfill %}
+        AND event_time >= '{{ backfill.start }}' AND event_time < '{{ backfill.end }}'
+        {%- elif floor %}
+        AND event_time >= '{{ floor }}'
+        {%- else %}
+        AND event_time >= GREATEST(
+            DATEADD(DAY, -{{ var('marketing_initial_build_days') }}, CURRENT_DATE),
+            '{{ var("marketing_start_date") }}'::DATE
+        )
+        {%- endif %}
         AND (
             pageview_id IS NOT NULL
             OR (

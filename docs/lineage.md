@@ -236,7 +236,7 @@ graph LR
 
 ### Marketing reporting flow
 
-The Marketing Measurement Dashboard's tables, built on the page view chain, the ad side and the attribution above. `int_marketing__paid_visits` and `int_marketing__paid_page_views` are incremental on the visit date: each night they redo the last 7 days, the run that creates them builds only the last 31 days, and older history is backfilled in chunks with the `marketing_backfill_start` / `marketing_backfill_end` vars once `int_piano__page_views` has its history. `int_marketing__funnel_events` is incremental from `var('marketing_start_date')`; the other marketing tables are rebuilt each night from these.
+The Marketing Measurement Dashboard's tables, built on the page view chain, the ad side and the attribution above. `int_marketing__paid_visits` and `int_marketing__paid_page_views` are incremental on the visit date: each night they redo the last 7 days, the run that creates them builds only the last 31 days, and older history is backfilled in chunks with the `marketing_backfill_start` / `marketing_backfill_end` vars once `int_piano__page_views` has its history. `int_marketing__funnel_events` is incremental on the event time and is created and backfilled the same way; history starts at `var('marketing_start_date')` (1 January 2026). The other marketing tables are rebuilt each night from these.
 
 ```mermaid
 graph LR

@@ -77,10 +77,11 @@ vars:
   attribution_imputation_window_days: 90
 
   # marketing reporting: history start, the bbc.com site, podcast ads and the RevOps score bands
-  marketing_start_date: "2026-07-17"
+  marketing_start_date: "2026-01-01"
   marketing_site_ids: [638824]
-  # paid visits and their page views redo this many days each night; the run that creates them builds
-  # only marketing_initial_build_days, older history is backfilled with marketing_backfill_start / _end
+  # paid visits and their page views redo this many days each night; the run that creates them (and
+  # int_marketing__funnel_events) builds only marketing_initial_build_days, older history is backfilled
+  # with marketing_backfill_start / _end
   marketing_reprocess_days: 7
   marketing_initial_build_days: 31
   podcast_ad_name_pattern: "%POD%"
