@@ -277,6 +277,26 @@ graph LR
     linkStyle 9 stroke:#9333ea,stroke-width:2.5px
 ```
 
+### Newsletter acquisition flow
+
+The newsletter acquisition dashboard's table, built from the newsletters page's events. The page never sets a `pageview_id`, so this stream is keyed on the event and the visit and does not use the page view models. `int_piano__newsletter_events` is incremental from `var('newsletter_start_date')`; the dim, the two facts and the aggregate are rebuilt each night from it.
+
+```mermaid
+graph LR
+    classDef model fill:#dbeafe,stroke:#2563eb,color:#172554
+    classDef mart fill:#dcfce7,stroke:#16a34a,color:#14532d
+    cleaned["int_piano__events_cleaned"]:::model --> events["int_piano__newsletter_events"]:::model
+    events --> dim["dim_newsletter"]:::mart
+    events --> visits["fct_newsletter_page_visits"]:::mart
+    events --> signups["fct_newsletter_signups"]:::mart
+    visits --> signups
+    dim --> signups
+    visits --> activity["agg_newsletter_activity"]:::mart
+    signups --> activity
+    device["dim_device_platform"]:::mart --> activity
+    linkStyle 0,1,2,3,4,5,6,7,8 stroke:#4169e1,stroke-width:1.5px
+```
+
 ### Dimensions and reporting outputs
 
 ```mermaid
@@ -369,6 +389,7 @@ The following inventory records every project-owned model in the dbt manifest an
 | `int_marketing__paid_visits` | `int_piano__page_views`, `dim_ad`, `seed:bbc_team_agencies` |
 | `int_marketing__paid_page_views` | `int_marketing__paid_visits`, `fct_page_views`, `int_piano__page_views`, `int_attribution__conversions` |
 | `int_marketing__funnel_events` | `int_piano__events_cleaned`, `int_attribution__conversions` |
+| `int_piano__newsletter_events` | `int_piano__events_cleaned` |
 
 ### Core and subscription facts and dimensions
 
@@ -399,6 +420,9 @@ The following inventory records every project-owned model in the dbt manifest an
 | `fct_ad_performance_daily` | `int_marketing__ad_spend_daily` |
 | `fct_paid_page_views` | `int_marketing__paid_page_views` |
 | `fct_paid_visitor_funnel` | `int_marketing__paid_page_views`, `int_marketing__funnel_events`, `int_piano__page_views` |
+| `dim_newsletter` | `int_piano__newsletter_events` |
+| `fct_newsletter_page_visits` | `int_piano__newsletter_events` |
+| `fct_newsletter_signups` | `int_piano__newsletter_events`, `fct_newsletter_page_visits`, `dim_newsletter` |
 | `fct_sfmc_journey_send_job` | `source:sfmc.sent`, `source:sfmc.opens`, `source:sfmc.clicks`, `source:sfmc.bounces`, `source:sfmc.unsubs`, `source:sfmc.send_jobs`, `source:sfmc.journey`, `source:sfmc.journey_activity`, `source:sfmc.list_subscribers` |
 
 ### Reporting outputs
@@ -419,6 +443,7 @@ The following inventory records every project-owned model in the dbt manifest an
 | `agg_marketing_paid_page_views` | `fct_ad_performance_daily`, `fct_paid_page_views`, `dim_ad`, `dim_device_platform` |
 | `agg_marketing_visitor_funnel` | `fct_paid_visitor_funnel` |
 | `agg_marketing_campaign_daily` | `agg_marketing_paid_page_views`, `agg_marketing_visitor_funnel`, `fct_attribution_touchpoints`, `dim_channel`, `dim_campaign_tracking`, `dim_ad` |
+| `agg_newsletter_activity` | `fct_newsletter_page_visits`, `fct_newsletter_signups`, `dim_device_platform` |
 | `sv_bbc_com` (semantic view) | `fct_conversions`, `fct_exposures`, `fct_page_views`, `fct_subscriber_daily_snapshot`, `fct_subscription_events`, `fct_visitors_daily`, `dim_date`, `dim_device_platform`, `dim_experience`, `dim_geography`, `dim_offer`, `dim_subscription`, `dim_template`, `dim_term`, `seed:piano_retention_curves` |
 
 ### Declared sources without a current downstream model

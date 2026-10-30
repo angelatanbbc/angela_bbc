@@ -421,3 +421,39 @@ models:
               - funnel_stage
               - funnel_stage_v2
               - src_bbc_team
+
+  - name: agg_newsletter_activity
+    description: >
+      The newsletter acquisition dashboard's source: one row per visit to the newsletters page (event_name
+      'page.display') plus one row per sign-up x newsletter, latest per visitor and newsletter (event_name
+      'newsletter.subscribe'), the two row types the dashboard's calculations expect. Total page views are the
+      page.display rows, sign-ups the newsletter.subscribe rows, distinct sign-ups the distinct visitor_id on those
+      rows. Ids are hex text. Replaces reporting_newsletter_activity from the old project, with history from
+      var newsletter_start_date and is_suspected_automated added.
+    columns:
+      - name: event_name
+        description: page.display (a visit) or newsletter.subscribe (a sign-up to one newsletter).
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["page.display", "newsletter.subscribe"]
+      - name: event_day
+        description: Day of the visit's latest display, or of the sign-up.
+        tests:
+          - not_null
+      - name: visitor_id
+        description: Piano visitor id as hex text.
+        tests:
+          - not_null
+      - name: newsletter_title
+        description: The newsletter signed up to; NULL on page.display rows.
+      - name: link_origin
+        description: Placement tag (at_link_origin) from the visit's latest display.
+      - name: account_status
+        description: Signed in, Account, not signed in, or Not identified (see fct_newsletter_page_visits).
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["Signed in", "Account, not signed in", "Not identified"]
+      - name: is_suspected_automated
+        description: TRUE for visits (and their sign-ups) with more than var newsletter_automated_display_limit displays of the page.
