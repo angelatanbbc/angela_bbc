@@ -337,7 +337,7 @@ DIMENSIONS (
     -- Terms
     TERMS.BILLING_CHANNEL AS billing_channel
         COMMENT = 'Where subscriptions on the term are billed: Web checkout, Apple App Store or Google Play.',
-    TERMS.BILLING_COUNTRY AS term_billing_country
+    TERMS.TERM_BILLING_COUNTRY AS billing_country
         COMMENT = 'Country a web checkout term is sold in, from its currency: United states (USD) or Canada (CAD). Null for app store terms, which cover both.',
     TERMS.BILLING_PERIOD AS billing_period
         WITH SYNONYMS = ('plan_length', 'monthly_or_annual')
