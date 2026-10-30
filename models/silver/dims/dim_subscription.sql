@@ -35,6 +35,15 @@ WITH subscription_latest_snapshot AS (
 
 ),
 
+terms AS (
+
+    SELECT
+        term_id,
+        billing_country
+    FROM {{ ref('dim_term') }}
+
+),
+
 subscription_events AS (
 
     SELECT *
@@ -65,6 +74,7 @@ subscription_lifecycle AS (
         MIN_BY(e.conversion_device_platform_id, e.event_time) AS conversion_device_platform_id,
         MIN_BY(e.conversion_payment_provider, e.event_time) AS conversion_payment_provider,
         MIN_BY(e.cohort_month, e.event_time) AS cohort_month,
+        MIN_BY(e.geo_country, e.event_time) AS conversion_geo_country,
         BOOLOR_AGG(COALESCE(e.created_via_upgrade, FALSE)) AS created_via_upgrade,
         MAX(e.event_time) AS latest_action_at,
         MAX_BY(e.subscription_action, e.event_time) AS latest_action,
@@ -109,6 +119,25 @@ sequenced AS (
 
 ),
 
+-- Subscriptions are only sold in the United States and Canada. Web checkout
+-- terms are priced per country, so the term gives the country. App store terms
+-- cover both, so the conversion's geo tracking is the best estimate; tracking
+-- is patchy, so anything it doesn't place in Canada counts as United states.
+located AS (
+
+    SELECT
+        s.*,
+        COALESCE(
+            t.billing_country,
+            IFF(s.conversion_geo_country = 'Canada', 'Canada', 'United states')
+        ) AS subscription_country,
+        t.billing_country IS NULL AS is_subscription_country_estimated
+    FROM sequenced s
+    LEFT JOIN terms t
+        ON s.term_id = t.term_id
+
+),
+
 classified AS (
 
     SELECT
@@ -121,6 +150,8 @@ classified AS (
         conversion_device_platform_id,
         conversion_payment_provider,
         cohort_month,
+        subscription_country,
+        is_subscription_country_estimated,
         status,
         status_name,
         IFF(status = 'active', TRUE, FALSE) AS is_active,
@@ -170,7 +201,7 @@ classified AS (
             0,
             COALESCE(final_running_mrr_amount, 0)
         ) AS mrr_amount
-    FROM sequenced
+    FROM located
 
 )
 

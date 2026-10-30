@@ -87,8 +87,9 @@ graph LR
     conversions --> survival
     experience --> survival
     events --> analysis["analyses/survival_data.sql"]:::analysis
+    term["dim_term"]:::mart --> subscription
     linkStyle 0,25 stroke:#eab308,stroke-width:2.5px
-    linkStyle 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,26,27,28,29,30,31,32,33 stroke:#4169e1,stroke-width:1.5px
+    linkStyle 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,26,27,28,29,30,31,32,33,35 stroke:#4169e1,stroke-width:1.5px
     linkStyle 34 stroke:#e11d48,stroke-width:2.5px
 ```
 

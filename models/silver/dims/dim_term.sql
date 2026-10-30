@@ -63,6 +63,13 @@ SELECT
         WHEN t.term_type = 'external' AND t.external_api_name ILIKE '%ios%' THEN 'Apple App Store'
         WHEN t.term_type = 'external' AND t.external_api_name ILIKE '%google%' THEN 'Google Play'
     END AS billing_channel,
+    -- The country the term is sold in. Web checkout terms are priced in the
+    -- country's currency; app store terms are one listing for both countries,
+    -- so Piano doesn't say which store country a subscription was bought in.
+    CASE
+        WHEN t.term_type = 'payment' AND t.currency_code = 'USD' THEN 'United states'
+        WHEN t.term_type = 'payment' AND t.currency_code = 'CAD' THEN 'Canada'
+    END AS billing_country,
     t.is_listed_in_piano,
     t.created_at,
     t.updated_at

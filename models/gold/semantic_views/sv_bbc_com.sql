@@ -272,7 +272,7 @@ DIMENSIONS (
         COMMENT = 'Region or state; Unknown when the event had no region.',
     GEOGRAPHIES.IS_US_OR_CANADA AS geo_country IN ('United states', 'Canada')
         WITH SYNONYMS = ('north_america')
-        COMMENT = 'Whether the country is the United States or Canada, the markets where BBC.com sells subscriptions and the scope of daily_visitors.',
+        COMMENT = 'Whether the tracked country is the United States or Canada, the scope of daily_visitors. For subscription metrics filter on subscription_country instead: geo tracking is often Unknown, and every subscription is sold in one of the two.',
 
     -- Offers
     OFFERS.OFFER_ID AS offer_id
@@ -292,6 +292,8 @@ DIMENSIONS (
         COMMENT = 'Whether the subscription was created by an upgrade.',
     SUBSCRIPTIONS.IS_CURRENTLY_ACTIVE AS is_active
         COMMENT = 'Whether the subscription is active now. For status on a past date use subscriber_status.',
+    SUBSCRIPTIONS.IS_SUBSCRIPTION_COUNTRY_ESTIMATED AS is_subscription_country_estimated
+        COMMENT = 'Whether subscription_country is estimated from geo tracking (app store subscriptions) rather than taken from the term (web checkout).',
     SUBSCRIPTIONS.IS_ENDED_BY_UPGRADE AS is_ended_by_upgrade
         COMMENT = 'Whether the subscription ended because the user upgraded.',
     SUBSCRIPTIONS.LATEST_ACTION AS latest_action
@@ -303,6 +305,9 @@ DIMENSIONS (
     SUBSCRIPTIONS.NEXT_BILLING_DATE AS next_billing_at::DATE
         WITH SYNONYMS = ('renewal_date', 'next_bill_date', 'paid_through_date')
         COMMENT = 'Date the current paid period ends: the next renewal charge, or the expiry date when auto-renew is off. Null once the subscription has ended.',
+    SUBSCRIPTIONS.SUBSCRIPTION_COUNTRY AS subscription_country
+        WITH SYNONYMS = ('market', 'subscriber_country')
+        COMMENT = 'Country the subscription was bought in: United states or Canada. From the term for web checkouts; estimated from geo tracking for app store subscriptions, defaulting to United states. Use this, not geo_country, to filter or group subscription metrics by market.',
     SUBSCRIPTIONS.SUBSCRIPTION_END_TYPE AS subscription_end_type
         COMMENT = 'How the subscription ended: Expired, Canceled, Renewal failed, will not retry, Upgraded or Unknown; null while active.',
     SUBSCRIPTIONS.SUBSCRIPTION_ENDED_AT AS subscription_ended_at
@@ -332,6 +337,8 @@ DIMENSIONS (
     -- Terms
     TERMS.BILLING_CHANNEL AS billing_channel
         COMMENT = 'Where subscriptions on the term are billed: Web checkout, Apple App Store or Google Play.',
+    TERMS.BILLING_COUNTRY AS term_billing_country
+        COMMENT = 'Country a web checkout term is sold in, from its currency: United states (USD) or Canada (CAD). Null for app store terms, which cover both.',
     TERMS.BILLING_PERIOD AS billing_period
         WITH SYNONYMS = ('plan_length', 'monthly_or_annual')
         COMMENT = 'Renewal period of the term, such as 1 month or 1 year.',
@@ -689,7 +696,7 @@ METRICS (
 
 COMMENT = 'BBC.com subscriptions and audience: CTA exposures, sign-ups split into paid and organic, subscriber stock, MRR, churn and renewals, US/Canada visitors and worldwide web page views. Built by dbt (model sv_bbc_com).'
 
-AI_SQL_GENERATION 'Filter and group by dates, geographies, device_platforms, experiences, templates, terms, offers and subscriptions columns rather than fact columns; every fact joins to those tables. For a period such as "last month", filter dates.year_month or dates.date_day; today is partial, so use dates up to yesterday. Subscriber metrics (active_subscribers, mrr, opening_*) are stock measures: never sum them across days; the metric already takes the first or last day of the period. For cohort retention use retained_subscriptions grouped by subscriptions.cohort_month and months_since_conversion, without a date filter, and divide each month by month 0; compare with the piano_retention_benchmark metrics by benchmark_month, which are shares from 0 to 1. Device platform on subscription facts is the platform of the original conversion. Web and Mobile App experiences and templates are separate: an experience runs on one app type only (experiences.is_app_experience), so filter rate denominators to the same app type. On the mobile app, exposure visitor_id is not a stable visitor identifier (iOS gives a new one per exposure), so do not compute app exposure rates or app conversion rates per exposed visitor; report app exposures with exposure_events and explain why. distinct_visitors covers web and app in the United States and Canada only; page view metrics cover web only, worldwide. Ad revenue is not available. Country names are sentence case, for example ''United states'' and ''United kingdom''.'
+AI_SQL_GENERATION 'Filter and group by dates, geographies, device_platforms, experiences, templates, terms, offers and subscriptions columns rather than fact columns; every fact joins to those tables. For a period such as "last month", filter dates.year_month or dates.date_day; today is partial, so use dates up to yesterday. Subscriber metrics (active_subscribers, mrr, opening_*) are stock measures: never sum them across days; the metric already takes the first or last day of the period. For cohort retention use retained_subscriptions grouped by subscriptions.cohort_month and months_since_conversion, without a date filter, and divide each month by month 0; compare with the piano_retention_benchmark metrics by benchmark_month, which are shares from 0 to 1. Device platform on subscription facts is the platform of the original conversion. Web and Mobile App experiences and templates are separate: an experience runs on one app type only (experiences.is_app_experience), so filter rate denominators to the same app type. On the mobile app, exposure visitor_id is not a stable visitor identifier (iOS gives a new one per exposure), so do not compute app exposure rates or app conversion rates per exposed visitor; report app exposures with exposure_events and explain why. distinct_visitors covers web and app in the United States and Canada only; page view metrics cover web only, worldwide. Ad revenue is not available. For subscription metrics (subscriber_daily_snapshot, subscription_events, conversion_touchpoints) filter or group by market with subscriptions.subscription_country, not geographies: geo tracking is often Unknown, whereas every subscription is sold in the United states or Canada. Use geographies for visitor, exposure and page view metrics. Country names are sentence case, for example ''United states'' and ''United kingdom''.'
 
 AI_VERIFIED_QUERIES (
     subscribers_and_mrr_by_month AS (
