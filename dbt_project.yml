@@ -88,3 +88,8 @@ vars:
   include_podcast_ads: false
   med_ro_threshold: 50
   high_ro_threshold: 80
+
+  # newsletter acquisition: history start, and the page displays in one visit above which it is flagged
+  # as suspected automated traffic
+  newsletter_start_date: "2026-01-01"
+  newsletter_automated_display_limit: 20
