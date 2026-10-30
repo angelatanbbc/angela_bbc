@@ -424,6 +424,18 @@ models:
           - accepted_values:
               arguments:
                 values: ["Web checkout", "Apple App Store", "Google Play"]
+      - name: billing_country
+        description: >
+          Country the term is sold in, from the currency of web checkout terms: United states for USD, Canada for
+          CAD. NULL for app store terms, which are one listing for both countries, and for terms that are not paid
+          for. dim_subscription.subscription_country uses it as the country of a subscription.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["United states", "Canada"]
+          - not_null:
+              config:
+                where: "term_type = 'payment'"
       - name: is_listed_in_piano
         description: Whether the term is in the latest nightly Piano list.
         tests:
@@ -537,6 +549,22 @@ models:
                 values: ["Stripe Elements", "Braintree Credit Card", "Apple App Store", "Google Play"]
       - name: cohort_month
         description: Month of the conversion that created the subscription, as YYYY-MM. Same value as cohort_month on the subscription facts.
+      - name: subscription_country
+        description: >
+          Country the subscription was bought in: United states or Canada, the only markets BBC.com sells in. Taken
+          from dim_term.billing_country for web checkout terms. App store terms cover both countries, so for them it
+          is estimated from the geo_country of the subscription's first event: Canada when geo tracking says
+          Canada, otherwise United states. Use this rather than geo_country for subscription counts by market;
+          geo_country is analytics tracking and is often Unknown.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["United states", "Canada"]
+      - name: is_subscription_country_estimated
+        description: Whether subscription_country is estimated from geo tracking (app store terms) rather than taken from the term.
+        tests:
+          - not_null
       - name: subscription_sequence_number
         description: The order of this subscription within the user's observed subscription history.
         tests:
