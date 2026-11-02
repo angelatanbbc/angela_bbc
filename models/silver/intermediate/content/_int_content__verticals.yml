@@ -1,0 +1,81 @@
+version: 2
+
+seeds:
+  - name: vertical_rules
+    description: >
+      Vertical categorisation rules, one condition per row. Edit this file, not SQL,
+      to change how content is categorised. Conditions sharing a rule_id and
+      condition_group are OR'd; a rule's groups are AND'd; the lowest priority wins.
+      match_type is one of equals (exact, case-sensitive), like (case-sensitive
+      pattern), ilike (case-insensitive pattern), startswith. Section, pillar and
+      topic values are normalised from '$' to '&' before matching.
+    config:
+      column_types:
+        priority: number
+        condition_group: number
+        is_active: boolean
+    columns:
+      - name: rule_id
+        data_tests: [not_null]
+      - name: field
+        data_tests:
+          - accepted_values:
+              values: [page, url, content_section, content_pillar, content_topic]
+      - name: match_type
+        data_tests:
+          - accepted_values:
+              values: [equals, like, ilike, startswith]
+
+models:
+  - name: int_content__verticals
+    description: One row per content item with its vertical, the rule that set it, and every vertical it matched.
+    columns:
+      - name: content_nk
+        data_tests: [unique, not_null]
+      - name: vertical
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['Home page', 'News front', 'Travel', 'Business', 'Health', 'Culture',
+                       'Earth & Science', 'Tech', 'Sport', 'Audio', 'Docs', 'US & Canada News',
+                       'World News (excludes US&Canada)', 'Unclassified']
+
+unit_tests:
+  - name: verticals_follow_first_match_and_and_groups
+    description: >
+      Tests the rule logic, not the real rule set: priority order, the AND rule
+      (condition groups), the '$' normalisation, is_business staying true when another
+      vertical wins, and the Unclassified fallback. The rules below are a small
+      stand-in for the seed, so editing the seed never breaks this test.
+    model: int_content__verticals
+    given:
+      - input: ref('int_content__attributes')
+        rows:
+          - {content_nk: travel_biz, page: travel.article.x1.page, url: https://www.abc.com/travel/x1, content_section: Travel, content_pillar: Business, content_topic: null}
+          - {content_nk: travel_no_prefix, page: news.articles.x2.page, url: https://www.abc.com/news/x2, content_section: Travel, content_pillar: null, content_topic: null}
+          - {content_nk: health_dollar, page: news.articles.x3.page, url: https://www.abc.com/news/x3, content_section: Science $ Health, content_pillar: null, content_topic: null}
+          - {content_nk: sport_biz_topic, page: sport.football.articles.x4.page, url: https://www.abc.com/sport/x4, content_section: null, content_pillar: null, content_topic: 'Sport business, Football'}
+          - {content_nk: nothing, page: weather.page, url: https://www.abc.com/weather, content_section: null, content_pillar: null, content_topic: null}
+      - input: ref('vertical_rules')
+        rows:
+          # Travel needs group 1 (section) AND group 2 (page prefix)
+          - {rule_id: R03, priority: 30, vertical: Travel, condition_group: 1, field: content_section, match_type: equals, pattern: Travel, is_active: true}
+          - {rule_id: R03, priority: 30, vertical: Travel, condition_group: 2, field: page, match_type: startswith, pattern: travel., is_active: true}
+          # Business: any one of these (same group = OR)
+          - {rule_id: R04, priority: 40, vertical: Business, condition_group: 1, field: content_pillar, match_type: equals, pattern: Business, is_active: true}
+          - {rule_id: R04, priority: 40, vertical: Business, condition_group: 1, field: content_topic, match_type: ilike, pattern: '%business%', is_active: true}
+          # Health: written with '&', so it only matches '$' data if normalisation works
+          - {rule_id: R05, priority: 50, vertical: Health, condition_group: 1, field: content_section, match_type: equals, pattern: Science & Health, is_active: true}
+          # Sport comes after Business, so a Business topic wins on a sport page
+          - {rule_id: R09, priority: 90, vertical: Sport, condition_group: 1, field: page, match_type: startswith, pattern: sport, is_active: true}
+          # World News catches any other news article
+          - {rule_id: R13, priority: 130, vertical: World News (excludes US&Canada), condition_group: 1, field: page, match_type: startswith, pattern: news.article, is_active: true}
+          # An inactive rule must be ignored
+          - {rule_id: R99, priority: 1, vertical: Should Not Appear, condition_group: 1, field: page, match_type: equals, pattern: weather.page, is_active: false}
+    expect:
+      rows:
+        - {content_nk: travel_biz, vertical: Travel, vertical_rule_id: R03, is_business: true}
+        - {content_nk: travel_no_prefix, vertical: World News (excludes US&Canada), vertical_rule_id: R13, is_business: false}
+        - {content_nk: health_dollar, vertical: Health, vertical_rule_id: R05, is_business: false}
+        - {content_nk: sport_biz_topic, vertical: Business, vertical_rule_id: R04, is_business: true}
+        - {content_nk: nothing, vertical: Unclassified, vertical_rule_id: null, is_business: false}

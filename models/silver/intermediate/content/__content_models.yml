@@ -1,0 +1,37 @@
+version: 2
+
+models:
+  - name: int_article__metadata
+    description: >
+      One row per page with the metadata used for verticals and dim_content: the
+      most complete, then most viewed, combination of section, topic, pillar and url,
+      plus the most frequent content_id, content_type, title and publish date.
+      Translated from the Global Content Dashboard query (page_metadata_ranked).
+    columns:
+      - name: content_id
+        description: The page identifier. Same as page; the key the vertical rules join on.
+        data_tests: [unique, not_null]
+      - name: page
+        data_tests: [not_null]
+      - name: content_section
+        description: Section from the winning combination. Null on home.page, news.page and sport.page.
+      - name: content_topic
+      - name: content_pillar
+      - name: url
+      - name: content_type
+        description: Most frequent non-null raw content_type. Feed it to content_type_group().
+      - name: page_title
+      - name: date_published
+      - name: page_views
+        description: >
+          In-scope page views in the build window. Used only to choose one page per
+          content_id when joining verticals to dim_content; not a reporting metric.
+
+sources:
+  - name: vmb__av_enrichment
+    database: sdp_silver
+    schema: vmb
+    description: Source data from Piano, a web analytics and data collection platform (previous organisation).
+    tables:
+      - name: av_enrichment
+        description: AV Content metadata from Piano data collection platform.

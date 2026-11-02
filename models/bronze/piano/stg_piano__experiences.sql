@@ -23,7 +23,7 @@ SELECT
     FETCHED_BY_ID AS is_fetched_by_id,
     SNAPSHOT_AT AS snapshot_at,
     SNAPSHOT_DATE AS snapshot_date
-FROM {{ source('cgm_extract_load', 'raw_piano_experiences') }}
+FROM ('cgm_extract_load', 'raw_piano_experiences') }}
 -- Loads are append-only, so keep only the latest nightly load per day. Rows
 -- backfilled by id (cgm-extract-load backfill-piano-catalog) are kept per record,
 -- so a backfill never replaces that day's nightly snapshot or another backfill.
