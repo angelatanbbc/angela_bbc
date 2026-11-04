@@ -20,6 +20,10 @@ models:
           of the raw user_first_party_id / user_id columns holds a value of that length; NULL otherwise.
       - name: payment_provider
         description: Payment provider on vx.conversion events (Stripe Elements, Braintree Credit Card).
+      - name: payment_mode
+        description: >
+          Card brand of the payment on Stripe and Braintree conversion events, onsite and offsite (American Express,
+          Visa, MasterCard, Discover, UnionPay, GooglePay). NULL on app store conversions.
       - name: external_api_source
         description: App store on vx.conversion.offsite events (APPLE_ITUNES, GOOGLE_PLAY); NULL for web checkouts reported offsite.
 

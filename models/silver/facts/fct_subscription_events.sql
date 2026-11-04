@@ -18,6 +18,7 @@ WITH conversions AS (
         created_via_upgrade,
         device_platform_id AS conversion_device_platform_id,
         payment_provider AS conversion_payment_provider,
+        payment_card_brand AS conversion_card_brand,
         term_id,
         term_name,
         billing_period,
@@ -47,6 +48,7 @@ subs_actions_onsite AS (
         c.created_via_upgrade,
         c.conversion_device_platform_id,
         c.conversion_payment_provider,
+        c.conversion_card_brand,
         c.term_id,
         c.term_name,
         CASE
@@ -83,6 +85,7 @@ subs_actions_offsite AS (
         c.created_via_upgrade,
         c.conversion_device_platform_id,
         c.conversion_payment_provider,
+        c.conversion_card_brand,
         c.term_id,
         c.term_name,
         CASE
