@@ -255,6 +255,9 @@ SELECT
     -- Braintree Credit Card), external_api_source on vx.conversion.offsite
     -- (APPLE_ITUNES, GOOGLE_PLAY, or Stripe for web checkouts Piano reports offsite)
     payment_provider,
+    -- card brand of the conversion's payment, such as American Express or Visa;
+    -- set on Stripe and Braintree checkouts, onsite and offsite
+    payment_mode,
     external_api_source
 
 FROM {{ ref('stg_piano__studios_events') }}

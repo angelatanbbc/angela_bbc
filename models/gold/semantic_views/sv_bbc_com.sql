@@ -288,6 +288,9 @@ DIMENSIONS (
         COMMENT = 'Month the subscription was bought, as YYYY-MM.',
     SUBSCRIPTIONS.CONVERSION_PAYMENT_PROVIDER AS conversion_payment_provider
         COMMENT = 'Payment provider of the conversion that created the subscription: Stripe Elements or Braintree Credit Card for web checkouts, Apple App Store or Google Play for app stores.',
+    SUBSCRIPTIONS.CONVERSION_CARD_BRAND AS conversion_card_brand
+        WITH SYNONYMS = ('card_brand', 'card_type', 'card_network')
+        COMMENT = 'Card brand of the payment for the conversion that created the subscription: American express, Visa, Mastercard, Discover, Unionpay, Google pay or Other for web checkouts; App store for app store subscriptions; Unknown when Piano recorded none.',
     SUBSCRIPTIONS.CREATED_VIA_UPGRADE AS created_via_upgrade
         COMMENT = 'Whether the subscription was created by an upgrade.',
     SUBSCRIPTIONS.IS_CURRENTLY_ACTIVE AS is_active
@@ -377,6 +380,9 @@ DIMENSIONS (
         COMMENT = 'Date and time of the conversion.',
     CONVERSION_TOUCHPOINTS.PAYMENT_PROVIDER AS payment_provider
         COMMENT = 'Payment provider observed on the conversion: Stripe Elements or Braintree Credit Card for web checkouts, Apple App Store or Google Play for app stores.',
+    CONVERSION_TOUCHPOINTS.PAYMENT_CARD_BRAND AS payment_card_brand
+        WITH SYNONYMS = ('card_brand', 'card_type', 'card_network')
+        COMMENT = 'Card brand of the conversion''s payment: American express, Visa, Mastercard, Discover, Unionpay, Google pay or Other for web checkouts; App store for app store conversions; Unknown when Piano recorded none. Not the Composer card (card_action, card_id).',
     CONVERSION_TOUCHPOINTS.CONVERSION_SRC AS src
         COMMENT = 'Piano traffic source of the conversion visit, such as Direct traffic, Search engines or BBC Public Service sites. For the full marketing journey use sv_marketing_attribution.',
     CONVERSION_TOUCHPOINTS.CONVERSION_SRC_DETAIL AS src_detail

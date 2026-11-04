@@ -239,6 +239,18 @@ models:
                     "Apple App Store",
                     "Google Play",
                   ]
+      - name: payment_card_brand
+        description: >
+          Card brand of the conversion's payment, from payment_mode on the conversion event (vx.conversion, or
+          vx.conversion.offsite for web checkouts Piano reports offsite), in sentence case: American express, Visa,
+          Mastercard, Discover, Unionpay, Google pay, or Other for any other value. App store for app store
+          conversions, which never show Piano a card. Unknown for a web checkout with no payment_mode. Not the
+          Composer card (card_id, card_action).
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["American express", "Visa", "Mastercard", "Discover", "Unionpay", "Google pay", "Other", "App store", "Unknown"]
       - name: vx_promo_code
         description: Promo code used during the conversion event, if any.
       - name: cart_turnovertaxfree
@@ -543,6 +555,15 @@ models:
                     "Apple App Store",
                     "Google Play",
                   ]
+      - name: conversion_card_brand
+        description: >
+          Card brand of the payment for the conversion that created the subscription, from
+          fct_conversions.payment_card_brand. Lifecycle events inherit it from the conversion.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["American express", "Visa", "Mastercard", "Discover", "Unionpay", "Google pay", "Other", "App store", "Unknown"]
       - name: term_id
         description: Identifier for the subscription term associated with the event.
       - name: term_name
