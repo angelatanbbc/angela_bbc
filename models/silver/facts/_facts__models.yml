@@ -491,6 +491,21 @@ models:
         description: Number of days since the conversion occurred.
       - name: months_since_conversion
         description: Number of months since the conversion occurred.
+      - name: is_active_at_day_start
+        description: >
+          Whether the subscription was active at the start of the day, that is at the end of the previous day. The
+          other status columns give the state at the end of the day, so a subscription that starts today is Active
+          here but not active at day start, and one that churns today is the reverse. Opening stock metrics (for
+          example sv_bbc_com.opening_active_subscribers) count this flag on the first day of the period, which makes
+          them equal the previous period's closing stock.
+        tests:
+          - not_null
+      - name: day_start_mrr_amount
+        description: >
+          MRR of the subscription at the start of the day (the previous day's mrr_amount), or zero if it was not
+          active then. Used for opening MRR.
+        tests:
+          - not_null
 
   - name: fct_subscription_events
     description: Event-level fact table for subscription lifecycle events and status changes.

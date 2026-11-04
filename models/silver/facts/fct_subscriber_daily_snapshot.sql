@@ -168,11 +168,55 @@ final AS (
     LEFT JOIN conversion_dates cd
         ON sd.subscription_id = cd.subscription_id
 
+),
+
+subscriber_days AS (
+
+    SELECT *
+    FROM final
+    WHERE
+        last_subscription_action IS NOT NULL
+        AND days_since_churned = 0
+
+),
+
+-- Each row gives the status at the end of the day. A subscription that was active at the end of
+-- the previous day always has a row today (still active, or churned today), so the previous row
+-- gives the status at the start of the day. Opening stock metrics read these columns.
+previous_days AS (
+
+    SELECT
+        *,
+        LAG(date_day) OVER (
+            PARTITION BY subscription_id
+            ORDER BY date_day
+        ) AS previous_date_day,
+        LAG(subscriber_status) OVER (
+            PARTITION BY subscription_id
+            ORDER BY date_day
+        ) AS previous_subscriber_status,
+        LAG(mrr_amount) OVER (
+            PARTITION BY subscription_id
+            ORDER BY date_day
+        ) AS previous_mrr_amount
+    FROM subscriber_days
+
+),
+
+day_start AS (
+
+    SELECT
+        * EXCLUDE (previous_date_day, previous_subscriber_status, previous_mrr_amount),
+        COALESCE(
+            previous_date_day = DATEADD(DAY, -1, date_day)
+            AND previous_subscriber_status = 'Active',
+            FALSE
+        ) AS is_active_at_day_start,
+        IFF(is_active_at_day_start, previous_mrr_amount, 0) AS day_start_mrr_amount
+    FROM previous_days
+
 )
 
 SELECT *
-FROM final
-WHERE
-    last_subscription_action IS NOT NULL
-    AND days_since_churned = 0
+FROM day_start
 ORDER BY subscription_id, date_day
