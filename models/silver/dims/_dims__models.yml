@@ -547,6 +547,18 @@ models:
           - accepted_values:
               arguments:
                 values: ["Stripe Elements", "Braintree Credit Card", "Apple App Store", "Google Play"]
+      - name: conversion_card_brand
+        description: >
+          Card brand of the payment for the conversion that created the subscription, from
+          fct_conversions.payment_card_brand: American express, Visa, Mastercard, Discover, Unionpay, Google pay or
+          Other for web checkouts, App store for app store subscriptions, Unknown when Piano recorded none.
+          Subscriptions with no events in fct_subscription_events are App store when the term is billed by an app
+          store, otherwise Unknown.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["American express", "Visa", "Mastercard", "Discover", "Unionpay", "Google pay", "Other", "App store", "Unknown"]
       - name: cohort_month
         description: Month of the conversion that created the subscription, as YYYY-MM. Same value as cohort_month on the subscription facts.
       - name: subscription_country

@@ -26,6 +26,7 @@ WITH offsite_conversions AS (
             END,
             payment_provider
         ) AS payment_provider,
+        payment_mode,
         cart_turnovertaxfree,
         subscription_period_number,
         created_via_upgrade
@@ -108,6 +109,7 @@ SELECT
     'BBC Subscription' AS term_offer_name,
     billing_period,
     payment_provider,
+    payment_mode,
     cart_turnovertaxfree,
     subscription_period_number,
     created_via_upgrade,

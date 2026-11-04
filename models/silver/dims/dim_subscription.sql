@@ -39,6 +39,7 @@ terms AS (
 
     SELECT
         term_id,
+        billing_channel,
         billing_country
     FROM {{ ref('dim_term') }}
 
@@ -73,6 +74,7 @@ subscription_lifecycle AS (
         MIN_BY(e.conversion_id, event_time) AS conversion_id,
         MIN_BY(e.conversion_device_platform_id, e.event_time) AS conversion_device_platform_id,
         MIN_BY(e.conversion_payment_provider, e.event_time) AS conversion_payment_provider,
+        MIN_BY(e.conversion_card_brand, e.event_time) AS conversion_card_brand,
         MIN_BY(e.cohort_month, e.event_time) AS cohort_month,
         MIN_BY(e.geo_country, e.event_time) AS conversion_geo_country,
         BOOLOR_AGG(COALESCE(e.created_via_upgrade, FALSE)) AS created_via_upgrade,
@@ -131,7 +133,13 @@ located AS (
             t.billing_country,
             IFF(s.conversion_geo_country = 'Canada', 'Canada', 'United states')
         ) AS subscription_country,
-        t.billing_country IS NULL AS is_subscription_country_estimated
+        t.billing_country IS NULL AS is_subscription_country_estimated,
+        -- Subscriptions with no conversion event take App store from the term's
+        -- billing channel; any other is Unknown.
+        COALESCE(
+            s.conversion_card_brand,
+            IFF(t.billing_channel IN ('Apple App Store', 'Google Play'), 'App store', 'Unknown')
+        ) AS conversion_card_brand_filled
     FROM sequenced s
     LEFT JOIN terms t
         ON s.term_id = t.term_id
@@ -149,6 +157,7 @@ classified AS (
         conversion_id,
         conversion_device_platform_id,
         conversion_payment_provider,
+        conversion_card_brand_filled AS conversion_card_brand,
         cohort_month,
         subscription_country,
         is_subscription_country_estimated,

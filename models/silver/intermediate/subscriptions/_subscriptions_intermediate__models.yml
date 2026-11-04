@@ -79,6 +79,11 @@ models:
         description: Term offer name for the conversion.
       - name: billing_period
         description: Billing period for the conversion.
+      - name: payment_mode
+        description: >
+          Card brand of the conversion's payment from the event's payment_mode (American Express, Visa, MasterCard,
+          Discover, UnionPay, GooglePay); NULL for app store conversions. fct_conversions turns it into
+          payment_card_brand.
       - name: payment_provider
         description: >
           Where the subscription is billed, observed on the conversion event: Apple App Store or Google Play from
@@ -179,6 +184,11 @@ models:
         description: Term offer name for the conversion.
       - name: billing_period
         description: Billing period for the conversion.
+      - name: payment_mode
+        description: >
+          Card brand of the conversion's payment from the event's payment_mode (American Express, Visa, MasterCard,
+          Discover, UnionPay, GooglePay); NULL for app store conversions. fct_conversions turns it into
+          payment_card_brand.
       - name: payment_provider
         description: Payment provider on the conversion event (Stripe Elements or Braintree Credit Card).
         tests:
@@ -360,6 +370,11 @@ models:
         description: Offer identifier associated with the subscription term.
       - name: billing_period
         description: Billing period for the subscription term.
+      - name: payment_mode
+        description: >
+          Card brand of the conversion's payment from the event's payment_mode (American Express, Visa, MasterCard,
+          Discover, UnionPay, GooglePay); NULL for app store conversions. fct_conversions turns it into
+          payment_card_brand.
       - name: payment_provider
         description: >
           Where the subscription is billed: Apple App Store or Google Play from the offsite event's

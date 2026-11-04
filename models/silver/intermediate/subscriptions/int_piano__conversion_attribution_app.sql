@@ -106,6 +106,7 @@ SELECT
     term_offer_name,
     billing_period,
     payment_provider,
+    payment_mode,
     NULL AS vx_promo_code,
     -- App store conversions carry no value, so revenue is the list price less
     -- the store's fee, keyed on where the subscription is billed. Stripe and

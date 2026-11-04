@@ -51,7 +51,21 @@ terms AS (
 )
 
 SELECT
-    c.*,
+    c.* EXCLUDE (payment_mode),
+    -- Card brand of the conversion's payment, from Piano's payment_mode. App
+    -- store payments never show Piano a card, and a checkout with no
+    -- payment_mode is Unknown.
+    CASE
+        WHEN c.payment_provider IN ('Apple App Store', 'Google Play') THEN 'App store'
+        WHEN c.payment_mode IS NULL THEN 'Unknown'
+        WHEN c.payment_mode = 'American Express' THEN 'American express'
+        WHEN c.payment_mode = 'Visa' THEN 'Visa'
+        WHEN c.payment_mode = 'MasterCard' THEN 'Mastercard'
+        WHEN c.payment_mode = 'Discover' THEN 'Discover'
+        WHEN c.payment_mode = 'UnionPay' THEN 'Unionpay'
+        WHEN c.payment_mode = 'GooglePay' THEN 'Google pay'
+        ELSE 'Other'
+    END AS payment_card_brand,
     -- app conversions and web conversions the attribution does not cover count as organic, as before
     COALESCE(a.paid_attribution_weight, 0)::NUMBER(18, 6) AS paid_attribution_weight,
     COALESCE(t.subscription_weight, 1) AS subscription_weight
