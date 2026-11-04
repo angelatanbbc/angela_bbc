@@ -128,6 +128,8 @@ FACTS (
     -- Subscriber daily snapshot
     SUBSCRIBER_DAILY_SNAPSHOT.MRR_AMOUNT AS mrr_amount
         COMMENT = 'Monthly recurring revenue of the subscription on the day. Zero when superseded by an upgrade.',
+    PRIVATE SUBSCRIBER_DAILY_SNAPSHOT.DAY_START_MRR_AMOUNT AS day_start_mrr_amount
+        COMMENT = 'Monthly recurring revenue of the subscription at the start of the day (the end of the previous day). Zero if it was not active then.',
     PRIVATE SUBSCRIBER_DAILY_SNAPSHOT.SUBSCRIPTION_WEIGHT AS subscription_weight
         COMMENT = 'Number of subscriptions the subscription counts as (2 for group plans, 10 or 25 for business plans, otherwise 1).',
 
@@ -479,6 +481,8 @@ DIMENSIONS (
     SUBSCRIBER_DAILY_SNAPSHOT.DAYS_SINCE_CONVERSION AS days_since_conversion
         WITH SYNONYMS = ('tenure_days')
         COMMENT = 'Days between the conversion and the snapshot date.',
+    SUBSCRIBER_DAILY_SNAPSHOT.IS_ACTIVE_AT_DAY_START AS is_active_at_day_start
+        COMMENT = 'Whether the subscription was active at the start of the snapshot date, that is at the end of the previous day. Rows otherwise give the status at the end of the day.',
     SUBSCRIBER_DAILY_SNAPSHOT.LAST_SUBSCRIPTION_ACTION AS last_subscription_action
         COMMENT = 'Latest subscription action on or before the snapshot date.',
     SUBSCRIBER_DAILY_SNAPSHOT.MONTHS_SINCE_CONVERSION AS months_since_conversion
@@ -592,8 +596,8 @@ METRICS (
         COMMENT = 'Active paid subscriptions at the end of the selected period.',
     SUBSCRIBER_DAILY_SNAPSHOT.OPENING_ACTIVE_SUBSCRIBERS
         NON ADDITIVE BY (SUBSCRIBER_DAILY_SNAPSHOT.SNAPSHOT_DATE DESC NULLS LAST)
-        AS COUNT(DISTINCT IFF(subscriber_status = 'Active', subscription_id, NULL))
-        COMMENT = 'Active paid subscriptions at the beginning of the selected period.',
+        AS COUNT(DISTINCT IFF(is_active_at_day_start, subscription_id, NULL))
+        COMMENT = 'Active paid subscriptions at the beginning of the selected period, which equals active_subscribers at the end of the previous period. Subscriptions that start on the first day are not included.',
     SUBSCRIBER_DAILY_SNAPSHOT.WEIGHTED_ACTIVE_SUBSCRIBERS
         NON ADDITIVE BY (SUBSCRIBER_DAILY_SNAPSHOT.SNAPSHOT_DATE ASC NULLS LAST)
         AS SUM(IFF(subscriber_status = 'Active', subscriber_daily_snapshot.subscription_weight, 0))
@@ -605,8 +609,8 @@ METRICS (
         COMMENT = 'Monthly recurring revenue at the end of the selected period.',
     SUBSCRIBER_DAILY_SNAPSHOT.OPENING_MRR
         NON ADDITIVE BY (SUBSCRIBER_DAILY_SNAPSHOT.SNAPSHOT_DATE DESC NULLS LAST)
-        AS SUM(mrr_amount)
-        COMMENT = 'Monthly recurring revenue at the beginning of the selected period.',
+        AS SUM(day_start_mrr_amount)
+        COMMENT = 'Monthly recurring revenue at the beginning of the selected period, which equals mrr at the end of the previous period.',
     -- Cohort retention. Unlike active_subscribers this is not a stock taken on one day: it counts every
     -- subscription active at any point in the group, which is what a months_since_conversion cohort needs
     -- (subscriptions in one cohort month reach each tenure month on different dates).
@@ -697,7 +701,7 @@ METRICS (
         COMMENT = 'Change in monthly recurring revenue from the start to the end of the period, as a share of opening MRR.',
     NET_SUBSCRIBER_CHANGE AS subscriber_daily_snapshot.active_subscribers - subscriber_daily_snapshot.opening_active_subscribers
         WITH SYNONYMS = ('net_adds', 'subscriber_growth')
-        COMMENT = 'Active subscriptions at the end of the period minus active subscriptions at the start.'
+        COMMENT = 'Active subscriptions at the end of the period minus active subscriptions at the start, including the net adds of the first day.'
 )
 
 COMMENT = 'BBC.com subscriptions and audience: CTA exposures, sign-ups split into paid and organic, subscriber stock, MRR, churn and renewals, US/Canada visitors and worldwide web page views. Built by dbt (model sv_bbc_com).'
