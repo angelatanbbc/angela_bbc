@@ -7,11 +7,6 @@ model-paths: ["models"]
 models:
   dns_transformations:
     +materialized: table
-    gold:
-      semantic_views:
-        # also needs the CREATE SEMANTIC VIEW privilege: --vars '{build_semantic_views: true}'
-        sv_marketing_attribution:
-          +enabled: "{{ var('build_semantic_views', false) }}"
   facebook_ads:
     intermediate:
       int_facebook_ads__creative_history:

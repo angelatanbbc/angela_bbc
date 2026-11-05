@@ -116,10 +116,7 @@ jobs:
           snowflake_database: ${{ vars.SNOWFLAKE_DATABASE }}
           snowflake_schema: ${{ vars.SNOWFLAKE_SCHEMA }}
           snowflake_warehouse: ${{ vars.SNOWFLAKE_WAREHOUSE }}
-          # Semantic views are excluded: only DNS_TRANSFORMATIONS_PROJECT_ANALYST can create them
-          # until platform engineering grants CREATE SEMANTIC VIEW to the pipeline role. Deploy them
-          # with `dbt run --select tag:semantic_view --target analyst` instead.
-          dbt_args: run --exclude tag:semantic_view ${{ inputs.full_refresh && '--full-refresh' || '' }}
+          dbt_args: run ${{ inputs.full_refresh && '--full-refresh' || '' }}
           dbt_target: live
 
   run_dbt_tests:

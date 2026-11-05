@@ -11,8 +11,7 @@ models:
       Follows the sv_bbc_com conventions: every dimension, fact and metric name is unique across the
       view; dates, geography and device platform come from their dims only (dates join on the
       purchase date); comments and synonyms live inline in the DDL. Includes AI_SQL_GENERATION
-      guidance and verified queries for Cortex Analyst. Needs the CREATE SEMANTIC VIEW privilege, so
-      it is built only with var build_semantic_views.
+      guidance and verified queries for Cortex Analyst.
   - name: sv_bbc_com
     description: >
       Snowflake semantic view over the BBC.com subscription and audience facts and dims, for

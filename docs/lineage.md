@@ -184,7 +184,7 @@ graph LR
 
 ### Click-based subscription attribution flow
 
-The corrected subscription attribution, built from the page view chain beside the attribution chain above. These models always build, because `fct_conversions` takes `paid_attribution_weight` from `fct_attribution_touchpoints`. The incremental ones (journey identities and touches, touchpoints, imputed touchpoints and `fct_attribution_touchpoints`) build only the last 31 days when their table is created, and history is backfilled in monthly chunks with `ops/backfill_page_views.sh --mode attribution` once `int_piano__page_views` has its history. The semantic view needs `var('build_semantic_views')`.
+The corrected subscription attribution, built from the page view chain beside the attribution chain above. These models always build, because `fct_conversions` takes `paid_attribution_weight` from `fct_attribution_touchpoints`. The incremental ones (journey identities and touches, touchpoints, imputed touchpoints and `fct_attribution_touchpoints`) build only the last 31 days when their table is created, and history is backfilled in monthly chunks with `ops/backfill_page_views.sh --mode attribution` once `int_piano__page_views` has its history.
 
 ```mermaid
 graph LR
