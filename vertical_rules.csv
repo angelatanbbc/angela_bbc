@@ -92,9 +92,9 @@ R12,120,Tech,1,content_section,equals,Technology,TRUE
 R12,120,Tech,1,content_section,equals,Tech Now,TRUE
 R12,120,Tech,1,content_pillar,equals,Technology,TRUE
 R12,120,Tech,1,page,equals,technology.page,TRUE
-R12,130,Tech,1,page,equals,innovation.page,TRUE
+R12,120,Tech,1,page,equals,innovation.page,TRUE
 R13,130,Travel,1,content_topic,ilike,%remote place%,TRUE
-R13,130,Travel,1,content_topic,ilike,%World''s Table%,TRUE
+R13,130,Travel,1,content_topic,ilike,%Worlds Table%,TRUE
 R13,130,Travel,1,content_topic,ilike,%Food & Drink%,TRUE
 R13,130,Travel,2,page,startswith,travel.,TRUE
 R13,130,Travel,2,page,startswith,reel.,TRUE
