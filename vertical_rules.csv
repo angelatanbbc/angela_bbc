@@ -1,0 +1,184 @@
+rule_id,priority,vertical,condition_group,field,match_type,pattern,is_active
+R01,10,Home page,1,page,equals,home.page,TRUE
+R02,20,News front,1,page,equals,news.page,TRUE
+R03,30,Sport,1,page,startswith,sport,TRUE
+R04,40,Audio,1,page,startswith,audio,TRUE
+R05,50,Docs,1,page,startswith,video.doc,TRUE
+R06,60,Watch Live News,1,page,equals,watch_live_news.page,TRUE
+R07,70,World News,1,page,equals,news.war_in_ukraine.page,TRUE
+R07,70,World News,1,page,equals,news.world.europe.page,TRUE
+R07,70,World News,1,page,equals,news.world.asia.page,TRUE
+R07,70,World News,1,page,equals,news.world.africa.page,TRUE
+R07,70,World News,1,page,equals,news.topics.c2vdnvdg6xxt.page,TRUE
+R07,70,World News,1,page,equals,news.world.latin_america.page,TRUE
+R07,70,World News,1,page,equals,news.world.middle_east.page,TRUE
+R07,70,World News,1,page,equals,news.world.australia.page,TRUE
+R07,70,World News,1,page,equals,news.in_pictures.page,TRUE
+R07,70,World News,1,page,equals,news.bbcindepth.page,TRUE
+R07,70,World News,1,page,equals,news.bbcverify.page,TRUE
+R07,70,World News,1,page,equals,news.uk.page,TRUE
+R07,70,World News,1,page,equals,news.england.page,TRUE
+R07,70,World News,1,page,equals,news.scotland.page,TRUE
+R07,70,World News,1,page,equals,news.northern_ireland.page,TRUE
+R07,70,World News,1,page,equals,news.wales.page,TRUE
+R07,70,World News,1,page,equals,news.politics.page,TRUE
+R07,70,World News,1,page,equals,news.scotland.scotland_politics.page,TRUE
+R07,70,World News,1,page,equals,news.northern_ireland.northern_ireland_politics.page,TRUE
+R07,70,World News,1,page,equals,news.wales.wales_politics.page,TRUE
+R07,70,World News,1,content_section,equals,Asia,TRUE
+R07,70,World News,1,content_section,equals,Europe,TRUE
+R07,70,World News,1,content_section,equals,World,TRUE
+R07,70,World News,1,content_section,equals,Africa,TRUE
+R07,70,World News,1,content_section,equals,Middle East,TRUE
+R07,70,World News,1,content_section,equals,Australia,TRUE
+R07,70,World News,1,content_section,equals,Latin America,TRUE
+R07,70,World News,1,content_section,equals,BBC InDepth,TRUE
+R07,70,World News,1,content_section,equals,In Pictures,TRUE
+R07,70,World News,1,content_section,equals,Verify,TRUE
+R07,70,World News,1,content_section,equals,Politics,TRUE
+R07,70,World News,1,content_section,equals,Newsbeat,TRUE
+R07,70,World News,1,content_section,equals,Israel-Gaza war,TRUE
+R07,70,World News,1,content_section,equals,War in Ukraine,TRUE
+R07,70,World News,1,content_section,equals,India,TRUE
+R07,70,World News,1,content_section,equals,BBC Verify,TRUE
+R07,70,World News,1,content_section,equals,China,TRUE
+R07,70,World News,1,content_section,equals,UK,TRUE
+R07,70,World News,1,content_section,equals,England,TRUE
+R07,70,World News,1,content_section,equals,Berkshire,TRUE
+R07,70,World News,1,content_section,equals,Scotland,TRUE
+R07,70,World News,1,content_section,equals,US & Canada,TRUE
+R07,70,World News,1,page,equals,news.us_canada.page,TRUE
+R07,70,World News,1,page,like,%us_and_canada%,TRUE
+R07,70,World News,1,page,like,%us_canada%,TRUE
+R07,70,World News,2,page,startswith,news,TRUE
+R08,80,Business,1,content_section,equals,Business,TRUE
+R08,80,Business,1,content_pillar,equals,Business,TRUE
+R08,80,Business,1,page,equals,business.page,TRUE
+R09,90,Health,1,content_pillar,equals,Health,TRUE
+R09,90,Health,1,content_section,equals,Science & Health,TRUE
+R09,90,Health,1,content_section,equals,Family & Education,TRUE
+R09,90,Health,1,page,equals,health.page,TRUE
+R09,90,Health,1,page,startswith,news.health,TRUE
+R10,100,Culture,1,content_section,equals,Art,TRUE
+R10,100,Culture,1,content_section,equals,Art history,TRUE
+R10,100,Culture,1,content_section,equals,Arts,TRUE
+R10,100,Culture,1,content_section,equals,Arts in Motion,TRUE
+R10,100,Culture,1,content_section,equals,Culture,TRUE
+R10,100,Culture,1,content_section,equals,Entertainment & Arts,TRUE
+R10,100,Culture,1,content_section,equals,History,TRUE
+R10,100,Culture,1,content_section,equals,Film & TV,TRUE
+R10,100,Culture,1,content_section,equals,Culture & Experiences,TRUE
+R10,100,Culture,1,content_section,equals,Photography,TRUE
+R10,100,Culture,1,content_pillar,equals,Arts,TRUE
+R10,100,Culture,1,content_pillar,equals,Arts in Motion,TRUE
+R10,100,Culture,1,content_pillar,equals,Culture,TRUE
+R10,100,Culture,1,page,equals,culture.page,TRUE
+R10,100,Culture,1,page,equals,arts.page,TRUE
+R10,100,Culture,1,page,startswith,culture.,TRUE
+R11,110,Earth & Science,1,content_section,equals,Earth,TRUE
+R11,110,Earth & Science,1,content_section,equals,Climate,TRUE
+R11,110,Earth & Science,1,content_section,equals,Science & Environment,TRUE
+R11,110,Earth & Science,1,content_section,equals,Future Planet,TRUE
+R11,110,Earth & Science,1,content_section,equals,World of wonder,TRUE
+R11,110,Earth & Science,1,content_section,equals,Natural wonders,TRUE
+R11,110,Earth & Science,1,content_section,equals,Science,TRUE
+R11,110,Earth & Science,1,content_pillar,equals,Earth,TRUE
+R11,110,Earth & Science,1,content_pillar,equals,Climate,TRUE
+R11,110,Earth & Science,1,content_pillar,equals,Science & Environment,TRUE
+R11,110,Earth & Science,1,content_pillar,equals,Future Planet,TRUE
+R11,110,Earth & Science,1,page,equals,science.page,TRUE
+R11,110,Earth & Science,1,page,equals,future_planet.page,TRUE
+R12,120,Tech,1,content_section,equals,Technology,TRUE
+R12,120,Tech,1,content_section,equals,Tech Now,TRUE
+R12,120,Tech,1,content_pillar,equals,Technology,TRUE
+R12,120,Tech,1,page,equals,technology.page,TRUE
+R12,120,Tech,1,page,equals,innovation.page,TRUE
+R13,130,Travel,1,content_section,equals,Travel,TRUE
+R13,130,Travel,1,content_section,equals,The Travel Show,TRUE
+R13,130,Travel,1,content_section,equals,The SpeciaList,TRUE
+R13,130,Travel,1,page,equals,video.discover_the_world.page,TRUE
+R13,130,Travel,1,content_section,equals,Discover the World,TRUE
+R13,130,Travel,1,content_pillar,equals,Travel,TRUE
+R13,130,Travel,1,url,like,%bbc.com/travel%,TRUE
+R13,130,Travel,1,content_topic,ilike,%travel%,TRUE
+R13,130,Travel,1,content_topic,ilike,%remote place%,TRUE
+R13,130,Travel,1,content_topic,ilike,%World_s Table%,TRUE
+R13,130,Travel,1,content_topic,ilike,%Food & Drink%,TRUE
+R13,130,Travel,2,page,startswith,travel.,TRUE
+R13,130,Travel,2,page,startswith,reel.,TRUE
+R14,140,Business,1,content_topic,ilike,%Opening Bell%,TRUE
+R14,140,Business,1,content_topic,ilike,%business%,TRUE
+R14,140,Business,1,page,startswith,news.business,TRUE
+R14,140,Business,1,url,like,%bbc.com/business%,TRUE
+R15,150,Health,1,content_topic,ilike,%health%,TRUE
+R15,150,Health,1,content_topic,ilike,%wellbeing%,TRUE
+R15,150,Health,1,content_topic,ilike,%medicine%,TRUE
+R15,150,Health,1,content_topic,ilike,%psychology%,TRUE
+R15,150,Health,1,content_topic,ilike,%fitness%,TRUE
+R15,150,Health,1,content_topic,ilike,%nutrition%,TRUE
+R15,150,Health,1,content_topic,ilike,%diet%,TRUE
+R15,150,Health,1,content_topic,ilike,%Science & Health%,TRUE
+R15,150,Health,1,content_topic,ilike,%sleep%,TRUE
+R15,150,Health,1,content_topic,ilike,%mind%,TRUE
+R15,150,Health,1,content_topic,ilike,%love%,TRUE
+R15,150,Health,1,content_topic,ilike,%exercise%,TRUE
+R15,150,Health,1,content_topic,ilike,%longevity%,TRUE
+R15,150,Health,1,content_topic,ilike,%neuroscience%,TRUE
+R15,150,Health,1,url,like,%bbc.com/health%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%earth%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%climate%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%world of wonder%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%weather%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%natural wonders%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%green living%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%environment%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%nature%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%future planet%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%sustainability%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%plants%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%animals%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%carbon%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%global warming%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%wind power%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%solar power%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%pollution%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%conservation%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%severe weather%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%flood%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%drought%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%wildfire%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%heatwave%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%el nino%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%tornado%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,% COP %,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%just stop oil%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%green getaways%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%eco-tourism%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%outdoors%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%space%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%solar system%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%science%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%astronomy%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%geology%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%planet%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%archaeology%,TRUE
+R16,160,Earth & Science,1,content_topic,ilike,%wildlife%,TRUE
+R16,160,Earth & Science,1,url,equals,https://www.bbc.com/innovation/science,TRUE
+R16,160,Earth & Science,1,url,like,%bbc.com/future-planet%,TRUE
+R17,170,Tech,1,content_pillar,equals,Innovation,TRUE
+R17,170,Tech,1,content_topic,ilike,%technology%,TRUE
+R17,170,Tech,1,content_topic,ilike,%Artificial intelligence%,TRUE
+R17,170,Tech,1,content_topic,ilike,%AI v the Mind%,TRUE
+R17,170,Tech,1,content_topic,ilike,%Robot%,TRUE
+R17,170,Tech,1,content_topic,ilike,%Computer%,TRUE
+R17,170,Tech,1,content_topic,ilike,%Data breaches%,TRUE
+R17,170,Tech,1,content_topic,ilike,%cyber%,TRUE
+R17,170,Tech,1,content_topic,ilike,%gaming%,TRUE
+R17,170,Tech,1,url,like,%bbc.com/technology%,TRUE
+R18,180,Culture,1,url,like,%bbc.com/culture%,TRUE
+R18,180,Culture,1,content_topic,ilike,%Art%,TRUE
+R18,180,Culture,1,content_topic,ilike,%Culture%,TRUE
+R18,180,Culture,1,content_topic,ilike,%History%,TRUE
+R18,180,Culture,1,content_topic,ilike,%Books%,TRUE
+R18,180,Culture,1,content_topic,ilike,%Film%,TRUE
+R19,190,World News,1,page,startswith,news,TRUE
