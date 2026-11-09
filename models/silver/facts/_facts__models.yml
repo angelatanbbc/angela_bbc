@@ -1075,6 +1075,10 @@ models:
         description: Paid-media agency of the visit.
         tests:
           - not_null
+      - name: ro_lower_bound_pct
+        description: Lower bound of the page view's Piano RevOps score bucket; NULL when unscored.
+      - name: lts_lower_bound_pct
+        description: Lower bound of the page view's Piano LTS (likelihood to subscribe) bucket; NULL when unscored.
 
   - name: fct_paid_visitor_funnel
     description: >
@@ -1099,6 +1103,19 @@ models:
               - visitor_id
           config:
             where: "is_last_paid_touch"
+    columns:
+      - name: ro_best_lower_bound_visitor
+        description: The visitor's highest RevOps lower bound over all their paid page views.
+      - name: ro_first_lower_bound_visitor
+        description: >
+          RevOps lower bound on the visitor's first paid page view that has one, before the visit can move it
+          (both scores rise during a visit that ends in a purchase).
+      - name: lts_best_lower_bound_campaign
+        description: The visitor's highest LTS lower bound over their paid page views from this campaign.
+      - name: lts_best_lower_bound_visitor
+        description: The visitor's highest LTS (likelihood to subscribe) lower bound over all their paid page views.
+      - name: lts_first_lower_bound_visitor
+        description: LTS lower bound on the visitor's first paid page view that has one.
 
   - name: fct_newsletter_page_visits
     description: >

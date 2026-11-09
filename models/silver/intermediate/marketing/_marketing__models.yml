@@ -260,7 +260,7 @@ models:
   - name: int_marketing__paid_page_views
     description: >
       The page views of paid visits. One row per page view of a visit in int_marketing__paid_visits,
-      with measures from fct_page_views and labels and the RevOps score from int_piano__page_views.
+      with measures from fct_page_views and labels and the RevOps and LTS scores from int_piano__page_views.
       vx_conversion_count counts the attributable purchases (int_attribution__conversions) made on the
       page view. The 'unidentified-user' placeholder is never an account. Incremental on visit_date,
       the same days as int_marketing__paid_visits.
@@ -274,6 +274,12 @@ models:
         description: Date of the visit's first page view (int_marketing__paid_visits). Incremental key.
         tests:
           - not_null
+      - name: ro_lower_bound_pct
+        description: Lower bound of the page view's Piano RevOps score bucket (c1x_revenue_auto_optimization); NULL when unscored.
+      - name: lts_lower_bound_pct
+        description: >
+          Lower bound of the page view's Piano LTS (likelihood to subscribe) bucket (c1x_lts, 10 point buckets);
+          NULL when unscored. Added on 2026-11-02: earlier visit dates stay NULL until backfilled.
 
   - name: int_marketing__funnel_events
     description: >

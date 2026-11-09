@@ -21,9 +21,10 @@ SELECT
     first_paid_time_visitor,
     paid_page_views,
 
-    -- RevOps
+    -- RevOps and LTS
     ro_best_lower_bound_campaign,
     ro_best_lower_bound_visitor,
+    ro_first_lower_bound_visitor,
     CASE
         WHEN ro_best_lower_bound_visitor >= {{ var('high_ro_threshold') }}
             THEN 'RevOps {{ var("high_ro_threshold") }}+'
@@ -31,6 +32,10 @@ SELECT
             THEN 'RevOps {{ var("med_ro_threshold") }}-{{ var("high_ro_threshold") - 1 }}'
         ELSE 'other'
     END::VARCHAR(16) AS revops_band,
+    lts_best_lower_bound_campaign,
+    lts_best_lower_bound_visitor,
+    lts_first_lower_bound_visitor,
+    {{ lts_band('lts_best_lower_bound_visitor') }}::VARCHAR(16) AS lts_band,
 
     -- over time (the visitor's)
     saw_paywall,
