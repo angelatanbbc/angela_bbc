@@ -1099,3 +1099,145 @@ models:
               - visitor_id
           config:
             where: "is_last_paid_touch"
+
+  - name: fct_newsletter_page_visits
+    description: >
+      Visits to the newsletters page: one row per visit with at least one page display of the page, the "page view"
+      the newsletter acquisition dashboard counts. Source, placement and device come from the visit's latest display.
+      account_status is the visitor's status before the visit's first sign-up (before the visit when it has none),
+      judged from page displays only, because signing up can create a BBC account: 'Signed in' (an account id on a
+      display before then), 'Account, not signed in' (the visitor was seen signed in on this page earlier) or
+      'Not identified', which is unknown rather than "no account". is_suspected_automated flags visits with more
+      than var newsletter_automated_display_limit displays of the page (about 2,500 visits a month, nearly all from
+      France, April to June 2026, with almost no sign-ups).
+    columns:
+      - name: visit_id
+        description: Piano visit id. Primary key.
+        tests:
+          - not_null
+          - unique
+      - name: visitor_id
+        description: Piano visitor (cookie) id.
+        tests:
+          - not_null
+      - name: user_id
+        description: Account id on a page display before the visit's first sign-up; NULL otherwise.
+      - name: event_date
+        description: Day of the visit's latest display of the newsletters page.
+        tests:
+          - not_null
+      - name: page_displays
+        description: Displays of the newsletters page in the visit.
+      - name: at_link_origin
+        description: Placement tag of the latest display (homepage, article, ...).
+      - name: account_status
+        description: Signed in, Account, not signed in, or Not identified (see the model description).
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["Signed in", "Account, not signed in", "Not identified"]
+      - name: device_platform_id
+        description: Key to dim_device_platform.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_device_platform')
+                field: device_platform_id
+      - name: geo_id
+        description: Key to dim_geography, which holds US and Canadian regions only; geo_country is also carried.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_geography')
+                field: geo_id
+              config:
+                severity: warn
+      - name: signup_events
+        description: newsletter.subscribe events in the visit.
+      - name: titles_signed_up
+        description: Distinct newsletters signed up to in the visit.
+      - name: signed_up
+        description: TRUE when the visit has a sign-up.
+        tests:
+          - not_null
+      - name: is_suspected_automated
+        description: TRUE when the visit has more than var newsletter_automated_display_limit displays of the page.
+        tests:
+          - not_null
+
+  - name: fct_newsletter_signups
+    description: >
+      Newsletter sign-ups: one row per newsletter.subscribe event x newsletter title on the newsletters page (the
+      title array flattened, about 4 titles per event). Every event is kept; the dashboard's reading, the latest
+      sign-up per visitor and newsletter, is the flag is_latest_for_visitor_title (is_latest_for_user_title is the
+      same by account). Newsletters are matched on the lower-cased title, so case variants are one newsletter. Placement tags, account_status and is_suspected_automated come from the visit
+      (fct_newsletter_page_visits); a sign-up whose visit had no display of the page takes the same status rule at
+      its own time.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - visitor_id
+              - newsletter_title
+          config:
+            where: "is_latest_for_visitor_title"
+    columns:
+      - name: newsletter_signup_sk
+        description: Surrogate key of event_id + newsletter title. Primary key.
+        tests:
+          - not_null
+          - unique
+      - name: newsletter_sk
+        description: Key to dim_newsletter.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_newsletter')
+                field: newsletter_sk
+      - name: event_id
+        description: The sign-up event.
+        tests:
+          - not_null
+      - name: signup_at
+        description: When the sign-up happened.
+      - name: event_date
+        description: Day of the sign-up.
+        tests:
+          - not_null
+      - name: visitor_id
+        description: Piano visitor (cookie) id.
+        tests:
+          - not_null
+      - name: newsletter_title
+        description: The newsletter signed up to, in its dim_newsletter spelling.
+        tests:
+          - not_null
+      - name: account_status
+        description: The visit's status before its first sign-up (see fct_newsletter_page_visits).
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["Signed in", "Account, not signed in", "Not identified"]
+      - name: device_platform_id
+        description: Key to dim_device_platform.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_device_platform')
+                field: device_platform_id
+      - name: geo_id
+        description: Key to dim_geography, which holds US and Canadian regions only; geo_country is also carried.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_geography')
+                field: geo_id
+              config:
+                severity: warn
+      - name: is_latest_for_visitor_title
+        description: TRUE on the visitor's latest sign-up to the title, the dashboard's de-duplicated reading.
+        tests:
+          - not_null
+      - name: is_latest_for_user_title
+        description: TRUE on the account's latest sign-up to the title; FALSE when the sign-up has no account id.

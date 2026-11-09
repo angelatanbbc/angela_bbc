@@ -1,0 +1,51 @@
+version: 2
+
+models:
+  - name: int_piano__newsletter_events
+    description: >
+      The newsletters page's events, from var newsletter_start_date: one row per page.display of the page and per
+      newsletter.subscribe fired on it, on var marketing_site_ids. The page never sets a pageview_id, so the
+      newsletter models are keyed on the event and the visit. at_link_origin and at_format are parsed from the page
+      URL, where Piano joins the tags with '$'. The source and tag fields are lower-cased and trimmed, because Piano
+      sends some in more than one case (Onsite / onsite, Module / module, LWFL / lwfl). Incremental (merge on
+      event_id), rereading the events from the day before the latest one loaded.
+    columns:
+      - name: event_id
+        description: Piano event id. Primary key.
+        tests:
+          - not_null
+          - unique
+      - name: event_name
+        description: page.display (a view of the newsletters page) or newsletter.subscribe (a sign-up on it).
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["page.display", "newsletter.subscribe"]
+      - name: event_time
+        description: When the event happened.
+        tests:
+          - not_null
+      - name: event_date
+        description: Day of the event.
+      - name: visit_id
+        description: Piano visit id.
+        tests:
+          - not_null
+      - name: visitor_id
+        description: Piano visitor (cookie) id.
+        tests:
+          - not_null
+      - name: user_id
+        description: BBC account id, set only while the person is signed in. The 'unidentified-user' placeholder is NULL.
+      - name: at_link_origin
+        description: >
+          Placement tag from the page URL (homepage, article, featuresarticle, ...), lower-cased; NULL when the link
+          has no at_link_origin or sends it empty, as the onsite newsletter banners do.
+      - name: at_format
+        description: Format tag from the page URL; NULL when untagged.
+      - name: newsletter_title
+        description: Array of the newsletters signed up to, on newsletter.subscribe events.
+      - name: device_platform_id
+        description: Key to dim_device_platform.
+      - name: geo_id
+        description: Key to dim_geography (US and Canadian regions; other countries carry geo_country).
