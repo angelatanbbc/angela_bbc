@@ -20,8 +20,9 @@ models:
       (campaign_days: spend, delivery, paid traffic, visitor outcomes and paid attributed subscriptions,
       with CPA, cost per arrival, CTR, CPM and conversion rates), agg_marketing_paid_page_views (traffic
       by content, device, geography, ad and score band, with spend split across page views) and
-      agg_marketing_visitor_funnel (distinct paid visitors through the funnel by LTS and RevOps band on
-      arrival), each joined to dim_date on its own day. Ratios are view-level metrics built from the
+      agg_marketing_stage_funnel (visitor_funnel: the paid visitor funnel by stage with an All stages row,
+      overall and same visit, by LTS and RevOps band, counted as the dashboard's Funnel tab counts it),
+      each joined to dim_date on its own day. Ratios are view-level metrics built from the
       table metrics, so they stay right at any grouping. Built on the aggregates rather than the facts
       because they hold the matching of Google and Microsoft spend to page views by campaign. Spend is
       summed across account currencies, as on the dashboard (about 2 percent is GBP). Follows the

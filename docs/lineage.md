@@ -237,7 +237,7 @@ graph LR
 
 ### Marketing reporting flow
 
-The Marketing Measurement Dashboard's tables, built on the page view chain, the ad side and the attribution above. `int_marketing__paid_visits` and `int_marketing__paid_page_views` are incremental on the visit date: each night they redo the last 7 days, the run that creates them builds only the last 31 days, and older history is backfilled in chunks with the `marketing_backfill_start` / `marketing_backfill_end` vars once `int_piano__page_views` has its history. `int_marketing__funnel_events` is incremental on the event time and is created and backfilled the same way; history starts at `var('marketing_start_date')` (1 January 2026). The other marketing tables are rebuilt each night from these. The semantic view `sv_marketing` sits on the three marketing aggregates, and is deployed separately (see the semantic view note under Cross-DAG and cross-project references).
+The Marketing Measurement Dashboard's tables, built on the page view chain, the ad side and the attribution above. `int_marketing__paid_visits` and `int_marketing__paid_page_views` are incremental on the visit date: each night they redo the last 7 days, the run that creates them builds only the last 31 days, and older history is backfilled in chunks with the `marketing_backfill_start` / `marketing_backfill_end` vars once `int_piano__page_views` has its history. `int_marketing__funnel_events` is incremental on the event time and is created and backfilled the same way; history starts at `var('marketing_start_date')` (1 January 2026). The other marketing tables are rebuilt each night from these. `agg_marketing_stage_funnel` regroups the visitor funnel by stage, as the dashboard's Funnel tab counts it. The semantic view `sv_marketing` sits on the campaign, paid page view and stage funnel aggregates, and is deployed separately (see the semantic view note under Cross-DAG and cross-project references).
 
 ```mermaid
 graph LR
@@ -274,10 +274,11 @@ graph LR
     ad --> g5
     page_views --> funnel
     g3 --> sv_m["sv_marketing"]:::mart
-    g4 --> sv_m
+    g4 --> g6["agg_marketing_stage_funnel"]:::mart
     g5 --> sv_m
     dates["dim_date"]:::mart --> sv_m
-    linkStyle 0,1,3,4,5,6,7,8,10,11,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31 stroke:#4169e1,stroke-width:1.5px
+    g6 --> sv_m
+    linkStyle 0,1,3,4,5,6,7,8,10,11,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32 stroke:#4169e1,stroke-width:1.5px
     linkStyle 2,12 stroke:#f97316,stroke-width:2.5px
     linkStyle 9 stroke:#9333ea,stroke-width:2.5px
 ```
@@ -453,7 +454,8 @@ The following inventory records every project-owned model in the dbt manifest an
 | `agg_marketing_paid_page_views` | `fct_ad_performance_daily`, `fct_paid_page_views`, `dim_ad`, `dim_device_platform` |
 | `agg_marketing_visitor_funnel` | `fct_paid_visitor_funnel` |
 | `agg_marketing_campaign_daily` | `agg_marketing_paid_page_views`, `agg_marketing_visitor_funnel`, `fct_attribution_touchpoints`, `dim_channel`, `dim_campaign_tracking`, `dim_ad` |
-| `sv_marketing` (semantic view) | `agg_marketing_campaign_daily`, `agg_marketing_paid_page_views`, `agg_marketing_visitor_funnel`, `dim_date` |
+| `agg_marketing_stage_funnel` | `agg_marketing_visitor_funnel` |
+| `sv_marketing` (semantic view) | `agg_marketing_campaign_daily`, `agg_marketing_paid_page_views`, `agg_marketing_stage_funnel`, `dim_date` |
 | `agg_newsletter_activity` | `fct_newsletter_page_visits`, `fct_newsletter_signups`, `dim_device_platform` |
 | `sv_newsletters` (semantic view) | `fct_newsletter_page_visits`, `fct_newsletter_signups`, `dim_newsletter`, `dim_device_platform`, `dim_date` |
 | `sv_bbc_com` (semantic view) | `fct_conversions`, `fct_exposures`, `fct_page_views`, `fct_subscriber_daily_snapshot`, `fct_subscription_events`, `fct_visitors_daily`, `dim_date`, `dim_device_platform`, `dim_experience`, `dim_geography`, `dim_offer`, `dim_subscription`, `dim_template`, `dim_term`, `seed:piano_retention_curves` |
