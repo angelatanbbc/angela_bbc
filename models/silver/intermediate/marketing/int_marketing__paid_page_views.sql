@@ -3,7 +3,7 @@
         materialized="incremental",
         incremental_strategy="delete+insert",
         unique_key="visit_date",
-        on_schema_change="fail",
+        on_schema_change="append_new_columns",
         full_refresh=false,
         tags=["marketing", "intermediate"]
     )
@@ -73,7 +73,8 @@ labels AS (
         browser_group,
         geo_country,
         geo_region,
-        c1x_revenue_auto_optimization
+        c1x_revenue_auto_optimization,
+        c1x_lts
     FROM {{ ref('int_piano__page_views') }}
     WHERE
         {{ marketing_page_view_predicate(window, 'page_view_time') }}
@@ -110,7 +111,8 @@ SELECT
     v.src_campaign,
     p.visitor_new_return,
     v.visit_bounce AS is_visit_bounce,
-    {{ parse_ro_lower_bound('l.c1x_revenue_auto_optimization') }} AS ro_lower_bound_pct,
+    {{ parse_score_lower_bound('l.c1x_revenue_auto_optimization') }} AS ro_lower_bound_pct,
+    {{ parse_score_lower_bound('l.c1x_lts') }} AS lts_lower_bound_pct,
     l.content_id,
     l.content_pillar,
     l.content_section,

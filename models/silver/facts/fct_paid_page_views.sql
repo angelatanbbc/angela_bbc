@@ -28,6 +28,7 @@ SELECT
     visitor_new_return,
     is_visit_bounce,
     ro_lower_bound_pct,
+    lts_lower_bound_pct,
     content_pillar,
     content_section,
     content_type,

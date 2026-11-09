@@ -390,6 +390,14 @@ models:
           for Google and Microsoft.
         tests:
           - not_null
+      - name: lts_band
+        description: >
+          The page view's LTS (likelihood to subscribe) tier: 90+, 70-89, 40-69, 20-39, 0-19, or 'No score';
+          NULL on spend-only days.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["LTS 90+", "LTS 70-89", "LTS 40-69", "LTS 20-39", "LTS 0-19", "No score"]
 
   - name: agg_marketing_visitor_funnel
     description: >
@@ -402,6 +410,19 @@ models:
             combination_of_columns:
               - visitor_id
               - src_campaign
+    columns:
+      - name: revops_band
+        description: RevOps band of the visitor's highest RevOps score over their paid page views.
+      - name: lts_band
+        description: >
+          LTS (likelihood to subscribe) tier of the visitor's highest LTS score over their paid page views,
+          like revops_band. ro_first_lower_bound_visitor and lts_first_lower_bound_visitor hold the scores on
+          arrival, before the visit moves them.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["LTS 90+", "LTS 70-89", "LTS 40-69", "LTS 20-39", "LTS 0-19", "No score"]
 
   - name: agg_marketing_campaign_daily
     description: >
