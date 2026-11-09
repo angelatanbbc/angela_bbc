@@ -17,6 +17,7 @@ WITH paid_page_views AS (
         COALESCE(src_campaign, '(none)') AS src_campaign,
         agency,
         ro_lower_bound_pct,
+        lts_lower_bound_pct,
         content_pillar
     FROM {{ ref('int_marketing__paid_page_views') }}
     WHERE visitor_id IS NOT NULL
@@ -55,6 +56,7 @@ visitor_campaign AS (
         MIN(page_view_time) AS first_paid_time,
         COUNT(*) AS paid_page_views,
         MAX(ro_lower_bound_pct) AS ro_best_lower_bound_campaign,
+        MAX(lts_lower_bound_pct) AS lts_best_lower_bound_campaign,
         MIN_BY(content_pillar, page_view_time) AS landing_content_pillar
     FROM paid_page_views
     GROUP BY visitor_id, src_campaign
@@ -66,7 +68,13 @@ visitor AS (
     SELECT
         visitor_id,
         MIN(page_view_time) AS first_paid_time_visitor,
-        MAX(ro_lower_bound_pct) AS ro_best_lower_bound_visitor
+        MAX(ro_lower_bound_pct) AS ro_best_lower_bound_visitor,
+        MAX(lts_lower_bound_pct) AS lts_best_lower_bound_visitor,
+        -- the scores on the first paid page view that has one: before the visit can move them
+        MIN_BY(ro_lower_bound_pct, IFF(ro_lower_bound_pct IS NOT NULL, page_view_time, NULL))
+            AS ro_first_lower_bound_visitor,
+        MIN_BY(lts_lower_bound_pct, IFF(lts_lower_bound_pct IS NOT NULL, page_view_time, NULL))
+            AS lts_first_lower_bound_visitor
     FROM paid_page_views
     GROUP BY visitor_id
 
@@ -403,6 +411,10 @@ SELECT
     vc.landing_content_pillar,
     vc.ro_best_lower_bound_campaign,
     v.ro_best_lower_bound_visitor,
+    v.ro_first_lower_bound_visitor,
+    vc.lts_best_lower_bound_campaign,
+    v.lts_best_lower_bound_visitor,
+    v.lts_first_lower_bound_visitor,
     vc.paid_page_views,
 
     -- over time (the visitor's; identical on each of their rows)
