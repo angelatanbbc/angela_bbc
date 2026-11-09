@@ -732,6 +732,8 @@ models:
         description: Application or property name as Piano reports it (e.g. bbc_web, top-gear). Taken from the page view's latest page.display event.
       - name: page
         description: Piano page name. Taken from the page view's latest page.display event.
+      - name: page_title
+        description: Title of the page, as reported on the page view's latest page.display event.
       - name: url
         description: Page URL. Taken from the page view's latest page.display event.
       - name: content_section

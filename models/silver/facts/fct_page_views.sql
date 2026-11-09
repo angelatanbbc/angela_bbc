@@ -110,6 +110,7 @@ SELECT
 
     -- page and content attributes, as captured on the page view
     pv.page,
+    pv.page_title,
     pv.url,
     pv.content_section,
     pv.content_pillar,
