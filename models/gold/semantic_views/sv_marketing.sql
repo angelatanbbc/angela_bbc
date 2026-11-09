@@ -23,7 +23,7 @@ TABLES (
     DATES AS {{ ref('dim_date') }}
         PRIMARY KEY (DATE_KEY)
         WITH SYNONYMS = ('calendar', 'days')
-        COMMENT = 'Calendar dimension. One row per date. Every table joins here on its own day: campaign_days and paid_page_views on the day of the spend or page view, paid_visitors on the day the visitor first arrived from the campaign.',
+        COMMENT = 'Calendar dimension. One row per date. Every table joins here on its own day: campaign_days and paid_page_views on the day of the spend or page view, visitor_funnel on the visitor''s first day in the stage (first paid day for All stages).',
 
     -- Facts
     CAMPAIGN_DAYS AS {{ ref('agg_marketing_campaign_daily') }}
@@ -32,15 +32,16 @@ TABLES (
     PAID_PAGE_VIEWS AS {{ ref('agg_marketing_paid_page_views') }}
         WITH SYNONYMS = ('paid_traffic', 'paid_pageviews')
         COMMENT = 'Paid page views with the spend that bought them. One row per paid page view, plus one row per spend day with no page views. The day''s spend is split equally across its page views (Meta by ad and day, Google and Microsoft by campaign and day).',
-    PAID_VISITORS AS {{ ref('agg_marketing_visitor_funnel') }}
-        WITH SYNONYMS = ('paid_visitor_funnel', 'visitor_funnel', 'funnel')
-        COMMENT = 'What paid visitors went on to do: paywall and offer seen and clicked, subscription purchase and newsletter sign-up, over time and in the same visit, with their Piano LTS and RevOps scores. One row per paid visitor and campaign.'
+    VISITOR_FUNNEL AS {{ ref('agg_marketing_stage_funnel') }}
+        PRIMARY KEY (FUNNEL_STAGE, VISITOR_ID)
+        WITH SYNONYMS = ('paid_visitor_funnel', 'funnel', 'paid_visitors', 'paywall_funnel')
+        COMMENT = 'The paid visitor funnel as the dashboard''s Funnel tab counts it: what paid visitors went on to do (paywall seen and clicked, offer seen and clicked, subscription bought via the paywall or any route, newsletter sign-up), over time and in the same visit, with their LTS and RevOps bands. One row per paid visitor and funnel stage (TOF, MOF, BOF, BOF (Docs)), dated on their first day in that stage, plus one row per visitor for All stages, dated on their first paid day.'
 )
 
 RELATIONSHIPS (
     CAMPAIGN_DAYS_TO_DATES AS CAMPAIGN_DAYS (DATE_DAY) REFERENCES DATES (DATE_KEY),
     PAID_PAGE_VIEWS_TO_DATES AS PAID_PAGE_VIEWS (DATE_DAY) REFERENCES DATES (DATE_KEY),
-    PAID_VISITORS_TO_DATES AS PAID_VISITORS (DATE_DAY) REFERENCES DATES (DATE_KEY)
+    VISITOR_FUNNEL_TO_DATES AS VISITOR_FUNNEL (DATE_DAY) REFERENCES DATES (DATE_KEY)
 )
 
 DIMENSIONS (
@@ -149,38 +150,25 @@ DIMENSIONS (
     PAID_PAGE_VIEWS.PAGE_VIEW_LTS_BAND AS lts_band
         COMMENT = 'LTS (likelihood to subscribe) band of the page view: LTS 90+, LTS 70-89, LTS 40-69, LTS 20-39, LTS 0-19 or No score.',
 
-    -- Paid visitors
-    PAID_VISITORS.VISITOR_CAMPAIGN AS src_campaign
-        COMMENT = 'Campaign the visitor arrived from (Piano''s src_campaign); (none) when Piano captured none.',
-    PAID_VISITORS.VISITOR_FUNNEL_STAGE AS funnel_stage
-        COMMENT = 'Funnel stage of the campaign the visitor arrived from: TOF, MOF or BOF.',
-    PAID_VISITORS.VISITOR_FUNNEL_STAGE_V2 AS funnel_stage_v2
-        COMMENT = 'Funnel stage with BOF campaigns that have Docs in their name split out: TOF, MOF, BOF or BOF (Docs).',
-    PAID_VISITORS.VISITOR_AGENCY AS src_bbc_team
-        COMMENT = 'Paid media agency of the campaign the visitor arrived from, in lower case: 8ms or dbs.',
-    PAID_VISITORS.LANDING_CONTENT_PILLAR AS landing_content_pillar
+    -- Visitor funnel (one row per visitor and stage, plus All stages)
+    VISITOR_FUNNEL.VISITOR_FUNNEL_STAGE AS funnel_stage
+        WITH SYNONYMS = ('stage', 'funnel_stage', 'all_stages')
+        COMMENT = 'TOF, MOF, BOF, BOF (Docs) (BOF campaigns with Docs in their name), or All stages, where each visitor appears once across the four stages. Totals across stages come from All stages; never add the stage rows together.',
+    VISITOR_FUNNEL.VISITOR_AGENCY AS src_bbc_team
+        COMMENT = 'Paid media agency of the visitor''s first campaign in the stage, in lower case: 8ms or dbs.',
+    VISITOR_FUNNEL.LANDING_CONTENT_PILLAR AS landing_content_pillar
         WITH SYNONYMS = ('landing_pillar')
-        COMMENT = 'Content pillar of the first page the visitor landed on from the campaign.',
-    PAID_VISITORS.LTS_BAND_ON_ARRIVAL AS {{ lts_band('lts_first_lower_bound_visitor') }}
-        WITH SYNONYMS = ('lts_band', 'likelihood_to_subscribe_band', 'lts_tier')
-        COMMENT = 'LTS (likelihood to subscribe) band on the visitor''s first scored paid page view, before the visit can move it: LTS 90+, LTS 70-89, LTS 40-69, LTS 20-39, LTS 0-19 or No score. The fair band for targeting questions.',
-    PAID_VISITORS.REVOPS_BAND_ON_ARRIVAL AS CASE
-            WHEN ro_first_lower_bound_visitor >= 90 THEN 'RevOps 90+'
-            WHEN ro_first_lower_bound_visitor >= 80 THEN 'RevOps 80-89'
-            WHEN ro_first_lower_bound_visitor >= 50 THEN 'RevOps 50-79'
-            WHEN ro_first_lower_bound_visitor >= 0 THEN 'RevOps <50'
-            ELSE 'No score'
-        END
+        COMMENT = 'Content pillar of the first page the visitor landed on in the stage.',
+    VISITOR_FUNNEL.LTS_BAND_ON_ARRIVAL AS lts_band_on_arrival
+        WITH SYNONYMS = ('lts_band', 'likelihood_to_subscribe_band', 'lts_tier', 'score_band')
+        COMMENT = 'LTS (likelihood to subscribe) band on the visitor''s first scored paid page view, before the visit can move it: LTS 90+, LTS 70-89, LTS 40-69, LTS 20-39, LTS 0-19 or No score. The dashboard''s default band and the fair one for targeting questions.',
+    VISITOR_FUNNEL.REVOPS_BAND_ON_ARRIVAL AS revops_band_on_arrival
         WITH SYNONYMS = ('revops_band', 'revops_tier')
-        COMMENT = 'RevOps score band on the visitor''s first scored paid page view: RevOps 90+, RevOps 80-89, RevOps 50-79, RevOps <50 or No score.',
-    PAID_VISITORS.LTS_BAND_BEST AS lts_band
+        COMMENT = 'RevOps band on the visitor''s first scored paid page view: RevOps 90+, RevOps 80-89, RevOps 50-79, RevOps under 50 or No score.',
+    VISITOR_FUNNEL.LTS_BAND_BEST AS lts_band_best
         COMMENT = 'LTS band of the visitor''s highest LTS score over their paid page views. Scores rise during a visit that ends in a purchase, so this flatters converters; prefer lts_band_on_arrival.',
-    PAID_VISITORS.REVOPS_BAND_BEST AS revops_band
-        COMMENT = 'RevOps band of the visitor''s highest RevOps score over their paid page views: RevOps 80+, RevOps 50-79 or other. The band the dashboard''s funnel used before LTS.',
-    PAID_VISITORS.IS_LAST_PAID_TOUCH AS is_last_paid_touch
-        COMMENT = 'Whether this campaign was the visitor''s last paid touch.',
-    PAID_VISITORS.HAD_EARLIER_UPPER_FUNNEL_TOUCH AS prior_tof_touch = 1 OR prior_mof_touch = 1
-        COMMENT = 'Whether the visitor came from a TOF or MOF campaign before this one.'
+    VISITOR_FUNNEL.REVOPS_BAND_BEST AS revops_band_best
+        COMMENT = 'RevOps band of the visitor''s highest RevOps score over their paid page views: RevOps 90+, RevOps 80-89, RevOps 50-79, RevOps under 50 or No score.'
 )
 
 METRICS (
@@ -254,26 +242,46 @@ METRICS (
     PAID_PAGE_VIEWS.PAGE_VIEW_NEWSLETTER_SIGNUPS AS SUM(newsletter_subscribe_count)
         COMMENT = 'Newsletter sign-ups made on paid page views.',
 
-    -- Paid visitors (day of first arrival from the campaign); distinct visitors, so a visitor from two
-    -- campaigns counts once in a total
-    PAID_VISITORS.PAID_VISITOR_COUNT AS COUNT(DISTINCT visitor_id)
-        WITH SYNONYMS = ('unique_paid_visitors')
-        COMMENT = 'Distinct paid visitors (cookies).',
-    PAID_VISITORS.VISITORS_SAW_PAYWALL AS COUNT(DISTINCT IFF(saw_paywall = 1, visitor_id, NULL))
-        COMMENT = 'Paid visitors who saw a paywall afterwards.',
-    PAID_VISITORS.VISITORS_SAW_OFFER AS COUNT(DISTINCT IFF(saw_offer = 1, visitor_id, NULL))
-        COMMENT = 'Paid visitors who saw a subscription offer afterwards.',
-    PAID_VISITORS.VISITORS_CLICKED_OFFER AS COUNT(DISTINCT IFF(interacted_offer = 1, visitor_id, NULL))
-        COMMENT = 'Paid visitors who clicked a subscription offer afterwards.',
-    PAID_VISITORS.VISITORS_CONVERTED AS COUNT(DISTINCT IFF(converted = 1, visitor_id, NULL))
-        WITH SYNONYMS = ('subscribers', 'visitors_subscribed')
-        COMMENT = 'Paid visitors who bought a subscription afterwards, by any route (over time, not windowed).',
-    PAID_VISITORS.VISITORS_CONVERTED_SAME_VISIT AS COUNT(DISTINCT IFF(converted_same_visit = 1, visitor_id, NULL))
-        COMMENT = 'Paid visitors who bought a subscription in the same visit as a paid arrival.',
-    PAID_VISITORS.VISITORS_SIGNED_UP_NEWSLETTER AS COUNT(DISTINCT IFF(newsletter_signup = 1, visitor_id, NULL))
-        COMMENT = 'Paid visitors who signed up to a newsletter afterwards.',
-    PAID_VISITORS.AVERAGE_DAYS_TO_CONVERSION AS AVG(IFF(converted = 1, days_to_conversion, NULL))
-        COMMENT = 'Average days from arriving from the campaign to buying, for visitors who bought.',
+    -- Visitor funnel (day of the visitor's first day in the stage); distinct visitors, so filter or group
+    -- by visitor_funnel_stage and take totals from All stages
+    VISITOR_FUNNEL.FUNNEL_VISITORS AS COUNT(DISTINCT visitor_id)
+        WITH SYNONYMS = ('visitors', 'paid_visitors', 'unique_visitors')
+        COMMENT = 'Paid visitors whose first day in the stage falls in the period.',
+    VISITOR_FUNNEL.VISITORS_SAW_PAYWALL AS COUNT(DISTINCT IFF(saw_paywall = 1, visitor_id, NULL))
+        WITH SYNONYMS = ('paywall_seen', 'saw_the_paywall')
+        COMMENT = 'Paid visitors who saw a paywall afterwards, in any later visit (overall).',
+    VISITOR_FUNNEL.VISITORS_INTERACTED_PAYWALL AS COUNT(DISTINCT IFF(interacted = 1, visitor_id, NULL))
+        WITH SYNONYMS = ('interacted_with_the_paywall', 'clicked_paywall', 'paywall_interactions')
+        COMMENT = 'Paid visitors who clicked a paywall afterwards, in any later visit (overall).',
+    VISITOR_FUNNEL.VISITORS_SAW_OFFER AS COUNT(DISTINCT IFF(saw_offer = 1, visitor_id, NULL))
+        COMMENT = 'Paid visitors who saw a subscription offer afterwards, in any later visit (overall).',
+    VISITOR_FUNNEL.VISITORS_INTERACTED_OFFER AS COUNT(DISTINCT IFF(interacted_offer = 1, visitor_id, NULL))
+        WITH SYNONYMS = ('clicked_offer')
+        COMMENT = 'Paid visitors who clicked a subscription offer afterwards, in any later visit (overall).',
+    VISITOR_FUNNEL.VISITORS_CONVERTED_VIA_PAYWALL AS COUNT(DISTINCT IFF(converted_via_paywall = 1, visitor_id, NULL))
+        WITH SYNONYMS = ('bought_via_the_paywall', 'paywall_conversions')
+        COMMENT = 'Paid visitors who bought a subscription via the paywall afterwards, in any later visit (overall).',
+    VISITOR_FUNNEL.VISITORS_CONVERTED AS COUNT(DISTINCT IFF(converted = 1, visitor_id, NULL))
+        WITH SYNONYMS = ('converted_overall', 'converters', 'subscribers')
+        COMMENT = 'Paid visitors who bought a subscription by any route afterwards, in any later visit (overall).',
+    VISITOR_FUNNEL.VISITORS_SIGNED_UP_NEWSLETTER AS COUNT(DISTINCT IFF(newsletter_signup = 1, visitor_id, NULL))
+        COMMENT = 'Paid visitors who signed up to a newsletter afterwards, in any later visit (overall).',
+    VISITOR_FUNNEL.VISITORS_SAW_PAYWALL_SAME_VISIT AS COUNT(DISTINCT IFF(saw_paywall_same_visit = 1, visitor_id, NULL))
+        COMMENT = 'Paid visitors who saw a paywall in the same visit as their arrival.',
+    VISITOR_FUNNEL.VISITORS_INTERACTED_PAYWALL_SAME_VISIT AS COUNT(DISTINCT IFF(interacted_same_visit = 1, visitor_id, NULL))
+        COMMENT = 'Paid visitors who clicked a paywall in the same visit as their arrival.',
+    VISITOR_FUNNEL.VISITORS_SAW_OFFER_SAME_VISIT AS COUNT(DISTINCT IFF(saw_offer_same_visit = 1, visitor_id, NULL))
+        COMMENT = 'Paid visitors who saw a subscription offer in the same visit as their arrival.',
+    VISITOR_FUNNEL.VISITORS_INTERACTED_OFFER_SAME_VISIT AS COUNT(DISTINCT IFF(interacted_offer_same_visit = 1, visitor_id, NULL))
+        COMMENT = 'Paid visitors who clicked a subscription offer in the same visit as their arrival.',
+    VISITOR_FUNNEL.VISITORS_CONVERTED_VIA_PAYWALL_SAME_VISIT AS COUNT(DISTINCT IFF(converted_via_paywall_same_visit = 1, visitor_id, NULL))
+        COMMENT = 'Paid visitors who bought a subscription via the paywall in the same visit as their arrival.',
+    VISITOR_FUNNEL.VISITORS_CONVERTED_SAME_VISIT AS COUNT(DISTINCT IFF(converted_same_visit = 1, visitor_id, NULL))
+        COMMENT = 'Paid visitors who bought a subscription by any route in the same visit as their arrival.',
+    VISITOR_FUNNEL.VISITORS_SIGNED_UP_NEWSLETTER_SAME_VISIT AS COUNT(DISTINCT IFF(newsletter_signup_same_visit = 1, visitor_id, NULL))
+        COMMENT = 'Paid visitors who signed up to a newsletter in the same visit as their arrival.',
+    VISITOR_FUNNEL.AVERAGE_DAYS_TO_CONVERSION AS AVG(IFF(converted = 1, days_to_conversion, NULL))
+        COMMENT = 'Average days from arriving in the stage to buying, for visitors who bought.',
 
     -- Ratios, from the metrics above, so they stay right at any level of grouping
     CTR AS campaign_days.link_clicks / NULLIFZERO(campaign_days.impressions)
@@ -290,7 +298,6 @@ METRICS (
         WITH SYNONYMS = ('cost_per_visitor')
         COMMENT = 'Spend per arrival.',
     ARRIVAL_CONVERSION_RATE AS campaign_days.arrivals_converted / NULLIFZERO(campaign_days.arrivals)
-        WITH SYNONYMS = ('conversion_rate')
         COMMENT = 'Share of arrivals who bought a subscription afterwards.',
     ARRIVAL_PAYWALL_RATE AS campaign_days.arrivals_saw_paywall / NULLIFZERO(campaign_days.arrivals)
         COMMENT = 'Share of arrivals who saw a paywall afterwards.',
@@ -301,15 +308,41 @@ METRICS (
         COMMENT = 'Spend per paid attributed subscription (position-based model), as on the Marketing Measurement Dashboard.',
     LAST_TOUCH_CPA AS campaign_days.spend / NULLIFZERO(campaign_days.paid_last_touch_subscriptions)
         COMMENT = 'Spend per subscription whose last touch was a paid click.',
-    VISITOR_CONVERSION_RATE AS paid_visitors.visitors_converted / NULLIFZERO(paid_visitors.paid_visitor_count)
-        COMMENT = 'Share of paid visitors who bought a subscription afterwards.',
-    VISITOR_PAYWALL_RATE AS paid_visitors.visitors_saw_paywall / NULLIFZERO(paid_visitors.paid_visitor_count)
-        COMMENT = 'Share of paid visitors who saw a paywall afterwards.'
+    PAYWALL_SEEN_RATE AS visitor_funnel.visitors_saw_paywall / NULLIFZERO(visitor_funnel.funnel_visitors)
+        WITH SYNONYMS = ('paywall_seen_pct')
+        COMMENT = 'Share of paid visitors who saw the paywall, overall (Paywall seen %).',
+    PAYWALL_INTERACTION_RATE AS visitor_funnel.visitors_interacted_paywall / NULLIFZERO(visitor_funnel.funnel_visitors)
+        COMMENT = 'Share of paid visitors who clicked the paywall, overall (Paywall interaction %).',
+    PAYWALL_CONVERSION_RATE AS visitor_funnel.visitors_converted_via_paywall / NULLIFZERO(visitor_funnel.funnel_visitors)
+        COMMENT = 'Share of paid visitors who bought via the paywall, overall (Paywall conversion %).',
+    VISITOR_CONVERSION_RATE AS visitor_funnel.visitors_converted / NULLIFZERO(visitor_funnel.funnel_visitors)
+        WITH SYNONYMS = ('conversion_rate', 'conversion_pct')
+        COMMENT = 'Share of paid visitors who bought a subscription by any route, overall (Conversion %).',
+    PAYWALL_CONVERSIONS_PER_PAYWALL_SEEN AS visitor_funnel.visitors_converted_via_paywall / NULLIFZERO(visitor_funnel.visitors_saw_paywall)
+        COMMENT = 'Visitors who bought via the paywall per visitor who saw it, overall (Paywall converted / paywall seen).',
+    PAYWALL_TO_INTERACTION_RATE AS visitor_funnel.visitors_interacted_paywall / NULLIFZERO(visitor_funnel.visitors_saw_paywall)
+        COMMENT = 'Step to step: visitors who clicked the paywall per visitor who saw it, overall.',
+    INTERACTION_TO_PURCHASE_RATE AS visitor_funnel.visitors_converted_via_paywall / NULLIFZERO(visitor_funnel.visitors_interacted_paywall)
+        COMMENT = 'Step to step: visitors who bought via the paywall per visitor who clicked it, overall.',
+    PAYWALL_SEEN_RATE_SAME_VISIT AS visitor_funnel.visitors_saw_paywall_same_visit / NULLIFZERO(visitor_funnel.funnel_visitors)
+        COMMENT = 'Share of paid visitors who saw the paywall, in the same visit (Paywall seen %).',
+    PAYWALL_INTERACTION_RATE_SAME_VISIT AS visitor_funnel.visitors_interacted_paywall_same_visit / NULLIFZERO(visitor_funnel.funnel_visitors)
+        COMMENT = 'Share of paid visitors who clicked the paywall, in the same visit (Paywall interaction %).',
+    PAYWALL_CONVERSION_RATE_SAME_VISIT AS visitor_funnel.visitors_converted_via_paywall_same_visit / NULLIFZERO(visitor_funnel.funnel_visitors)
+        COMMENT = 'Share of paid visitors who bought via the paywall, in the same visit (Paywall conversion %).',
+    VISITOR_CONVERSION_RATE_SAME_VISIT AS visitor_funnel.visitors_converted_same_visit / NULLIFZERO(visitor_funnel.funnel_visitors)
+        COMMENT = 'Share of paid visitors who bought a subscription by any route, in the same visit (Conversion %).',
+    PAYWALL_CONVERSIONS_PER_PAYWALL_SEEN_SAME_VISIT AS visitor_funnel.visitors_converted_via_paywall_same_visit / NULLIFZERO(visitor_funnel.visitors_saw_paywall_same_visit)
+        COMMENT = 'Visitors who bought via the paywall per visitor who saw it, in the same visit (Paywall converted / paywall seen).',
+    PAYWALL_TO_INTERACTION_RATE_SAME_VISIT AS visitor_funnel.visitors_interacted_paywall_same_visit / NULLIFZERO(visitor_funnel.visitors_saw_paywall_same_visit)
+        COMMENT = 'Step to step: visitors who clicked the paywall per visitor who saw it, in the same visit.',
+    INTERACTION_TO_PURCHASE_RATE_SAME_VISIT AS visitor_funnel.visitors_converted_via_paywall_same_visit / NULLIFZERO(visitor_funnel.visitors_interacted_paywall_same_visit)
+        COMMENT = 'Step to step: visitors who bought via the paywall per visitor who clicked it, in the same visit.'
 )
 
-COMMENT = 'Paid marketing performance: spend, delivery, paid traffic, the paid visitor funnel with LTS and RevOps bands, and the subscriptions the click-based attribution credits to paid media, by platform, agency, funnel stage and campaign. Matches the Marketing Measurement Dashboard. Built by dbt (model sv_marketing).'
+COMMENT = 'Paid marketing performance: spend, delivery, paid traffic, the paid visitor funnel by stage with LTS and RevOps bands (as on the dashboard''s Funnel tab), and the subscriptions the click-based attribution credits to paid media, by platform, agency, funnel stage and campaign. Matches the Marketing Measurement Dashboard. Built by dbt (model sv_marketing).'
 
-AI_SQL_GENERATION 'The three tables have different grains, so never combine metrics from two of them in one query except by date. Use campaign_days for spend, CPA, cost per arrival, CTR, CPM and anything comparing campaigns, agencies, platforms or funnel stages, including anything that combines spend with traffic, visitor outcomes or subscriptions. Use paid_page_views only to slice traffic by content, device, browser, country, ad name or the page view''s score band; its page_view_spend splits each day''s spend equally across that day''s page views. Use paid_visitors for the visitor funnel by LTS or RevOps band, landing content pillar or days to convert; its metrics count distinct visitors, so they differ from the campaign_days arrivals metrics, which count a visitor once per campaign. For targeting questions use lts_band_on_arrival or revops_band_on_arrival, because scores rise during a visit that ends in a purchase. CPA is spend divided by paid attributed subscriptions (position-based credit from the click-based attribution, on the day of the click). Dates mean different things per table: campaign_days spend and traffic on the day they happened, its visitor outcomes on the day the visitor first arrived, and its attributed subscriptions on the day of the click. Spend is in each ad account''s currency: nearly all USD, but a GBP 8ms Meta account until March 2026 and a GBP Meta account without an agency until May 2026 (about 2 percent of spend) are added in as reported. Impressions and clicks are Meta only. Agency values are lower case (8ms, dbs); platform values are meta, google and microsoft; funnel_stage is TOF, MOF or BOF and empty for campaigns without a stage. LTS scores are sparse: Piano scored about 15 to 40 percent of paid page views, and almost none in April and May 2026. Country names are sentence case, for example ''United states''. For a period such as "last month", filter dates.year_month or dates.date_day; data runs to yesterday.'
+AI_SQL_GENERATION 'The three tables have different grains, so never combine metrics from two of them in one query except by date. Use campaign_days for spend, CPA, cost per arrival, CTR, CPM and anything comparing campaigns, agencies, platforms or funnel stages, including anything that combines spend with traffic, visitor outcomes or subscriptions. Use paid_page_views only to slice traffic by content, device, browser, country, ad name or the page view''s score band; its page_view_spend splits each day''s spend equally across that day''s page views. Use visitor_funnel for every funnel question (visitors, paywall seen, paywall interaction, bought via the paywall, converted, overall or in the same visit, and their rates), including by LTS or RevOps band or landing content pillar; it matches the dashboard''s Funnel tab. It has one row per visitor and stage plus one All stages row per visitor, so always group by or filter visitor_funnel.visitor_funnel_stage, take totals across stages from the All stages rows, and never add the stage rows together. Overall means in any later visit; same visit means in the visit the visitor arrived in. The campaign_days arrivals metrics count a visitor once per campaign, so use them only for cost per arrival and campaign comparisons. For targeting questions use lts_band_on_arrival or revops_band_on_arrival, because scores rise during a visit that ends in a purchase. CPA is spend divided by paid attributed subscriptions (position-based credit from the click-based attribution, on the day of the click). Dates mean different things per table: campaign_days spend and traffic on the day they happened, its visitor outcomes on the day the visitor first arrived from the campaign, and its attributed subscriptions on the day of the click; visitor_funnel on the visitor''s first day in the stage (first paid day for All stages). Spend is in each ad account''s currency: nearly all USD, but a GBP 8ms Meta account until March 2026 and a GBP Meta account without an agency until May 2026 (about 2 percent of spend) are added in as reported. Impressions and clicks are Meta only. Agency values are lower case (8ms, dbs); platform values are meta, google and microsoft; funnel_stage is TOF, MOF or BOF and empty for campaigns without a stage. LTS scores are sparse: Piano scored about 15 to 40 percent of paid page views, and almost none in April and May 2026. Country names are sentence case, for example ''United states''. For a period such as "last month", filter dates.year_month or dates.date_day; data runs to yesterday.'
 
 AI_VERIFIED_QUERIES (
     cpa_by_agency_last_month AS (
@@ -322,10 +355,19 @@ AI_VERIFIED_QUERIES (
         ONBOARDING_QUESTION TRUE
         SQL 'SELECT * FROM SEMANTIC_VIEW({{ this }} DIMENSIONS dates.week_start_date, campaign_days.platform METRICS campaign_days.spend, campaign_days.arrivals, cost_per_arrival WHERE dates.date_day >= DATEADD(WEEK, -8, DATE_TRUNC(WEEK, CURRENT_DATE))) ORDER BY week_start_date, platform'
     ),
-    bof_conversion_by_lts_band_last_month AS (
-        QUESTION 'For BOF campaigns last month, how did the conversion rate of paid visitors vary by LTS band?'
+    funnel_by_stage_last_month AS (
+        QUESTION 'Show the paid visitor funnel by stage for last month: visitors, saw the paywall, interacted with it, bought via the paywall and converted overall, with the rates.'
         ONBOARDING_QUESTION TRUE
-        SQL 'SELECT * FROM SEMANTIC_VIEW({{ this }} DIMENSIONS paid_visitors.lts_band_on_arrival METRICS paid_visitors.paid_visitor_count, paid_visitors.visitors_converted, visitor_conversion_rate WHERE paid_visitors.visitor_funnel_stage = ''BOF'' AND dates.year_month = TO_CHAR(DATEADD(MONTH, -1, CURRENT_DATE), ''YYYY-MM'')) ORDER BY lts_band_on_arrival'
+        SQL 'SELECT * FROM SEMANTIC_VIEW({{ this }} DIMENSIONS visitor_funnel.visitor_funnel_stage METRICS visitor_funnel.funnel_visitors, visitor_funnel.visitors_saw_paywall, visitor_funnel.visitors_interacted_paywall, visitor_funnel.visitors_converted_via_paywall, visitor_funnel.visitors_converted, paywall_seen_rate, paywall_interaction_rate, paywall_conversion_rate, visitor_conversion_rate, paywall_conversions_per_paywall_seen WHERE dates.year_month = TO_CHAR(DATEADD(MONTH, -1, CURRENT_DATE), ''YYYY-MM'')) ORDER BY funnel_visitors DESC'
+    ),
+    funnel_by_stage_same_visit_last_month AS (
+        QUESTION 'Show the paid visitor funnel by stage for last month counting only the same visit.'
+        SQL 'SELECT * FROM SEMANTIC_VIEW({{ this }} DIMENSIONS visitor_funnel.visitor_funnel_stage METRICS visitor_funnel.funnel_visitors, visitor_funnel.visitors_saw_paywall_same_visit, visitor_funnel.visitors_interacted_paywall_same_visit, visitor_funnel.visitors_converted_via_paywall_same_visit, visitor_funnel.visitors_converted_same_visit, paywall_seen_rate_same_visit, visitor_conversion_rate_same_visit WHERE dates.year_month = TO_CHAR(DATEADD(MONTH, -1, CURRENT_DATE), ''YYYY-MM'')) ORDER BY funnel_visitors DESC'
+    ),
+    bof_funnel_by_lts_band_last_month AS (
+        QUESTION 'For BOF last month, how did the funnel vary by LTS band?'
+        ONBOARDING_QUESTION TRUE
+        SQL 'SELECT * FROM SEMANTIC_VIEW({{ this }} DIMENSIONS visitor_funnel.lts_band_on_arrival METRICS visitor_funnel.funnel_visitors, visitor_funnel.visitors_saw_paywall, visitor_funnel.visitors_converted, paywall_seen_rate, visitor_conversion_rate WHERE visitor_funnel.visitor_funnel_stage = ''BOF'' AND dates.year_month = TO_CHAR(DATEADD(MONTH, -1, CURRENT_DATE), ''YYYY-MM'')) ORDER BY lts_band_on_arrival'
     ),
     paid_page_views_by_pillar_last_week AS (
         QUESTION 'Which content pillars got the most paid page views last week, and how much spend went to them?'
