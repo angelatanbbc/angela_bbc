@@ -22,8 +22,8 @@
     content_attributes_start / content_attributes_end
 */
 
-{% set start_date = var('content_attributes_start', '2026-09-01') %}
-{% set end_date   = var('content_attributes_end', '2026-09-02') %}
+{% set start_date = var('content_start_date', '2026-09-01') %}
+{% set end_date   = var('content_end_date', '2026-09-30') %}
 
 with base_events as (
     select *

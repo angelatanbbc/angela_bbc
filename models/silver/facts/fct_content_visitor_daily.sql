@@ -1,11 +1,12 @@
-    {{
+{{
     config(
         materialized='incremental',
         incremental_strategy='delete+insert',
         unique_key='date_key',
         cluster_by=['date_key'],
         on_schema_change='append_new_columns',
-        contract={'enforced': true}
+        contract={'enforced': true},
+        tags=['fct','content','visitor']
     )
 }}
 
@@ -21,7 +22,7 @@
 
   How the two facts fit together:
     - page-view rows have av_content_id = null
-    - AV rows carry both content_id (the page the player was on) and av_content_id
+    - AV rows carry both content_sk (the page the player was on) and av_content_id
       (the video or audio item), so the same row answers "visitors to this article"
       and "views of this video". Video vs audio comes from int_av__metadata at query time.
     - every measure is additive, so sums over any cut equal the facts
@@ -32,7 +33,9 @@
 */
 
 {% set lookback = var('rollup_lookback_days', var('av_sessions_lookback_days', 3)) %}
-{% set grain = ['date_key', 'visitor_key', 'content_id', 'av_content_id', 'geo_country', 'device_type', 'app_name'] %}
+{% set start_date = var('rollup_start', none) %}
+{% set end_date   = var('rollup_end', none) %}
+{% set grain = ['date_key', 'visitor_key', 'content_sk', 'av_content_id', 'geo_country', 'device_type', 'app_name'] %}
 
 with
 
@@ -45,28 +48,31 @@ refresh_window as (
 
 page_view_rows as (
     select
-        to_date(event_time)              as date_key,
-        visitor_key,
-        content_id,
-        null::varchar                    as av_content_id,
-        geo_country,
-        device_type,
-        app_name,
-        page_display_event_count         as page_views,
+        to_date(page_view_time) as date_key,
+        visitor_id::varchar as visitor_key,
+        content_sk::varchar as content_sk,
+        null::varchar as av_content_id,
+        geo_country::varchar as geo_country,
+        device_type::varchar as device_type,
+        app_name::varchar as app_name,
+        page_display_event_count::number as page_views,
         0 as av_sessions, 0 as av_playbacks, 0 as av_complete_playbacks, 0 as av_plays,
         0 as av_playback_seconds, 0 as av_content_seconds_consumed,
         0 as av_completion_rate_sum, 0 as av_completion_rate_sessions
     from {{ ref('fct_page_views') }}
+    where true
     {% if is_incremental() %}
-    where to_date(event_time) >= (select refresh_from from refresh_window)
+      and to_date(page_view_time) >= (select refresh_from from refresh_window)
     {% endif %}
+    {% if var('content_start_date') %} and to_date(page_view_time) >= '{{ var("content_start_date") }}' {% endif %}
+    {% if var('content_end_date') %}   and to_date(page_view_time) <= '{{ var("content_end_date") }}'   {% endif %}
 ),
 
 av_rows as (
     select
         session_start_date                                  as date_key,
         visitor_key,
-        content_id,
+        content_sk,
         av_content_id,
         geo_country,
         device_type,
@@ -82,9 +88,12 @@ av_rows as (
         iff(av_playback_completion_rate > 0, av_playback_completion_rate, 0) as av_completion_rate_sum,
         iff(av_playback_completion_rate > 0, 1, 0)          as av_completion_rate_sessions
     from {{ ref('fct_av__sessions') }}
+    where true
     {% if is_incremental() %}
-    where session_start_date >= (select refresh_from from refresh_window)
+      and session_start_date >= (select refresh_from from refresh_window)
     {% endif %}
+    {% if content_start_date %} and session_start_date >= '{{ content_start_date }}' {% endif %}
+    {% if content_end_date %}   and session_start_date <= '{{ content_end_date }}'   {% endif %}
 ),
 
 all_rows as (
@@ -96,7 +105,7 @@ all_rows as (
 select
     date_key::date                               as date_key,
     visitor_key::varchar                         as visitor_key,
-    content_id::varchar                          as content_id,
+    content_sk::varchar                          as content_sk,
     av_content_id::varchar                       as av_content_id,
     geo_country::varchar                         as geo_country,
     device_type::varchar                         as device_type,

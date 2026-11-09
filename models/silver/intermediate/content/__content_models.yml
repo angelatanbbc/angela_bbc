@@ -9,10 +9,10 @@ models:
       Translated from the Global Content Dashboard query (page_metadata_ranked).
     columns:
       - name: content_id
-        description: The page identifier. Same as page; the key the vertical rules join on.
-        data_tests: [unique, not_null]
+        description: Most frequent non-null content identifier observed for the page; may be missing or shared across pages.
       - name: page
-        data_tests: [not_null]
+        description: Page identifier; the model's one-row-per-page key.
+        data_tests: [unique, not_null]
       - name: content_section
         description: Section from the winning combination. Null on home.page, news.page and sport.page.
       - name: content_topic

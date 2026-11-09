@@ -28,9 +28,9 @@ seeds:
 
 models:
   - name: int_content__verticals
-    description: One row per content item with its vertical, the rule that set it, and every vertical it matched.
+    description: One row per page with its winning vertical, the rule that set it, and every vertical it matched.
     columns:
-      - name: content_nk
+      - name: page
         data_tests: [unique, not_null]
       - name: vertical
         data_tests:
@@ -44,18 +44,18 @@ unit_tests:
   - name: verticals_follow_first_match_and_and_groups
     description: >
       Tests the rule logic, not the real rule set: priority order, the AND rule
-      (condition groups), the '$' normalisation, is_business staying true when another
-      vertical wins, and the Unclassified fallback. The rules below are a small
-      stand-in for the seed, so editing the seed never breaks this test.
+      (condition groups), the '$' normalisation, and the Unclassified fallback.
+      The rules below are a small stand-in for the seed, so editing the seed never
+      breaks this test.
     model: int_content__verticals
     given:
-      - input: ref('int_content__attributes')
+      - input: ref('int_article__metadata')
         rows:
-          - {content_nk: travel_biz, page: travel.article.x1.page, url: https://www.abc.com/travel/x1, content_section: Travel, content_pillar: Business, content_topic: null}
-          - {content_nk: travel_no_prefix, page: news.articles.x2.page, url: https://www.abc.com/news/x2, content_section: Travel, content_pillar: null, content_topic: null}
-          - {content_nk: health_dollar, page: news.articles.x3.page, url: https://www.abc.com/news/x3, content_section: Science $ Health, content_pillar: null, content_topic: null}
-          - {content_nk: sport_biz_topic, page: sport.football.articles.x4.page, url: https://www.abc.com/sport/x4, content_section: null, content_pillar: null, content_topic: 'Sport business, Football'}
-          - {content_nk: nothing, page: weather.page, url: https://www.abc.com/weather, content_section: null, content_pillar: null, content_topic: null}
+          - {content_id: id_travel_biz, page: travel.article.x1.page, url: https://www.abc.com/travel/x1, content_section: Travel, content_pillar: Business, content_topic: null}
+          - {content_id: id_travel_no_prefix, page: news.articles.x2.page, url: https://www.abc.com/news/x2, content_section: Travel, content_pillar: null, content_topic: null}
+          - {content_id: id_health_dollar, page: news.articles.x3.page, url: https://www.abc.com/news/x3, content_section: Science $ Health, content_pillar: null, content_topic: null}
+          - {content_id: id_sport_biz_topic, page: sport.football.articles.x4.page, url: https://www.abc.com/sport/x4, content_section: null, content_pillar: null, content_topic: 'Sport business, Football'}
+          - {content_id: id_nothing, page: weather.page, url: https://www.abc.com/weather, content_section: null, content_pillar: null, content_topic: null}
       - input: ref('vertical_rules')
         rows:
           # Travel needs group 1 (section) AND group 2 (page prefix)
@@ -74,8 +74,8 @@ unit_tests:
           - {rule_id: R99, priority: 1, vertical: Should Not Appear, condition_group: 1, field: page, match_type: equals, pattern: weather.page, is_active: false}
     expect:
       rows:
-        - {content_nk: travel_biz, vertical: Travel, vertical_rule_id: R03, is_business: true}
-        - {content_nk: travel_no_prefix, vertical: World News (excludes US&Canada), vertical_rule_id: R13, is_business: false}
-        - {content_nk: health_dollar, vertical: Health, vertical_rule_id: R05, is_business: false}
-        - {content_nk: sport_biz_topic, vertical: Business, vertical_rule_id: R04, is_business: true}
-        - {content_nk: nothing, vertical: Unclassified, vertical_rule_id: null, is_business: false}
+        - {content_id: id_travel_biz, page: travel.article.x1.page, vertical: Travel, vertical_rule_id: R03}
+        - {content_id: id_travel_no_prefix, page: news.articles.x2.page, vertical: World News (excludes US&Canada), vertical_rule_id: R13}
+        - {content_id: id_health_dollar, page: news.articles.x3.page, vertical: Health, vertical_rule_id: R05}
+        - {content_id: id_sport_biz_topic, page: sport.football.articles.x4.page, vertical: Business, vertical_rule_id: R04}
+        - {content_id: id_nothing, page: weather.page, vertical: Unclassified, vertical_rule_id: null}

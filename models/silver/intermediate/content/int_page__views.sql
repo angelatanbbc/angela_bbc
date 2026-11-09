@@ -18,15 +18,29 @@
     - content_id and content_type: the most frequent non-null value per page
     - page_title and date_published: the most frequent pair per page
   Date window (vars):
-    content_attributes_start / content_attributes_end
+    content_start_date / content_end_date
 */
 
-{% set start_date = var('content_attributes_start', '2026-09-01') %}
-{% set end_date   = var('content_attributes_end', '2026-09-30') %}
+{% set start_date = var('content_start_date') %}
+{% set end_date = var('content_end_date', none) %}
 
 select
-    event_time, site_id, page, content_id, content_section, content_topic,
-    content_pillar, url, content_type, date_published, page_title
+    event_time,
+    site_id,
+    page,
+    content_id,
+    content_section,
+    content_topic,
+    content_pillar,
+    url,
+    content_type,
+    date_published,
+    page_title,
+    visitor_id,
+    geo_country,
+    device_type,
+    app_name,
+    1::number as page_display_event_count
 from {{ source('studios_piano', 'studios_piano_events') }}
 where to_date(event_time) >= '{{ start_date }}'
     {% if end_date %} and to_date(event_time) <= '{{ end_date }}' {% endif %}

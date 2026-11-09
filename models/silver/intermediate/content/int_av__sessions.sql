@@ -1,6 +1,6 @@
 {{
     config(
-        materialized='incremental',
+        materialized='table',
         unique_key='av_session_id',
         incremental_strategy='merge',
         cluster_by=['session_start_date'],
@@ -75,8 +75,8 @@ av_events as (
         av_playback_completion_rate
     from {{ ref('stg_piano__studios_events') }}
     where av_session_id is not null
-      and {{ filter_in_scope_sites() }}
-      and not {{ is_junk_page() }}
+      and {{ filter_piano_site_ids() }}
+      and not {{ filter_page_exclusions() }}
       {% if is_incremental() %}
       and to_date(event_time) >= (select dateadd(day, -1, refresh_from) from refresh_window)
       {% else %}

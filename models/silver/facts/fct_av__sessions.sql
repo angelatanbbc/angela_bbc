@@ -1,7 +1,8 @@
 {{
     config(
-        materialized='table',
+        materialized='incremental',
         unique_key='av_session_id',
+        incremental_strategy='merge',
         cluster_by=['session_start_date'],
         on_schema_change='append_new_columns',
         contract={'enforced': true}
@@ -13,15 +14,10 @@
 
   What it keeps (and what it leaves to other models):
     - in-scope sites, no junk pages, AV events only
-    - UK traffic and UK apps are KEPT, with geo_country and app_name on the row:
-      UK is a flag on the dimensions, not a filter in facts. The parity query and
-      int_av__metadata apply the old exclusions themselves.
     - content-level properties (VMB titles and brands, the chosen content type,
       genre, duration range) live in int_av__metadata, keyed on av_content_id.
       The av_* properties on this model are as reported on THIS session, and
       are only used to pick the content-level values.
-
-  One row per session:
     - text columns: the first non-null value in the session
     - av_content_time_consumed, av_playback_total_duration, av_playback_completion_rate:
       session totals that Piano repeats on each event, so take the max (the latest total)
@@ -39,14 +35,14 @@
         --vars '{av_sessions_start: 2026-09-01, av_sessions_end: 2026-09-30}'
 */
 
-{% set start_date = var('start_date', '2025-09-01') %}
-{% set end_date   = var('end_date', '2025-09-30') %}
-{# set lookback   = var('av_sessions_lookback_days', 3) #}
+{% set start_date = var('av_sessions_start', '2025-09-01') %}
+{% set end_date   = var('av_sessions_end', none) %}
+{% set lookback   = var('av_sessions_lookback_days', 3) %}
 
 {# Columns taken as the first non-null value in the session #}
 {% set first_value_columns = [
     'av_content_id', 'content_id', 'page',
-    'visitor_id', 'ckns_echo_device_id', 'visit_id',
+    'visitor_id', 'visit_id',
     'site_id', 'geo_country', 'app_name', 'device_type',
     'av_session_content_duration', 'av_content_type', 'av_broadcasting_type',
     'av_content_genre', 'av_content_duration_range'
@@ -70,10 +66,10 @@ av_events as (
         av_playback_total_duration,
         av_content_time_consumed,
         av_playback_completion_rate
-    from {{ ref('stg_piano__studios_events') }}
+    from {{ source('studios_piano', 'studios_piano_events') }}
     where av_session_id is not null
-      and {{ filter_in_scope_sites() }}
-      and not {{ is_junk_page() }}
+      and {{ filter_piano_site_ids() }}
+      and not {{ filter_page_exclusions() }}
       {% if is_incremental() %}
       and to_date(event_time) >= (select dateadd(day, -1, refresh_from) from refresh_window)
       {% else %}
@@ -109,7 +105,7 @@ select
     session_start_date::date                      as session_start_date,
     session_start_time::timestamp_ntz             as session_start_time,
     session_end_time::timestamp_ntz               as session_end_time,
-    {{ visitor_key('session_start_date') }}       as visitor_key,
+    visitor_id::varchar                           as visitor_key,
     av_content_id::varchar                        as av_content_id,
     content_id::varchar                           as content_id,
     page::varchar                                 as page,
@@ -117,8 +113,6 @@ select
     geo_country::varchar                          as geo_country,
     app_name::varchar                             as app_name,
     device_type::varchar                          as device_type,
-    visitor_id::varchar                           as visitor_id,
-    ckns_echo_device_id::varchar                  as ckns_echo_device_id,
     visit_id::varchar                             as visit_id,
     -- as reported on this session (for reporting, use int_av__metadata)
     av_session_content_duration::float            as av_session_content_duration,

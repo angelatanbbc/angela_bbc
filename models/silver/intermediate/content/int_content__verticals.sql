@@ -24,8 +24,8 @@
 
 with content as (
     select
-        content_id,
         page,
+        content_id,
         url,
         -- normalise the '$' / '&' encoding artefact once, so the seed lists each name once
         replace(content_section, '$', '&') as content_section,
@@ -42,6 +42,7 @@ rules as (
 
 evaluated as (
     select
+        c.page,
         c.content_id,
         r.rule_id,
         r.priority,
@@ -76,27 +77,27 @@ condition_hits as (
 ),
 
 group_hits as (   -- OR within a condition group
-    select content_id, rule_id, priority, vertical, condition_group,
+    select page, rule_id, priority, vertical, condition_group,
            boolor_agg(is_hit) as group_hit
     from condition_hits
     group by 1, 2, 3, 4, 5
 ),
 
 rule_hits as (    -- AND across a rule's condition groups
-    select content_id, rule_id, priority, vertical
+    select page, rule_id, priority, vertical
     from group_hits
     group by 1, 2, 3, 4
     having booland_agg(group_hit)
 ),
 
 winner as (       -- lowest priority wins, like the first matching WHEN
-    select content_id, vertical, rule_id
+    select page, vertical, rule_id
     from rule_hits
-    qualify row_number() over (partition by content_id order by priority, rule_id) = 1
+    qualify row_number() over (partition by page order by priority, rule_id) = 1
 ),
 
 all_matches as (
-    select content_id,
+    select page,
            array_agg(distinct vertical) within group (order by vertical) as matched_verticals
     from rule_hits
     group by 1
@@ -109,5 +110,5 @@ select
     w.rule_id                                          as vertical_rule_id,
     coalesce(a.matched_verticals, array_construct())   as matched_verticals
 from content c
-left join winner      w on w.content_id = c.content_id
-left join all_matches a on a.content_id = c.content_id
+left join winner      w on w.page = c.page
+left join all_matches a on a.page = c.page

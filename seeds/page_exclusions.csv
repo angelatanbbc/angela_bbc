@@ -4,6 +4,7 @@ page.view.page
 onboarding.page
 error.page
 notification.page
+article.page
 page.page
 promptbeta.page
 action_before_pageview.page

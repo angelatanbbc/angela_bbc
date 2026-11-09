@@ -93,3 +93,7 @@ vars:
   # as suspected automated traffic
   newsletter_start_date: "2026-01-01"
   newsletter_automated_display_limit: 20
+  content_start_date: '2026-09-01'
+  content_end_date: '2026-09-30'
+  # How many days every incremental content model rebuilds on each run
+  content_lookback_days: 3
