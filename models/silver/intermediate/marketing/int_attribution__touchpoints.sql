@@ -24,6 +24,9 @@ Differences:
 - the sign-up touch weight is counted per purchase (today: per cookie); when the purchase is not a
   touch, the last touch takes the purchase's 40%, so it always sums to 1 (today it can sum to 0.4)
 - touches at the same time are ordered by touchpoint_type then pageview_id, so a rebuild gives the same credit
+  and only one of them is the first, sign-up or last touch
+- the sign-up touch weight's 50/50 split is for two-touch journeys only (today it also gives every touch 0.5
+  when the first and last touch before the purchase are the same one)
 - a promo-code journey's position weights are scaled to add up to 1 (today they add up to more than 1 when a
   paid touch is not the first or last)
 */
@@ -224,8 +227,6 @@ journey_stats AS (
         MAX(IFF(touchpoint_type = 'conversion', promo_code, NULL)) OVER (PARTITION BY conversion_id) AS promo_code_from_conversion,
         MIN(IFF(is_paid_event = 1, touchpoint_at, NULL)) OVER (PARTITION BY conversion_id) AS first_paid_event,
         MAX(IFF(is_paid_event = 1, touchpoint_at, NULL)) OVER (PARTITION BY conversion_id) AS last_paid_event,
-        -- the sign-up touch: the purchase, else the last touch when the purchase is not a touch
-        MAX(touchpoint_at) OVER (PARTITION BY conversion_id) AS signup_at,
         ROW_NUMBER() OVER (
             PARTITION BY conversion_id
             ORDER BY touchpoint_at ASC, touchpoint_type DESC, pageview_id ASC
@@ -272,13 +273,14 @@ positioned AS (
         promo_code_from_conversion,
         first_paid_event,
         last_paid_event,
-        signup_at,
         total_paid_events,
         CASE
             WHEN rn = 1 THEN 'first'
             WHEN rn = total_events THEN 'last'
             ELSE 'middle'
         END AS position_role,
+        -- the latest touch at last_event, when several share its time
+        rn = MAX(IFF(touchpoint_at = last_event, rn, NULL)) OVER (PARTITION BY conversion_id) AS is_last_touch,
         is_paid_event = 1 AND paid_rn = 1 AS is_first_paid,
         is_paid_event = 1 AND paid_rn = total_paid_events AS is_last_paid,
         SUM(
@@ -370,16 +372,17 @@ weighted AS (
                     ELSE 0
                 END
         END AS position_weight,
+        -- the sign-up touch (position_role 'last'): the purchase, else the last touch when it is not a touch
         CASE
             WHEN total_events = 1 THEN 1
-            WHEN total_events = 2 OR first_event = last_event THEN 0.5
-            WHEN touchpoint_at = first_event THEN 0.4
-            WHEN touchpoint_at = signup_at THEN 0.4
+            WHEN total_events = 2 THEN 0.5
+            WHEN position_role = 'first' THEN 0.4
+            WHEN position_role = 'last' THEN 0.4
             WHEN total_events > 2 THEN 0.2 / (total_events - 2)
             ELSE 0
         END AS signup_touch_weight,
-        IFF(touchpoint_at = first_event, 1, 0) AS first_touch_weight,
-        IFF(touchpoint_at = last_event, 1, 0) AS last_touch_weight
+        IFF(position_role = 'first', 1, 0) AS first_touch_weight,
+        IFF(is_last_touch, 1, 0) AS last_touch_weight
     FROM positioned
 
 )
