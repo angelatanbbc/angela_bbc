@@ -33,8 +33,8 @@
 */
 
 {% set lookback = var('rollup_lookback_days', var('av_sessions_lookback_days', 3)) %}
-{% set start_date = var('rollup_start', none) %}
-{% set end_date   = var('rollup_end', none) %}
+{% set start_date = var('content_start_date', none) %}
+{% set end_date   = var('content_end_date', none) %}
 {% set grain = ['date_key', 'visitor_key', 'content_sk', 'av_content_id', 'geo_country', 'device_type', 'app_name'] %}
 
 with

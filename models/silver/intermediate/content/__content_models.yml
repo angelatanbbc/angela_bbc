@@ -8,7 +8,7 @@ models:
       plus the most frequent content_id, content_type, title and publish date.
       Translated from the Global Content Dashboard query (page_metadata_ranked).
     columns:
-      - name: content_id
+      - name: content_sk
         description: Most frequent non-null content identifier observed for the page; may be missing or shared across pages.
       - name: page
         description: Page identifier; the model's one-row-per-page key.

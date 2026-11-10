@@ -5,7 +5,8 @@
         incremental_strategy='merge',
         cluster_by=['session_start_date'],
         on_schema_change='append_new_columns',
-        contract={'enforced': true}
+        contract={'enforced': true},
+        tags=['fct','av','sessions']
     )
 }}
 
@@ -15,7 +16,7 @@
   What it keeps (and what it leaves to other models):
     - in-scope sites, no junk pages, AV events only
     - content-level properties (VMB titles and brands, the chosen content type,
-      genre, duration range) live in int_av__metadata, keyed on av_content_id.
+      genre, duration range) live in dim_av_content, keyed on av_content_id.
       The av_* properties on this model are as reported on THIS session, and
       are only used to pick the content-level values.
     - text columns: the first non-null value in the session
@@ -28,16 +29,11 @@
   A session longer than about a day that started before the window keeps its old row.
   fct_content_visitor_daily uses the same lookback, so rebuilt sessions reach it.
 
-  Full refresh window (vars, both dates inclusive):
-    av_sessions_start (default 2025-09-01), av_sessions_end (default: up to today)
-    Parity with the September query:
-      dbt build -s fct_av__sessions --full-refresh
-        --vars '{av_sessions_start: 2026-09-01, av_sessions_end: 2026-09-30}'
 */
 
-{% set start_date = var('av_sessions_start', '2025-09-01') %}
-{% set end_date   = var('av_sessions_end', none) %}
-{% set lookback   = var('av_sessions_lookback_days', 3) %}
+{% set start_date = var('content_start_date', '2026-09-01') %}
+{% set end_date   = var('content_end_date', none) %}
+{% set lookback   = var('av_sessions_lookback_days', var('content_lookback_days', 3)) %}
 
 {# Columns taken as the first non-null value in the session #}
 {% set first_value_columns = [
@@ -66,17 +62,17 @@ av_events as (
         av_playback_total_duration,
         av_content_time_consumed,
         av_playback_completion_rate
-    from {{ source('studios_piano', 'studios_piano_events') }}
+    from {{ ref('stg_piano__studios_events') }}
     where av_session_id is not null
       and {{ filter_piano_site_ids() }}
-      and not {{ filter_page_exclusions() }}
+      and  {{ filter_page_exclusions() }}
+      and {{ filter_exclude_uk_app_name() }}
       {% if is_incremental() %}
       and to_date(event_time) >= (select dateadd(day, -1, refresh_from) from refresh_window)
       {% else %}
       and to_date(event_time) >= '{{ start_date }}'
       {% if end_date %} and to_date(event_time) <= '{{ end_date }}' {% endif %}
-      {% endif %}
-),
+      {% endif %}),
 
 sessions as (
     select
@@ -114,7 +110,7 @@ select
     app_name::varchar                             as app_name,
     device_type::varchar                          as device_type,
     visit_id::varchar                             as visit_id,
-    -- as reported on this session (for reporting, use int_av__metadata)
+    -- as reported on this session (for reporting, use dim_av_content)
     av_session_content_duration::float            as av_session_content_duration,
     av_content_type::varchar                      as av_content_type,
     av_broadcasting_type::varchar                 as av_broadcasting_type,

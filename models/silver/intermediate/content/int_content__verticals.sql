@@ -1,7 +1,7 @@
 {{ 
     config(
         materialized='table',
-        tags=['silver','int','content','metadata']
+        tags=['silver','int','content','verticals']
         )
 }}
 
@@ -25,7 +25,7 @@
 with content as (
     select
         page,
-        content_id,
+        content_sk,
         url,
         -- normalise the '$' / '&' encoding artefact once, so the seed lists each name once
         replace(content_section, '$', '&') as content_section,
@@ -43,7 +43,7 @@ rules as (
 evaluated as (
     select
         c.page,
-        c.content_id,
+        c.content_sk,
         r.rule_id,
         r.priority,
         r.vertical,
@@ -104,7 +104,7 @@ all_matches as (
 )
 
 select
-    c.content_id,
+    c.content_sk,
     c.page,
     coalesce(w.vertical, 'Unclassified')               as vertical,
     w.rule_id                                          as vertical_rule_id,

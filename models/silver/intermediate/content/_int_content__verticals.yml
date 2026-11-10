@@ -36,9 +36,7 @@ models:
         data_tests:
           - not_null
           - accepted_values:
-              values: ['Home page', 'News front', 'Travel', 'Business', 'Health', 'Culture',
-                       'Earth & Science', 'Tech', 'Sport', 'Audio', 'Docs', 'US & Canada News',
-                       'World News (excludes US&Canada)', 'Unclassified']
+              values: ['Home page','News front', 'Sport','Audio','Docs','Watch Live News','World News','Business','Health','Culture','Earth & Science','Tech','Travel','US & Canada News','Unclassified']
 
 unit_tests:
   - name: verticals_follow_first_match_and_and_groups
@@ -51,11 +49,11 @@ unit_tests:
     given:
       - input: ref('int_article__metadata')
         rows:
-          - {content_id: id_travel_biz, page: travel.article.x1.page, url: https://www.abc.com/travel/x1, content_section: Travel, content_pillar: Business, content_topic: null}
-          - {content_id: id_travel_no_prefix, page: news.articles.x2.page, url: https://www.abc.com/news/x2, content_section: Travel, content_pillar: null, content_topic: null}
-          - {content_id: id_health_dollar, page: news.articles.x3.page, url: https://www.abc.com/news/x3, content_section: Science $ Health, content_pillar: null, content_topic: null}
-          - {content_id: id_sport_biz_topic, page: sport.football.articles.x4.page, url: https://www.abc.com/sport/x4, content_section: null, content_pillar: null, content_topic: 'Sport business, Football'}
-          - {content_id: id_nothing, page: weather.page, url: https://www.abc.com/weather, content_section: null, content_pillar: null, content_topic: null}
+          - {content_sk: id_travel_biz, page: travel.article.x1.page, url: https://www.abc.com/travel/x1, content_section: Travel, content_pillar: Business, content_topic: null}
+          - {content_sk: id_travel_no_prefix, page: news.articles.x2.page, url: https://www.abc.com/news/x2, content_section: Travel, content_pillar: null, content_topic: null}
+          - {content_sk: id_health_dollar, page: news.articles.x3.page, url: https://www.abc.com/news/x3, content_section: Science $ Health, content_pillar: null, content_topic: null}
+          - {content_sk: id_sport_biz_topic, page: sport.football.articles.x4.page, url: https://www.abc.com/sport/x4, content_section: null, content_pillar: null, content_topic: 'Sport business, Football'}
+          - {content_sk: id_nothing, page: weather.page, url: https://www.abc.com/weather, content_section: null, content_pillar: null, content_topic: null}
       - input: ref('vertical_rules')
         rows:
           # Travel needs group 1 (section) AND group 2 (page prefix)
@@ -74,8 +72,8 @@ unit_tests:
           - {rule_id: R99, priority: 1, vertical: Should Not Appear, condition_group: 1, field: page, match_type: equals, pattern: weather.page, is_active: false}
     expect:
       rows:
-        - {content_id: id_travel_biz, page: travel.article.x1.page, vertical: Travel, vertical_rule_id: R03}
-        - {content_id: id_travel_no_prefix, page: news.articles.x2.page, vertical: World News (excludes US&Canada), vertical_rule_id: R13}
-        - {content_id: id_health_dollar, page: news.articles.x3.page, vertical: Health, vertical_rule_id: R05}
-        - {content_id: id_sport_biz_topic, page: sport.football.articles.x4.page, vertical: Business, vertical_rule_id: R04}
-        - {content_id: id_nothing, page: weather.page, vertical: Unclassified, vertical_rule_id: null}
+        - {content_sk: id_travel_biz, page: travel.article.x1.page, vertical: Travel, vertical_rule_id: R03}
+        - {content_sk: id_travel_no_prefix, page: news.articles.x2.page, vertical: World News (excludes US&Canada), vertical_rule_id: R13}
+        - {content_sk: id_health_dollar, page: news.articles.x3.page, vertical: Health, vertical_rule_id: R05}
+        - {content_sk: id_sport_biz_topic, page: sport.football.articles.x4.page, vertical: Business, vertical_rule_id: R04}
+        - {content_sk: id_nothing, page: weather.page, vertical: Unclassified, vertical_rule_id: null}
