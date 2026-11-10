@@ -390,6 +390,14 @@ models:
           for Google and Microsoft.
         tests:
           - not_null
+      - name: lts_band
+        description: >
+          The page view's LTS (likelihood to subscribe) tier: 90+, 70-89, 40-69, 20-39, 0-19, or 'No score';
+          NULL on spend-only days.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["LTS 90+", "LTS 70-89", "LTS 40-69", "LTS 20-39", "LTS 0-19", "No score"]
 
   - name: agg_marketing_visitor_funnel
     description: >
@@ -402,6 +410,72 @@ models:
             combination_of_columns:
               - visitor_id
               - src_campaign
+    columns:
+      - name: revops_band
+        description: RevOps band of the visitor's highest RevOps score over their paid page views.
+      - name: lts_band
+        description: >
+          LTS (likelihood to subscribe) tier of the visitor's highest LTS score over their paid page views,
+          like revops_band. ro_first_lower_bound_visitor and lts_first_lower_bound_visitor hold the scores on
+          arrival, before the visit moves them.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["LTS 90+", "LTS 70-89", "LTS 40-69", "LTS 20-39", "LTS 0-19", "No score"]
+
+  - name: agg_marketing_stage_funnel
+    description: >
+      The paid visitor funnel by stage, counted as the Marketing Measurement Dashboard's Funnel tab counts
+      it, for the visitor funnel in sv_marketing. One row per paid visitor and funnel stage (TOF, MOF, BOF,
+      BOF (Docs)) from agg_marketing_visitor_funnel, dated on the visitor's first day in that stage, plus one
+      row per visitor for 'All stages', dated on their first paid day. A flag is 1 when any of the visitor's
+      campaigns in the stage has it. Totals across stages come from the 'All stages' rows, never from adding
+      the stage rows.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - funnel_stage
+              - visitor_id
+    columns:
+      - name: funnel_stage
+        description: TOF, MOF, BOF, BOF (Docs), or All stages (each visitor once across the four stages).
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["TOF", "MOF", "BOF", "BOF (Docs)", "All stages"]
+      - name: visitor_id
+        description: Piano visitor id as hex text.
+        tests:
+          - not_null
+      - name: date_day
+        description: The visitor's first day in the stage; their first paid day for All stages.
+        tests:
+          - not_null
+      - name: src_bbc_team
+        description: Agency of the visitor's first campaign in the stage.
+      - name: lts_band_on_arrival
+        description: >
+          LTS band on the visitor's first scored paid page view, before the visit moves it; the dashboard's
+          default band.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["LTS 90+", "LTS 70-89", "LTS 40-69", "LTS 20-39", "LTS 0-19", "No score"]
+      - name: revops_band_on_arrival
+        description: RevOps band on the visitor's first scored paid page view.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["RevOps 90+", "RevOps 80-89", "RevOps 50-79", "RevOps under 50", "No score"]
+      - name: lts_band_best
+        description: LTS band of the visitor's highest LTS score over their paid page views.
+      - name: revops_band_best
+        description: RevOps band of the visitor's highest RevOps score over their paid page views.
 
   - name: agg_marketing_campaign_daily
     description: >
@@ -421,3 +495,39 @@ models:
               - funnel_stage
               - funnel_stage_v2
               - src_bbc_team
+
+  - name: agg_newsletter_activity
+    description: >
+      The newsletter acquisition dashboard's source: one row per visit to the newsletters page (event_name
+      'page.display') plus one row per sign-up x newsletter, latest per visitor and newsletter (event_name
+      'newsletter.subscribe'), the two row types the dashboard's calculations expect. Total page views are the
+      page.display rows, sign-ups the newsletter.subscribe rows, distinct sign-ups the distinct visitor_id on those
+      rows. Ids are hex text. Replaces reporting_newsletter_activity from the old project, with history from
+      var newsletter_start_date and is_suspected_automated added.
+    columns:
+      - name: event_name
+        description: page.display (a visit) or newsletter.subscribe (a sign-up to one newsletter).
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["page.display", "newsletter.subscribe"]
+      - name: event_day
+        description: Day of the visit's latest display, or of the sign-up.
+        tests:
+          - not_null
+      - name: visitor_id
+        description: Piano visitor id as hex text.
+        tests:
+          - not_null
+      - name: newsletter_title
+        description: The newsletter signed up to; NULL on page.display rows.
+      - name: link_origin
+        description: Placement tag (at_link_origin) from the visit's latest display.
+      - name: account_status
+        description: Signed in, Account, not signed in, or Not identified (see fct_newsletter_page_visits).
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["Signed in", "Account, not signed in", "Not identified"]
+      - name: is_suspected_automated
+        description: TRUE for visits (and their sign-ups) with more than var newsletter_automated_display_limit displays of the page.

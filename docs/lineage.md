@@ -237,7 +237,7 @@ graph LR
 
 ### Marketing reporting flow
 
-The Marketing Measurement Dashboard's tables, built on the page view chain, the ad side and the attribution above. `int_marketing__paid_visits` and `int_marketing__paid_page_views` are incremental on the visit date: each night they redo the last 7 days, the run that creates them builds only the last 31 days, and older history is backfilled in chunks with the `marketing_backfill_start` / `marketing_backfill_end` vars once `int_piano__page_views` has its history. `int_marketing__funnel_events` is incremental on the event time and is created and backfilled the same way; history starts at `var('marketing_start_date')` (1 January 2026). The other marketing tables are rebuilt each night from these.
+The Marketing Measurement Dashboard's tables, built on the page view chain, the ad side and the attribution above. `int_marketing__paid_visits` and `int_marketing__paid_page_views` are incremental on the visit date: each night they redo the last 7 days, the run that creates them builds only the last 31 days, and older history is backfilled in chunks with the `marketing_backfill_start` / `marketing_backfill_end` vars once `int_piano__page_views` has its history. `int_marketing__funnel_events` is incremental on the event time and is created and backfilled the same way; history starts at `var('marketing_start_date')` (1 January 2026). The other marketing tables are rebuilt each night from these. `agg_marketing_stage_funnel` regroups the visitor funnel by stage, as the dashboard's Funnel tab counts it. The semantic view `sv_marketing` sits on the campaign, paid page view and stage funnel aggregates, and is deployed separately (see the semantic view note under Cross-DAG and cross-project references).
 
 ```mermaid
 graph LR
@@ -273,9 +273,39 @@ graph LR
     tracking["dim_campaign_tracking"]:::mart --> g5
     ad --> g5
     page_views --> funnel
-    linkStyle 0,1,3,4,5,6,7,8,10,11,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27 stroke:#4169e1,stroke-width:1.5px
+    g3 --> sv_m["sv_marketing"]:::mart
+    g4 --> g6["agg_marketing_stage_funnel"]:::mart
+    g5 --> sv_m
+    dates["dim_date"]:::mart --> sv_m
+    g6 --> sv_m
+    linkStyle 0,1,3,4,5,6,7,8,10,11,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32 stroke:#4169e1,stroke-width:1.5px
     linkStyle 2,12 stroke:#f97316,stroke-width:2.5px
     linkStyle 9 stroke:#9333ea,stroke-width:2.5px
+```
+
+### Newsletter acquisition flow
+
+The newsletter acquisition dashboard's table, built from the newsletters page's events. The page never sets a `pageview_id`, so this stream is keyed on the event and the visit and does not use the page view models. `int_piano__newsletter_events` is incremental from `var('newsletter_start_date')`; the dim, the two facts and the aggregate are rebuilt each night from it. The semantic view `sv_newsletters` sits on the two facts and their dims, and is deployed separately (see the semantic view note under Cross-DAG and cross-project references).
+
+```mermaid
+graph LR
+    classDef model fill:#dbeafe,stroke:#2563eb,color:#172554
+    classDef mart fill:#dcfce7,stroke:#16a34a,color:#14532d
+    cleaned["int_piano__events_cleaned"]:::model --> events["int_piano__newsletter_events"]:::model
+    events --> dim["dim_newsletter"]:::mart
+    events --> visits["fct_newsletter_page_visits"]:::mart
+    events --> signups["fct_newsletter_signups"]:::mart
+    visits --> signups
+    dim --> signups
+    visits --> activity["agg_newsletter_activity"]:::mart
+    signups --> activity
+    device["dim_device_platform"]:::mart --> activity
+    visits --> sv_n["sv_newsletters"]:::mart
+    signups --> sv_n
+    dim --> sv_n
+    device --> sv_n
+    dates["dim_date"]:::mart --> sv_n
+    linkStyle 0,1,2,3,4,5,6,7,8,9,10,11,12,13 stroke:#4169e1,stroke-width:1.5px
 ```
 
 ### Dimensions and reporting outputs
@@ -370,6 +400,7 @@ The following inventory records every project-owned model in the dbt manifest an
 | `int_marketing__paid_visits` | `int_piano__page_views`, `dim_ad`, `seed:bbc_team_agencies` |
 | `int_marketing__paid_page_views` | `int_marketing__paid_visits`, `fct_page_views`, `int_piano__page_views`, `int_attribution__conversions` |
 | `int_marketing__funnel_events` | `int_piano__events_cleaned`, `int_attribution__conversions` |
+| `int_piano__newsletter_events` | `int_piano__events_cleaned` |
 
 ### Core and subscription facts and dimensions
 
@@ -400,6 +431,9 @@ The following inventory records every project-owned model in the dbt manifest an
 | `fct_ad_performance_daily` | `int_marketing__ad_spend_daily` |
 | `fct_paid_page_views` | `int_marketing__paid_page_views` |
 | `fct_paid_visitor_funnel` | `int_marketing__paid_page_views`, `int_marketing__funnel_events`, `int_piano__page_views` |
+| `dim_newsletter` | `int_piano__newsletter_events` |
+| `fct_newsletter_page_visits` | `int_piano__newsletter_events` |
+| `fct_newsletter_signups` | `int_piano__newsletter_events`, `fct_newsletter_page_visits`, `dim_newsletter` |
 | `fct_sfmc_journey_send_job` | `source:sfmc.sent`, `source:sfmc.opens`, `source:sfmc.clicks`, `source:sfmc.bounces`, `source:sfmc.unsubs`, `source:sfmc.send_jobs`, `source:sfmc.journey`, `source:sfmc.journey_activity`, `source:sfmc.list_subscribers` |
 
 ### Reporting outputs
@@ -420,6 +454,10 @@ The following inventory records every project-owned model in the dbt manifest an
 | `agg_marketing_paid_page_views` | `fct_ad_performance_daily`, `fct_paid_page_views`, `dim_ad`, `dim_device_platform` |
 | `agg_marketing_visitor_funnel` | `fct_paid_visitor_funnel` |
 | `agg_marketing_campaign_daily` | `agg_marketing_paid_page_views`, `agg_marketing_visitor_funnel`, `fct_attribution_touchpoints`, `dim_channel`, `dim_campaign_tracking`, `dim_ad` |
+| `agg_marketing_stage_funnel` | `agg_marketing_visitor_funnel` |
+| `sv_marketing` (semantic view) | `agg_marketing_campaign_daily`, `agg_marketing_paid_page_views`, `agg_marketing_stage_funnel`, `dim_date` |
+| `agg_newsletter_activity` | `fct_newsletter_page_visits`, `fct_newsletter_signups`, `dim_device_platform` |
+| `sv_newsletters` (semantic view) | `fct_newsletter_page_visits`, `fct_newsletter_signups`, `dim_newsletter`, `dim_device_platform`, `dim_date` |
 | `sv_bbc_com` (semantic view) | `fct_conversions`, `fct_exposures`, `fct_page_views`, `fct_subscriber_daily_snapshot`, `fct_subscription_events`, `fct_visitors_daily`, `dim_date`, `dim_device_platform`, `dim_experience`, `dim_geography`, `dim_offer`, `dim_subscription`, `dim_template`, `dim_term`, `seed:piano_retention_curves` |
 
 ### Declared sources without a current downstream model
@@ -438,7 +476,7 @@ These sources are configured in `models/bronze/<source>/_<source>__sources.yml` 
 - `stg_piano__subscription_snapshots` depends on the daily [cgm-extract-load](https://github.com/bbc/cgm-extract-load) load into `raw_piano_subscription_snapshots`, which has a source freshness check (warn after 20 hours, error after 26).
 - The `stg_piano__experiences`, `stg_piano__offers`, `stg_piano__offer_terms`, `stg_piano__offer_templates` and `stg_piano__terms` staging models depend on the same daily load (job `piano_catalog`), with the same freshness checks.
 - `dim_geography` is built after the facts it covers: it takes the US and Canada regions from `geo_mapping` and adds every other country and region found on exposures, conversions, subscription events and page views, so every fact `geo_id` resolves. The facts compute `geo_id` with the `generate_geo_id` macro and do not reference the dim.
-- `sv_bbc_com` and `sv_marketing_attribution` use the `semantic_view` materialization from the installed `Snowflake-Labs/dbt_semantic_view` package. They are excluded from `dbt lint` in CI because their body is semantic view DDL, not a SELECT.
+- `sv_bbc_com`, `sv_marketing_attribution`, `sv_marketing` and `sv_newsletters` use the `semantic_view` materialization from the installed `Snowflake-Labs/dbt_semantic_view` package. They are excluded from `dbt lint` in CI because their body is semantic view DDL, not a SELECT. The nightly run skips them (`--exclude tag:semantic_view`), because only the analyst role can create semantic views in live; they are deployed by hand with `dbt run --select tag:semantic_view --target analyst` when their definition changes.
 - No direct `ref()` to a mart in a sibling repository is present in this project's model SQL. The explicit dbt project boundary is the installed `facebook_ads` package.
 
 ## Scheduling order

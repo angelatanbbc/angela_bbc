@@ -89,6 +89,7 @@ page_views AS (
         p.visitor_new_return,
         p.is_visit_bounce,
         p.ro_lower_bound_pct,
+        p.lts_lower_bound_pct,
         p.page_duration_seconds,
         p.visit_duration_seconds,
         p.newsletter_subscribe_count,
@@ -164,6 +165,7 @@ joined AS (
         pv.visitor_new_return,
         pv.is_visit_bounce,
         pv.ro_lower_bound_pct,
+        pv.lts_lower_bound_pct,
         pv.page_duration_seconds,
         pv.visit_duration_seconds,
         pv.newsletter_subscribe_count,
@@ -242,6 +244,8 @@ SELECT
         WHEN ro_lower_bound_pct >= {{ var('med_ro_threshold') }} THEN 'RevOps 50-79'
         ELSE 'RevOps <50'
     END::VARCHAR(16) AS ro_band,
+    lts_lower_bound_pct,
+    IFF(has_page_view, {{ lts_band('lts_lower_bound_pct') }}, NULL)::VARCHAR(16) AS lts_band,
     page_duration_seconds,
     visit_duration_seconds,
     newsletter_subscribe_count,

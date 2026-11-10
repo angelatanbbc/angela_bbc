@@ -724,3 +724,31 @@ models:
         description: FALSE only on the 'none' row.
         tests:
           - not_null
+
+  - name: dim_newsletter
+    description: >
+      One row per newsletter, from the titles Piano records on newsletter.subscribe events on the newsletters page.
+      Type 1, keyed on the lower-cased title, so a title sent in more than one case (How to Sleep Better / How To
+      Sleep Better) is one newsletter with its most common spelling.
+    columns:
+      - name: newsletter_sk
+        description: Surrogate key of newsletter_key. Primary key.
+        tests:
+          - not_null
+          - unique
+      - name: newsletter_key
+        description: The title lower-cased and trimmed.
+        tests:
+          - not_null
+          - unique
+      - name: newsletter_title
+        description: The newsletter's name, in its most common spelling.
+        tests:
+          - not_null
+          - unique
+      - name: first_signup_at
+        description: First sign-up to the title since var newsletter_start_date.
+      - name: last_signup_at
+        description: Latest sign-up to the title.
+      - name: signup_rows
+        description: Sign-up events that included the title.

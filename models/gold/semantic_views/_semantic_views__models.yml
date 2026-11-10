@@ -11,7 +11,32 @@ models:
       Follows the sv_bbc_com conventions: every dimension, fact and metric name is unique across the
       view; dates, geography and device platform come from their dims only (dates join on the
       purchase date); comments and synonyms live inline in the DDL. Includes AI_SQL_GENERATION
-      guidance and verified queries for Cortex Analyst.
+      guidance and verified queries for Cortex Analyst. Needs the CREATE SEMANTIC VIEW privilege, so
+      it is built only with var build_semantic_views.
+  - name: sv_marketing
+    description: >
+      Snowflake semantic view over the Marketing Measurement Dashboard's gold tables, for Cortex Analyst
+      and SEMANTIC_VIEW() queries, so its numbers match the dashboard: agg_marketing_campaign_daily
+      (campaign_days: spend, delivery, paid traffic, visitor outcomes and paid attributed subscriptions,
+      with CPA, cost per arrival, CTR, CPM and conversion rates), agg_marketing_paid_page_views (traffic
+      by content, device, geography, ad and score band, with spend split across page views) and
+      agg_marketing_stage_funnel (visitor_funnel: the paid visitor funnel by stage with an All stages row,
+      overall and same visit, by LTS and RevOps band, counted as the dashboard's Funnel tab counts it),
+      each joined to dim_date on its own day. Ratios are view-level metrics built from the
+      table metrics, so they stay right at any grouping. Built on the aggregates rather than the facts
+      because they hold the matching of Google and Microsoft spend to page views by campaign. Spend is
+      summed across account currencies, as on the dashboard (about 2 percent is GBP). Follows the
+      sv_bbc_com conventions and includes AI_SQL_GENERATION guidance and verified queries.
+  - name: sv_newsletters
+    description: >
+      Snowflake semantic view over the newsletter acquisition facts (fct_newsletter_page_visits,
+      fct_newsletter_signups) and dim_newsletter, dim_device_platform and dim_date, for Cortex Analyst
+      and SEMANTIC_VIEW() queries. Counts match the newsletter acquisition dashboard
+      (agg_newsletter_activity): page_visits are visits to the newsletters page, signups the latest
+      sign-up per visitor and newsletter, signup_visitors the distinct visitors who signed up. Country
+      comes from the facts, as dim_geography only holds US and Canadian regions. Totals include
+      suspected automated visits, as the dashboard's do. Follows the sv_bbc_com conventions and includes
+      AI_SQL_GENERATION guidance and verified queries.
   - name: sv_bbc_com
     description: >
       Snowflake semantic view over the BBC.com subscription and audience facts and dims, for
