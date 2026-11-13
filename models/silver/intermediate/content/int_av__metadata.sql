@@ -38,7 +38,7 @@ with all_sessions as (
             as counts_for_pick
     from {{ ref('fct_av__sessions') }}
     where av_content_id is not null
-)
+),
 
 
 all_content as (   -- every item, so UK-only items still get their VMB titles

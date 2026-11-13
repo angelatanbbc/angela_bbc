@@ -39,7 +39,6 @@ models:
               values: ['Home page','News front', 'Sport','Audio','Docs','Watch Live News','World News','Business','Health','Culture','Earth & Science','Tech','Travel','US & Canada News','Unclassified']
 
 unit_tests:
-  unit_tests:
   - name: verticals_follow_first_match_and_and_groups
     description: >
       Tests the rule logic, not the real rule set: priority order, the AND rule
