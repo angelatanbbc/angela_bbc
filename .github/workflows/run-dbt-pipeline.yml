@@ -22,6 +22,11 @@ on:
         description: Skip the cgm-extract-load step and only run dbt
         default: false
         required: true
+      dbt_select:
+        type: string
+        description: Only run and test these dbt nodes (e.g. source:cgm_extract_load+); blank for all
+        default: ""
+        required: false
 
 permissions:
   contents: read
@@ -119,7 +124,7 @@ jobs:
           # Semantic views are excluded: only DNS_TRANSFORMATIONS_PROJECT_ANALYST can create them
           # until platform engineering grants CREATE SEMANTIC VIEW to the pipeline role. Deploy them
           # with `dbt run --select tag:semantic_view --target analyst` instead.
-          dbt_args: run --exclude tag:semantic_view ${{ inputs.full_refresh && '--full-refresh' || '' }}
+          dbt_args: run ${{ inputs.dbt_select && format('--select {0}', inputs.dbt_select) || '' }} --exclude tag:semantic_view ${{ inputs.full_refresh && '--full-refresh' || '' }}
           dbt_target: live
 
   run_dbt_tests:
@@ -147,7 +152,7 @@ jobs:
           snowflake_database: ${{ vars.SNOWFLAKE_DATABASE }}
           snowflake_schema: ${{ vars.SNOWFLAKE_SCHEMA }}
           snowflake_warehouse: ${{ vars.SNOWFLAKE_WAREHOUSE }}
-          dbt_args: test
+          dbt_args: test ${{ inputs.dbt_select && format('--select {0}', inputs.dbt_select) || '' }}
           dbt_target: live
 
       - name: Trigger Test Failure Notification
