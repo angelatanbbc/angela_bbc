@@ -7,6 +7,18 @@ model-paths: ["models"]
 models:
   dns_transformations:
     +materialized: table
+    # BBC Account data (SDP_SILVER.BBC_ACCOUNT) is readable by the live role only, so these
+    # models are skipped on dev until DNS_DS_PROJECT_TRANSFORMATIONS is granted access.
+    bronze:
+      bbc_account:
+        +enabled: "{{ target.name != 'dev' }}"
+    silver:
+      intermediate:
+        account:
+          +enabled: "{{ target.name != 'dev' }}"
+      dims:
+        dim_registered_user:
+          +enabled: "{{ target.name != 'dev' }}"
   facebook_ads:
     intermediate:
       int_facebook_ads__creative_history:

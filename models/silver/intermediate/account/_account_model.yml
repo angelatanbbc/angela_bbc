@@ -1,0 +1,60 @@
+version: 2
+
+models:
+  - name: int_account__profile_cleaned
+    description: >
+      Cleaned BBC account id_profile. One row per profile event per user,
+      not deduplicated, pruned to the columns used for registered user analysis.
+    columns:
+      - name: bbc_hid3
+        description: BBC account ID. Not unique, because a user has one row per profile event.
+        data_tests:
+          - not_null
+      - name: piano_user_id
+        description: Piano encrypted ID on this profile record (bbcid_piano_encrypted).
+      - name: unique_sequence_id
+        description: Identifier of the profile event.
+        data_tests:
+          - unique:
+              config:
+                severity: warn
+      - name: event_type
+        description: CreateUser or UpdateUser.
+      - name: registration_date
+        description: Date the account was created (cal_createdate).
+        data_tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: status
+        description: Profile status, trimmed and lower case.
+      - name: privacy_policy_version
+        description: Version of the privacy policy the user accepted on this record.
+      - name: terms_version
+        description: Version of the terms and conditions the user accepted on this record.
+      - name: allow_marketing_data_transfer
+        description: Whether the user allows marketing data transfer. Can be null.
+      - name: enable_personalisation
+        description: Whether personalisation is enabled for the user.
+      - name: permission_notifications
+        description: Notifications permission. Blank in the sample.
+      - name: permission_allow_uploads
+        description: Uploads permission. Mostly blank in the sample.
+      - name: permission_comment
+        description: Comment permission. Blank in the sample.
+
+  - name: int_account__profile_latest
+    description: >
+      One row per registered user (bbc_hid3): the most recent record from
+      int_account__profile_cleaned. SCD1, so only the current state is kept.
+    columns:
+      - name: bbc_hid3
+        description: BBC account ID. Unique in this model.
+        data_tests:
+          - unique
+          - not_null
+      - name: piano_user_id_latest
+        description: Piano encrypted ID on the latest profile record. See int_account__user_piano_ids for every ID a user has carried.
+      - name: registration_date
+        description: Date the account was created (cal_createdate).
+
