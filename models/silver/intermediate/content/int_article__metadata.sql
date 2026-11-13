@@ -18,21 +18,24 @@
     - content_sk and content_type: the most frequent non-null value per page
     - page_title and date_published: the most frequent pair per page
 
-  Date window (vars):
-    content_attributes_start / content_attributes_end
 */
 
-{% set start_date = var('content_start_date', none) %}
-{% set end_date   = var('content_end_date', none) %}
 
 with base_events as (
-    select *
+    select 
+        page_view_time,
+        page,
+        content_section,
+        content_topic,
+        content_pillar,
+        url,
+        content_sk,
+        content_type,
+        page_title,
+        date_published
     from {{ ref('fct_page_views') }}
     where true
-      {% if start_date %} and to_date(page_view_time) >= '{{ start_date }}'
-      {% else %}          and to_date(page_view_time) >= dateadd(day, -{{ var('article_metadata_days', 90) }}, current_date)
-      {% endif %}
-      {% if end_date %}   and to_date(page_view_time) <= '{{ end_date }}' {% endif %}
+      and to_date(page_view_time) >= dateadd(day, -{{ var('article_metadata_days', 90) }}, current_date)
 ),
 -- the front pages carry no section, topic or pillar
 metadata_events as (

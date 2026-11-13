@@ -39,41 +39,42 @@ models:
               values: ['Home page','News front', 'Sport','Audio','Docs','Watch Live News','World News','Business','Health','Culture','Earth & Science','Tech','Travel','US & Canada News','Unclassified']
 
 unit_tests:
+  unit_tests:
   - name: verticals_follow_first_match_and_and_groups
     description: >
       Tests the rule logic, not the real rule set: priority order, the AND rule
-      (condition groups), the '$' normalisation, and the Unclassified fallback.
-      The rules below are a small stand-in for the seed, so editing the seed never
-      breaks this test.
+      (condition groups), the '$' normalisation, the Unclassified fallback and
+      inactive rules. The rules below are a small stand-in for the seed, so
+      editing the seed never breaks this test.
     model: int_content__verticals
     given:
       - input: ref('int_article__metadata')
         rows:
-          - {content_sk: id_travel_biz, page: travel.article.x1.page, url: https://www.abc.com/travel/x1, content_section: Travel, content_pillar: Business, content_topic: null}
-          - {content_sk: id_travel_no_prefix, page: news.articles.x2.page, url: https://www.abc.com/news/x2, content_section: Travel, content_pillar: null, content_topic: null}
-          - {content_sk: id_health_dollar, page: news.articles.x3.page, url: https://www.abc.com/news/x3, content_section: Science $ Health, content_pillar: null, content_topic: null}
-          - {content_sk: id_sport_biz_topic, page: sport.football.articles.x4.page, url: https://www.abc.com/sport/x4, content_section: null, content_pillar: null, content_topic: 'Sport business, Football'}
-          - {content_sk: id_nothing, page: weather.page, url: https://www.abc.com/weather, content_section: null, content_pillar: null, content_topic: null}
+          # travel + business: two rules match, priority picks Travel
+          - {page: travel.article.x1.page, url: https://www.abc.com/travel/x1, content_section: Travel, content_pillar: Business, content_topic: null}
+          # travel section on a news page: the AND rule fails
+          - {page: news.articles.x2.page, url: https://www.abc.com/news/x2, content_section: Travel, content_pillar: null, content_topic: null}
+          # '$' in the data, '&' in the rule
+          - {page: news.articles.x3.page, url: https://www.abc.com/news/x3, content_section: Science $ Health, content_pillar: null, content_topic: null}
+          # a business topic on a sport page
+          - {page: sport.football.articles.x4.page, url: https://www.abc.com/sport/x4, content_section: null, content_pillar: null, content_topic: 'Sport business, Football'}
+          # matches nothing (only an inactive rule)
+          - {page: weather.page, url: https://www.abc.com/weather, content_section: null, content_pillar: null, content_topic: null}
       - input: ref('vertical_rules')
         rows:
-          # Travel needs group 1 (section) AND group 2 (page prefix)
-          - {rule_id: R03, priority: 30, vertical: Travel, condition_group: 1, field: content_section, match_type: equals, pattern: Travel, is_active: true}
-          - {rule_id: R03, priority: 30, vertical: Travel, condition_group: 2, field: page, match_type: startswith, pattern: travel., is_active: true}
-          # Business: any one of these (same group = OR)
-          - {rule_id: R04, priority: 40, vertical: Business, condition_group: 1, field: content_pillar, match_type: equals, pattern: Business, is_active: true}
-          - {rule_id: R04, priority: 40, vertical: Business, condition_group: 1, field: content_topic, match_type: ilike, pattern: '%business%', is_active: true}
-          # Health: written with '&', so it only matches '$' data if normalisation works
-          - {rule_id: R05, priority: 50, vertical: Health, condition_group: 1, field: content_section, match_type: equals, pattern: Science & Health, is_active: true}
-          # Sport comes after Business, so a Business topic wins on a sport page
-          - {rule_id: R09, priority: 90, vertical: Sport, condition_group: 1, field: page, match_type: startswith, pattern: sport, is_active: true}
-          # World News catches any other news article
-          - {rule_id: R13, priority: 130, vertical: World News (excludes US&Canada), condition_group: 1, field: page, match_type: startswith, pattern: news.article, is_active: true}
-          # An inactive rule must be ignored
-          - {rule_id: R99, priority: 1, vertical: Should Not Appear, condition_group: 1, field: page, match_type: equals, pattern: weather.page, is_active: false}
+          # Stand-in rules, not the real seed (hence T1-T6)
+          - {rule_id: T1, priority: 30, vertical: Travel, condition_group: 1, field: content_section, match_type: equals, pattern: Travel, is_active: true}
+          - {rule_id: T1, priority: 30, vertical: Travel, condition_group: 2, field: page, match_type: startswith, pattern: travel., is_active: true}
+          - {rule_id: T2, priority: 40, vertical: Business, condition_group: 1, field: content_pillar, match_type: equals, pattern: Business, is_active: true}
+          - {rule_id: T2, priority: 40, vertical: Business, condition_group: 1, field: content_topic, match_type: ilike, pattern: '%business%', is_active: true}
+          - {rule_id: T3, priority: 50, vertical: Health, condition_group: 1, field: content_section, match_type: equals, pattern: Science & Health, is_active: true}
+          - {rule_id: T4, priority: 90, vertical: Sport, condition_group: 1, field: page, match_type: startswith, pattern: sport, is_active: true}
+          - {rule_id: T5, priority: 130, vertical: World News, condition_group: 1, field: page, match_type: startswith, pattern: news.article, is_active: true}
+          - {rule_id: T6, priority: 1, vertical: Should Not Appear, condition_group: 1, field: page, match_type: equals, pattern: weather.page, is_active: false}
     expect:
       rows:
-        - {content_sk: id_travel_biz, page: travel.article.x1.page, vertical: Travel, vertical_rule_id: R03}
-        - {content_sk: id_travel_no_prefix, page: news.articles.x2.page, vertical: World News (excludes US&Canada), vertical_rule_id: R13}
-        - {content_sk: id_health_dollar, page: news.articles.x3.page, vertical: Health, vertical_rule_id: R05}
-        - {content_sk: id_sport_biz_topic, page: sport.football.articles.x4.page, vertical: Business, vertical_rule_id: R04}
-        - {content_sk: id_nothing, page: weather.page, vertical: Unclassified, vertical_rule_id: null}
+        - {page: travel.article.x1.page, vertical: Travel, vertical_rule_id: T1}
+        - {page: news.articles.x2.page, vertical: World News, vertical_rule_id: T5}
+        - {page: news.articles.x3.page, vertical: Health, vertical_rule_id: T3}
+        - {page: sport.football.articles.x4.page, vertical: Business, vertical_rule_id: T2}
+        - {page: weather.page, vertical: Unclassified, vertical_rule_id: null}

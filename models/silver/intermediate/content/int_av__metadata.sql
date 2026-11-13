@@ -56,7 +56,7 @@ ranking_sessions as (
         av_broadcasting_type,
         av_content_genre,
         av_content_duration_range
-    from all_sessions
+    from all_sessions-- sessions used for the pick; not a reporting metric
     where counts_for_pick
 
 ),

@@ -3,6 +3,8 @@ R01,10,Home page,1,page,equals,home.page,TRUE
 R02,20,News front,1,page,equals,news.page,TRUE
 R03,30,Sport,1,page,startswith,sport,TRUE
 R04,40,Audio,1,page,startswith,audio,TRUE
+R05,50,Docs,1,page,startswith,video.series,TRUE
+R05,50,Docs,1,page,startswith,video.episode,TRUE
 R05,50,Docs,1,page,startswith,video.doc,TRUE
 R06,60,Watch Live News,1,page,equals,watch_live_news.page,TRUE
 R07,70,World News,1,page,equals,news.war_in_ukraine.page,TRUE
@@ -50,7 +52,7 @@ R07,70,World News,1,content_section,equals,US & Canada,TRUE
 R07,70,World News,1,page,equals,news.us_canada.page,TRUE
 R07,70,World News,1,page,like,%us_and_canada%,TRUE
 R07,70,World News,1,page,like,%us_canada%,TRUE
-R07,70,World News,2,page,startswith,news,TRUE
+R07,70,World News,2,page,startswith,news.,TRUE
 R08,80,Business,1,content_section,equals,Business,TRUE
 R08,80,Business,1,content_pillar,equals,Business,TRUE
 R08,80,Business,1,page,equals,business.page,TRUE
@@ -181,4 +183,4 @@ R18,180,Culture,1,content_topic,ilike,%Culture%,TRUE
 R18,180,Culture,1,content_topic,ilike,%History%,TRUE
 R18,180,Culture,1,content_topic,ilike,%Books%,TRUE
 R18,180,Culture,1,content_topic,ilike,%Film%,TRUE
-R19,190,World News,1,page,startswith,news,TRUE
+R19,190,World News,1,page,startswith,news.,TRUE
