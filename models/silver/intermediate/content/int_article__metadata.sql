@@ -5,7 +5,7 @@
 
 /*
   One row per page: the metadata the vertical rules and dim_content read.
-  A direct translation of page_metadata_ranked, content_sk, content_type and
+  A direct translation of page_metadata_ranked, content_id, content_type and
   page_pub_date from the Global Content Dashboard query, so verticals match it.
 
     - key = page
@@ -15,7 +15,7 @@
     - home.page, news.page and sport.page get no section, topic or pillar
     - only in-scope traffic counts: in-scope sites, no UK, no UK apps, no junk pages
     - weather, storyworks and news-languages sites don't count towards the ranking
-    - content_sk and content_type: the most frequent non-null value per page
+    - content_id and content_type: the most frequent non-null value per page
     - page_title and date_published: the most frequent pair per page
 
 */
@@ -29,7 +29,7 @@ with base_events as (
         content_topic,
         content_pillar,
         url,
-        content_sk,
+        content_id,
         content_type,
         page_title,
         date_published
@@ -71,12 +71,12 @@ metadata_ranked as (
     ) = 1
 ),
 
-content_sks as (
-    select page, content_sk
+content_ids as (
+    select page, content_id
     from base_events
-    where content_sk is not null
+    where content_id is not null
     group by 1, 2
-    qualify row_number() over (partition by page order by count(*) desc, max(page_view_time) desc, content_sk) = 1
+    qualify row_number() over (partition by page order by count(*) desc, max(page_view_time) desc, content_id) = 1
 ),
 
 content_types as (
@@ -94,7 +94,7 @@ titles as (
     qualify row_number() over (partition by page order by count(*) desc, max(page_view_time) desc, page_title, date_published) = 1
 ),
 
--- in-scope page views in the window; used to pick one page per content_sk in dim_content
+-- in-scope page views in the window; used to pick one page per content_id in dim_content
 page_totals as (
     select page, count(*) as page_views
     from base_events
@@ -103,7 +103,7 @@ page_totals as (
 
 select
     m.page,
-    i.content_sk,
+    i.content_id,
     m.url,
     m.content_section,
     m.content_topic,
@@ -113,7 +113,7 @@ select
     p.date_published,
     v.page_views
 from metadata_ranked m
-left join content_sks   i on i.page = m.page
+left join content_ids   i on i.page = m.page
 left join content_types t on t.page = m.page
 left join titles        p on p.page = m.page
 left join page_totals   v on v.page = m.page

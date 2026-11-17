@@ -261,6 +261,7 @@ SELECT
     device_platform_id,
     browser_group,
     os_version,
+    app_type,
     app_name,
 
     -- site

@@ -10,8 +10,12 @@
     )
 }}
 
-SELECT *
-FROM {{ ref('fct_page_views') }}
+SELECT fct.*, 
+    geo.bbcs_region,
+    device.* EXCLUDE device_platform_id
+FROM ({{ ref('fct_page_views') }}) fct
+LEFT JOIN ({{ ref('country_region_map') }}) geo ON LOWER(TRIM(geo.country)) = LOWER(TRIM(fct.geo_country))
+LEFT JOIN ({{ ref('dim_device_platform') }}) device ON LOWER(TRIM(device.device_platform_id)) = LOWER(TRIM(fct.device_platform_id))
 WHERE 1 = 1
 AND {{ filter_page_exclusions() }}
 AND {{ filter_exclude_uk_app_name()}}
